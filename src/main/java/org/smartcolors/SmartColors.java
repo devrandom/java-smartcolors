@@ -39,7 +39,7 @@ public class SmartColors {
 		checkArgument(v >= 0);
 		checkArgument(v < (1L << 62));
 		checkArgument(minimumNValue >= 0);
-		// FIXME python consensus code allows minimumNValue greater than 2**63
+
 		v = v << 1;
 		if (v >= minimumNValue)
 			return v; // No padding needed
