@@ -24,7 +24,8 @@ public abstract class GenesisPoint {
 	}
 
 	static {
-		register(TxOutGenesisPoint.TX_OUT_POINT_TYPE, TxOutGenesisPoint.class);
+		register(TxOutGenesisPoint.POINT_TYPE, TxOutGenesisPoint.class);
+		register(ScriptPubkeyGenesisPoint.POINT_TYPE, ScriptPubkeyGenesisPoint.class);
 	}
 
 	public abstract byte getType();

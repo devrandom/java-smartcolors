@@ -7,6 +7,7 @@ import org.bitcoinj.core.ProtocolException;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.Utils;
+import org.bitcoinj.script.Script;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -39,6 +40,18 @@ public class GenesisPointTest {
 		TxOutGenesisPoint point1 =
 				(TxOutGenesisPoint) GenesisPoint.fromPayload(params, Utils.HEX.decode("010000000000000000000000000000000000000000000000000000000000000000ffffff0f"));
 		assertEquals(point.getOutPoint(), point1.getOutPoint());
+	}
+
+	@Test
+	public void testScriptPubkey() throws IOException {
+		ScriptPubkeyGenesisPoint point =
+				new ScriptPubkeyGenesisPoint(params, new Script(new byte[0]));
+		ByteOutputStream bos = new ByteOutputStream();
+		point.bitcoinSerializeToStream(bos);
+		assertEquals("0200", toHex(bos));
+		ScriptPubkeyGenesisPoint point1 =
+				(ScriptPubkeyGenesisPoint) GenesisPoint.fromPayload(params, Utils.HEX.decode("0200"));
+		assertEquals(point.getScriptPubkey(), point1.getScriptPubkey());
 	}
 
 	private String toHex(ByteOutputStream bos) {

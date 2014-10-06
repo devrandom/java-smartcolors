@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 public class TxOutGenesisPoint extends GenesisPoint {
-	public static final byte TX_OUT_POINT_TYPE = 0x01;
+	public static final byte POINT_TYPE = 0x01;
 	private TransactionOutPoint outPoint;
 
 	public TxOutGenesisPoint(NetworkParameters params, TransactionOutPoint outPoint) {
@@ -20,7 +20,7 @@ public class TxOutGenesisPoint extends GenesisPoint {
 
 	@Override
 	public byte getType() {
-		return TX_OUT_POINT_TYPE;
+		return POINT_TYPE;
 	}
 
 	@Override
