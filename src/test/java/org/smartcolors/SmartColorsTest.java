@@ -10,7 +10,8 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.List;
 
-import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertEquals;
+import static org.smartcolors.Utils.parseBinary;
 
 public class SmartColorsTest {
     private ObjectMapper mapper;
@@ -48,12 +49,5 @@ public class SmartColorsTest {
 		assertEquals(binaryString + " -> " + expected + " min " + binaryMinimum,
 				parseBinary(expected),
 				SmartColors.addMsbdropValuePadding(parseBinary(binaryString), parseBinary(binaryMinimum)));
-	}
-
-	private long parseBinary(String s) {
-		BigInteger v = new BigInteger(s, 2);
-		if (v.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0)
-			v = v.add(BigInteger.valueOf(Long.MIN_VALUE).multiply(BigInteger.valueOf(2)));
-		return v.longValue();
 	}
 }
