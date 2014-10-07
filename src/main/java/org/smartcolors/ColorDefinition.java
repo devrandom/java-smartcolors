@@ -4,11 +4,30 @@ import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutput;
 
+import java.util.Set;
+
 import static com.google.common.base.Preconditions.checkState;
 
+/**
+ * The low-level definition of a color
+ *
+ * <p>Commits to all valid genesis points for this color in a merkle tree. This
+ * lets even very large color definitions be used efficiently by SPV clients.
+ */
+// TODO serialization
 public class ColorDefinition {
-
 	public static final int MAX_COLOR_OUTPUTS = 32;
+
+	private final Set<GenesisPoint> genesisPoints;
+
+	public ColorDefinition(Set<GenesisPoint> genesisPoints) {
+		this.genesisPoints = genesisPoints;
+		// TODO ordered?
+	}
+
+	public boolean contains(GenesisPoint point) {
+		return genesisPoints.contains(point);
+	}
 
 	/**
 	 * Calculate the color transferred by a specific txin

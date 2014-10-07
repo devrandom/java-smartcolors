@@ -39,4 +39,16 @@ public class TxOutGenesisPoint extends GenesisPoint {
 	public TransactionOutPoint getOutPoint() {
 		return outPoint;
 	}
+
+	@Override
+	public int hashCode() {
+		return outPoint.hashCode();
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (!(obj instanceof TxOutGenesisPoint))
+			return false;
+		return ((TxOutGenesisPoint)obj).outPoint.equals(outPoint);
+	}
 }

@@ -2,6 +2,7 @@ package org.smartcolors;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Sets;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.NetworkParameters;
@@ -34,7 +35,7 @@ public class ColorDefinitionTest {
 
 	@Before
 	public void setUp() {
-		def = new ColorDefinition();
+		def = new ColorDefinition(Sets.<GenesisPoint>newHashSet());
 		mapper = new ObjectMapper();
 		params = NetworkParameters.fromID(NetworkParameters.ID_TESTNET);
 	}
