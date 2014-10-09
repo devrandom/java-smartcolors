@@ -77,6 +77,19 @@ public class ColorProofTest {
 		assertEquals(expectedUnspent, proof.getUnspentOutputs());
 		assertEquals(0, expectedUnspent.size());
 		assertEquals(3, expectedAll.size());
+
+		proof.undoLast();
+		proof.undoLast();
+		proof.undoLast();
+		expectedAll = Maps.newHashMap();
+		expectedUnspent = Maps.newHashMap();
+		expectedAll.put(genesisOutPoint, 1L);
+		expectedUnspent.put(genesisOutPoint, 1L);
+		assertEquals(expectedAll, proof.getOutputs());
+		assertEquals(expectedUnspent, proof.getUnspentOutputs());
+		proof.undoLast();
+		assertTrue(proof.getOutputs().isEmpty());
+		assertTrue(proof.getUnspentOutputs().isEmpty());
 	}
 
 	@Test

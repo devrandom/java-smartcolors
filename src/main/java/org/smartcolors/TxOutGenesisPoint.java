@@ -36,6 +36,11 @@ public class TxOutGenesisPoint extends GenesisPoint {
 		outPoint.bitcoinSerialize(stream);
 	}
 
+	@Override
+	public byte[] getBloomFilterElement() {
+		return outPoint.bitcoinSerialize();
+	}
+
 	public TransactionOutPoint getOutPoint() {
 		return outPoint;
 	}

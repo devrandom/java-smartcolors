@@ -4,6 +4,8 @@ import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutput;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -19,10 +21,17 @@ public class ColorDefinition {
 	public static final int MAX_COLOR_OUTPUTS = 32;
 
 	private final Set<GenesisPoint> genesisPoints;
+	private long creationTime;
 
 	public ColorDefinition(Set<GenesisPoint> genesisPoints) {
 		this.genesisPoints = genesisPoints;
 		// TODO ordered?
+		try {
+			this.creationTime = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").parse("2014-10-01T00:00:00+0000").getTime();
+		} catch (ParseException e) {
+			throw new RuntimeException(e);
+		}
+		// TODO creationTime
 	}
 
 	public boolean contains(GenesisPoint point) {
@@ -91,5 +100,13 @@ public class ColorDefinition {
 			}
 		}
 		return colorOuts;
+	}
+
+	public long getCreationTime() {
+		return creationTime;
+	}
+
+	public Set<GenesisPoint> getGenesisPoints() {
+		return genesisPoints;
 	}
 }

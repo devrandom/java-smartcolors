@@ -9,8 +9,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Map;
 
-import static com.google.common.base.Preconditions.checkState;
-
 public abstract class GenesisPoint {
 	private static Map<Byte, Class<? extends GenesisPoint>> registry = Maps.newTreeMap();
 	protected byte[] payload;
@@ -54,4 +52,6 @@ public abstract class GenesisPoint {
 	public void bitcoinSerializeToStream(OutputStream stream) throws IOException {
 		stream.write(getType());
 	}
+
+	public abstract byte[] getBloomFilterElement();
 }
