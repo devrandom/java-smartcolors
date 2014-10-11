@@ -2,6 +2,7 @@ package org.smartcolors;
 
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.TransactionOutPoint;
+import org.bitcoinj.core.Utils;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -38,7 +39,8 @@ public class TxOutGenesisPoint extends GenesisPoint {
 
 	@Override
 	public byte[] getBloomFilterElement() {
-		return outPoint.bitcoinSerialize();
+		// Watch for the transaction itself.  Once we see it, we will add relevant outputs.
+		return Utils.reverseBytes(outPoint.getHash().getBytes());
 	}
 
 	public TransactionOutPoint getOutPoint() {

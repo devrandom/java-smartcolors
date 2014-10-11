@@ -17,6 +17,8 @@ import org.bitcoinj.core.StoredBlock;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.VerificationException;
 import org.bitcoinj.utils.Threading;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -28,6 +30,8 @@ import java.util.concurrent.locks.ReentrantLock;
  * A blockchain and peer listener that keeps a set of color trackers updated with blockchain events.
  */
 public class ColorScanner implements PeerFilterProvider, BlockChainListener {
+	private static final Logger log = LoggerFactory.getLogger(ColorScanner.class);
+
 	private final AbstractPeerEventListener peerEventListener;
 	Set<ColorProof> proofs = Sets.newHashSet();
 	protected final ReentrantLock lock = Threading.lock("colorScanner");
@@ -43,12 +47,13 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 
 			@Override
 			public void onPeerConnected(Peer peer, int peerCount) {
+				log.info("Peer connected {}", peer);
 				peer.addEventListener(this);
 			}
 		};
 	}
 
-	AbstractPeerEventListener getPeerEventListener() {
+	public AbstractPeerEventListener getPeerEventListener() {
 		return peerEventListener;
 	}
 
@@ -63,6 +68,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 
 	@Override
 	public void reorganize(StoredBlock splitPoint, List<StoredBlock> oldBlocks, List<StoredBlock> newBlocks) throws VerificationException {
+		log.info("reorganize {} -> {}", newBlocks.size(), oldBlocks.size());
 		// Remove transactions from old blocks
 		for (ColorProof proof : proofs) {
 			blocks:
@@ -92,6 +98,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 
 	@Override
 	public boolean isTransactionRelevant(Transaction tx) throws ScriptException {
+		log.info("isRelevant {}", tx);
 		for (ColorProof proof : proofs) {
 			if (proof.isTransactionRelevant(tx))
 				return true;
@@ -105,6 +112,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	}
 
 	private boolean receive(Transaction tx, StoredBlock block, AbstractBlockChain.NewBlockType blockType, int relativityOffset) {
+		log.info("receive {} {}", tx, relativityOffset);
 		boolean isRelevant = false;
 		mapBlockTx.put(block.getHeader().getHash(), new SortedTransaction(tx, relativityOffset));
 		if (blockType == AbstractBlockChain.NewBlockType.BEST_CHAIN) {
@@ -121,6 +129,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	@Override
 	public boolean notifyTransactionIsInBlock(Sha256Hash txHash, StoredBlock block, AbstractBlockChain.NewBlockType blockType, int relativityOffset) throws VerificationException {
 		Transaction tx = pending.get(txHash);
+		log.info("in block {} {}", tx, relativityOffset);
 		return (tx != null) && receive(tx, block, blockType, relativityOffset);
 	}
 

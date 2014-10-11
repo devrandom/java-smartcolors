@@ -27,7 +27,7 @@ public class ColorDefinition {
 		this.genesisPoints = genesisPoints;
 		// TODO ordered?
 		try {
-			this.creationTime = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").parse("2014-10-01T00:00:00+0000").getTime();
+			this.creationTime = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").parse("2014-09-24T00:00:00+0000").getTime() / 1000;
 		} catch (ParseException e) {
 			throw new RuntimeException(e);
 		}
@@ -102,8 +102,14 @@ public class ColorDefinition {
 		return colorOuts;
 	}
 
+	/** Creation time in seconds since the epoch */
 	public long getCreationTime() {
 		return creationTime;
+	}
+
+	/** Creation time in seconds since the epoch */
+	public void setCreationTime(long creationTime) {
+		this.creationTime = creationTime;
 	}
 
 	public Set<GenesisPoint> getGenesisPoints() {
