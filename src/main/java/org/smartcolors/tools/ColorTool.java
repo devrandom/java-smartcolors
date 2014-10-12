@@ -18,6 +18,7 @@ import org.bitcoinj.store.BlockStoreException;
 import org.bitcoinj.store.SPVBlockStore;
 import org.bitcoinj.store.WalletProtobufSerializer;
 import org.bitcoinj.utils.BriefLogFormatter;
+import org.bitcoinj.utils.Threading;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.smartcolors.ColorDefinition;
@@ -146,7 +147,7 @@ public class ColorTool {
 			CheckpointManager.checkpoint(params, new FileInputStream(checkpointFile), store, scanner.getEarliestKeyCreationTime());
 		}
 		chain = new MyBlockChain(params, wallet, store);
-		chain.addListener(scanner);
+		chain.addListener(scanner, Threading.SAME_THREAD);
 
 		if (peers == null) {
 			peers = new PeerGroup(params, chain);
@@ -224,13 +225,16 @@ public class ColorTool {
 	}
 
 	private static void scan(List<?> cmdArgs) {
-		String ser = "000000005b00000000000000000000000000000000000000000000000000000000000000000000000101623861939cd73c880cdf1e6cfdfbfdd0c9ad4efda09cf000f5618181767c48ad00000000";
+		String ser = "000000005b0000000000000000000000000000000000000000000000000000000000000000000000010174b16bf3ce53c26c3bc7a42f06328b4776a616182478b7011fba181db0539fc500000000";
 		ColorDefinition def = ColorDefinition.fromPayload(params, Utils.HEX.decode(ser));
 		System.out.println(def);
 		ColorProof proof = new ColorProof(def);
 		scanner = new ColorScanner();
 		scanner.addProof(proof);
 		syncChain();
+		System.out.println(proof);
+		//Utils.sleep(1000);
+		System.exit(0);
 	}
 
 	private static ColorDefinition getColorDefinition() {

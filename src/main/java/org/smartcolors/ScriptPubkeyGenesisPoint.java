@@ -45,11 +45,6 @@ public class ScriptPubkeyGenesisPoint extends GenesisPoint {
 		stream.write(scriptPubkey.getProgram());
 	}
 
-	@Override
-	public byte[] getBloomFilterElement() {
-		return scriptPubkey.getProgram();
-	}
-
 	public Script getScriptPubkey() {
 		return scriptPubkey;
 	}

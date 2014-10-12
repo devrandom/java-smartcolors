@@ -23,6 +23,7 @@ import static com.google.common.base.Preconditions.checkState;
  * <p>Also used to update bloom filters for SPV scanning
  */
 public class ColorProof {
+	public static final String SMART_ASSET_MARKER = "SMARTASS";
 	private final ColorDefinition definition;
 	private Map<TransactionOutPoint, Long> outputs;
 	private Map<TransactionOutPoint, Long> unspentOutputs;
@@ -157,23 +158,38 @@ public class ColorProof {
 
 	/** The number of items in the bloom filter this tracker contributes */
 	public int getBloomFilterElementCount() {
-		int count = 0;
-		for (TransactionOutPoint point: outputs.keySet()) {
-			if (!definition.contains(new TxOutGenesisPoint(point.getParams(), point))) {
-				count++;
-			}
-		}
-		count += definition.getGenesisPoints().size();
-		return count;
+		return 1;
+	}
+
+	public static byte[] getBloomFilterElement() {
+		return SMART_ASSET_MARKER.getBytes();
 	}
 
 	/** Insert outpoints and genesis points in the bloom filter */
 	public void updateBloomFilter(BloomFilter filter) {
+		filter.insert(getBloomFilterElement());
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("[ColorProof\nAll:\n");
 		for (TransactionOutPoint point: outputs.keySet()) {
-			filter.insert(point.bitcoinSerialize());
+			builder.append("  ");
+			builder.append(point.toString());
+			builder.append(" = ");
+			builder.append(outputs.get(point));
+			builder.append("\n");
 		}
-		for (GenesisPoint point : definition.getGenesisPoints()) {
-			filter.insert(point.getBloomFilterElement());
+		builder.append("\nUnspent:\n");
+		for (TransactionOutPoint point: unspentOutputs.keySet()) {
+			builder.append("  ");
+			builder.append(point.toString());
+			builder.append(" = ");
+			builder.append(unspentOutputs.get(point));
+			builder.append("\n");
 		}
+		builder.append("\n]");
+		return builder.toString();
 	}
 }

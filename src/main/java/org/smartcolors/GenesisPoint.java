@@ -54,6 +54,4 @@ public abstract class GenesisPoint implements Comparable<GenesisPoint> {
 	public void bitcoinSerializeToStream(OutputStream stream) throws IOException {
 		stream.write(getType());
 	}
-
-	public abstract byte[] getBloomFilterElement();
 }

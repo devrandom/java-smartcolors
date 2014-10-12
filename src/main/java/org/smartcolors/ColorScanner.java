@@ -98,12 +98,8 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 
 	@Override
 	public boolean isTransactionRelevant(Transaction tx) throws ScriptException {
-		log.info("isRelevant {}", tx);
-		for (ColorProof proof : proofs) {
-			if (proof.isTransactionRelevant(tx))
-				return true;
-		}
-		return false;
+		log.info("isRelevant {}", tx.getHash());
+		return true; // Always relevant with OP_RETURN marker scanning
 	}
 
 	@Override
@@ -113,17 +109,15 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 
 	private boolean receive(Transaction tx, StoredBlock block, AbstractBlockChain.NewBlockType blockType, int relativityOffset) {
 		log.info("receive {} {}", tx, relativityOffset);
-		boolean isRelevant = false;
 		mapBlockTx.put(block.getHeader().getHash(), new SortedTransaction(tx, relativityOffset));
 		if (blockType == AbstractBlockChain.NewBlockType.BEST_CHAIN) {
 			for (ColorProof proof : proofs) {
 				if (proof.isTransactionRelevant(tx)) {
 					proof.add(tx);
-					isRelevant = true;
 				}
 			}
 		}
-		return isRelevant;
+		return true; // Always relevant with OP_RETURN marker scanning
 	}
 
 	@Override
