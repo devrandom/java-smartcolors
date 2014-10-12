@@ -12,6 +12,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.HashMap;
+import java.util.SortedSet;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -32,7 +33,9 @@ public class ColorProofTest {
 		genesisTx.addOutput(ASSET_COIN_ONE, new Script(new byte[0]));
 		TransactionOutPoint genesisOutPoint = new TransactionOutPoint(params, 0, genesisTx);
 		TxOutGenesisPoint genesis = new TxOutGenesisPoint(params, genesisOutPoint);
-		ColorDefinition def = new ColorDefinition(Sets.newHashSet((GenesisPoint)genesis));
+		SortedSet<GenesisPoint> points = Sets.newTreeSet();
+		points.add(genesis);
+		ColorDefinition def = new ColorDefinition(points);
 		ColorProof proof = new ColorProof(def);
 		assertTrue(proof.getOutputs().isEmpty());
 		assertTrue(proof.getUnspentOutputs().isEmpty());

@@ -9,10 +9,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Map;
 
-public abstract class GenesisPoint {
+public abstract class GenesisPoint implements Comparable<GenesisPoint> {
 	private static Map<Byte, Class<? extends GenesisPoint>> registry = Maps.newTreeMap();
 	protected byte[] payload;
 	protected NetworkParameters params;
+	protected int cursor;
 
 	protected GenesisPoint() {
 	}
@@ -28,15 +29,16 @@ public abstract class GenesisPoint {
 
 	public abstract byte getType();
 
-	public static GenesisPoint fromPayload(NetworkParameters params, byte[] payload) throws ProtocolException {
-		if (payload.length < 1)
+	public static GenesisPoint fromPayload(NetworkParameters params, byte[] payload, int cursor) throws ProtocolException {
+		if (payload.length < cursor + 1)
 			throw new ProtocolException("too short");
-		byte type = payload[0];
+		byte type = payload[cursor];
 		if (!registry.containsKey(type))
 			throw new ProtocolException("unknown GenesisPoint type " + type);
 		try {
 			GenesisPoint point = registry.get(type).newInstance();
 			point.payload = payload;
+			point.cursor = cursor;
 			point.params = params;
 			point.parse();
 			return point;

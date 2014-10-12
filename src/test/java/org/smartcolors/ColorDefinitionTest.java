@@ -35,7 +35,7 @@ public class ColorDefinitionTest {
 
 	@Before
 	public void setUp() {
-		def = new ColorDefinition(Sets.<GenesisPoint>newHashSet());
+		def = new ColorDefinition(Sets.<GenesisPoint>newTreeSet());
 		mapper = new ObjectMapper();
 		params = NetworkParameters.fromID(NetworkParameters.ID_TESTNET);
 	}

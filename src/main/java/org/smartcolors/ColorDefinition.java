@@ -1,12 +1,19 @@
 package org.smartcolors;
 
+import com.google.common.collect.Sets;
+
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.ProtocolException;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutput;
+import org.bitcoinj.core.Utils;
+import org.bitcoinj.core.VarInt;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Set;
+import java.util.SortedSet;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -18,12 +25,14 @@ import static com.google.common.base.Preconditions.checkState;
  */
 // TODO serialization
 public class ColorDefinition {
+	protected byte[] payload;
 	public static final int MAX_COLOR_OUTPUTS = 32;
+	public static final int VERSION = 0;
 
-	private final Set<GenesisPoint> genesisPoints;
+	private final SortedSet<GenesisPoint> genesisPoints;
 	private long creationTime;
 
-	public ColorDefinition(Set<GenesisPoint> genesisPoints) {
+	public ColorDefinition(SortedSet<GenesisPoint> genesisPoints) {
 		this.genesisPoints = genesisPoints;
 		// TODO ordered?
 		try {
@@ -32,6 +41,25 @@ public class ColorDefinition {
 			throw new RuntimeException(e);
 		}
 		// TODO creationTime
+	}
+
+	public static ColorDefinition fromPayload(NetworkParameters params, byte[] payload) throws ProtocolException {
+		int cursor = 0;
+		long version = Utils.readUint32(payload, cursor);
+		cursor += 4;
+		if (version != VERSION)
+			throw new ProtocolException("unexpected version " + version);
+		long blockheight = Utils.readUint32(payload, cursor); // TODO convert to timestamp
+		cursor += 4;
+		cursor += 32; // TODO prevdef hash
+		VarInt numPoints = new VarInt(payload, cursor);
+		cursor += numPoints.getOriginalSizeInBytes();
+		SortedSet<GenesisPoint> points = Sets.newTreeSet();
+		for (int i = 0; i < numPoints.value; i++) {
+			GenesisPoint point = GenesisPoint.fromPayload(params, payload, cursor);
+			points.add(point);
+		}
+		return new ColorDefinition(points);
 	}
 
 	public boolean contains(GenesisPoint point) {
@@ -114,5 +142,18 @@ public class ColorDefinition {
 
 	public Set<GenesisPoint> getGenesisPoints() {
 		return genesisPoints;
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("[ColorDefinition:\n");
+		for (GenesisPoint point: genesisPoints) {
+			builder.append("  ");
+			builder.append(point.toString());
+			builder.append("\n");
+		}
+		builder.append("]");
+		return builder.toString();
 	}
 }

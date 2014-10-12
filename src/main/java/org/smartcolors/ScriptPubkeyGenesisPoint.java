@@ -53,4 +53,25 @@ public class ScriptPubkeyGenesisPoint extends GenesisPoint {
 	public Script getScriptPubkey() {
 		return scriptPubkey;
 	}
+
+	@Override
+	public int compareTo(GenesisPoint o) {
+		if (!(o instanceof ScriptPubkeyGenesisPoint)) {
+			if (getType() > o.getType())
+				return 1;
+			else if (getType() < o.getType())
+				return -1;
+			return 0;
+		}
+		ScriptPubkeyGenesisPoint p = (ScriptPubkeyGenesisPoint) o;
+		byte[] bytes = scriptPubkey.getProgram();
+		byte[] obytes = p.scriptPubkey.getProgram();
+		for (int i = 0; i < bytes.length; i++) {
+			if (bytes[i] > obytes[i])
+				return 1;
+			else if (bytes[i] < obytes[i])
+				return -1;
+		}
+		return 0;
+	}
 }

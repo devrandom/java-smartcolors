@@ -11,6 +11,7 @@ import org.bitcoinj.core.PeerAddress;
 import org.bitcoinj.core.PeerGroup;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.TransactionOutPoint;
+import org.bitcoinj.core.Utils;
 import org.bitcoinj.core.Wallet;
 import org.bitcoinj.store.BlockStore;
 import org.bitcoinj.store.BlockStoreException;
@@ -32,7 +33,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
-import java.util.Set;
+import java.util.SortedSet;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 
@@ -61,7 +62,7 @@ public class ColorTool {
 		parser.accepts("prod", "use prodnet (default is testnet)");
 		parser.accepts("regtest", "use regtest mode (default is testnet)");
 		parser.accepts("debug");
-		OptionSpec<String> walletFileName = parser.accepts("wallet").withRequiredArg().defaultsTo("wallet");
+		OptionSpec<String> walletFileName = parser.accepts("wallet").withRequiredArg();
 		parser.nonOptions("COMMAND: one of - help, scan\n");
 
 		options = parser.parse(args);
@@ -95,7 +96,10 @@ public class ColorTool {
 		chainFile = new File(net + ".chain");
 		checkpointFile = new File(net + "-checkpoints.txt");
 
-		walletFile = new File(walletFileName.value(options));
+		String walletName = walletFileName.value(options);
+		if (walletName == null)
+			walletName = net + ".wallet";
+		walletFile = new File(walletName);
 		if (!walletFile.exists()) {
 			createWallet(options, params, walletFile);
 		}
@@ -219,19 +223,24 @@ public class ColorTool {
 		wallet.saveToFile(walletFile);
 	}
 
-
 	private static void scan(List<?> cmdArgs) {
-		List<String> genesisStrings = Lists.newArrayList("a18ed2595af17c30f5968a1c93de2364ae8d5af9d547f2336aafda8ed529fb2e:0");
-		Set<GenesisPoint> genesisPoints = Sets.newHashSet();
-		for (String str: genesisStrings) {
-			String[] sp = str.split(":", 2);
-			genesisPoints.add(new TxOutGenesisPoint(params, new TransactionOutPoint(params, Long.parseLong(sp[1]), new Sha256Hash(sp[0]))));
-		}
-		ColorDefinition def = new ColorDefinition(genesisPoints);
+		String ser = "000000005b00000000000000000000000000000000000000000000000000000000000000000000000101623861939cd73c880cdf1e6cfdfbfdd0c9ad4efda09cf000f5618181767c48ad00000000";
+		ColorDefinition def = ColorDefinition.fromPayload(params, Utils.HEX.decode(ser));
+		System.out.println(def);
 		ColorProof proof = new ColorProof(def);
 		scanner = new ColorScanner();
 		scanner.addProof(proof);
 		syncChain();
+	}
+
+	private static ColorDefinition getColorDefinition() {
+		List<String> genesisStrings = Lists.newArrayList("a18ed2595af17c30f5968a1c93de2364ae8d5af9d547f2336aafda8ed529fb2e:0");
+		SortedSet<GenesisPoint> genesisPoints = Sets.newTreeSet();
+		for (String str: genesisStrings) {
+			String[] sp = str.split(":", 2);
+			genesisPoints.add(new TxOutGenesisPoint(params, new TransactionOutPoint(params, Long.parseLong(sp[1]), new Sha256Hash(sp[0]))));
+		}
+		return new ColorDefinition(genesisPoints);
 	}
 
 	private static void usage() throws IOException {

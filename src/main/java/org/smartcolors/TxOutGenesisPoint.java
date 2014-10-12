@@ -26,7 +26,8 @@ public class TxOutGenesisPoint extends GenesisPoint {
 
 	@Override
 	protected void parse() {
-		int cursor = 1;
+		int cursor = this.cursor;
+		cursor++; // Skip type
 		outPoint = new TransactionOutPoint(params, payload, cursor);
 		cursor += outPoint.getMessageSize();
 	}
@@ -57,5 +58,35 @@ public class TxOutGenesisPoint extends GenesisPoint {
 		if (!(obj instanceof TxOutGenesisPoint))
 			return false;
 		return ((TxOutGenesisPoint)obj).outPoint.equals(outPoint);
+	}
+
+	@Override
+	public String toString() {
+		return "[TxOutGenesisPoint: " + outPoint + "]";
+	}
+
+	@Override
+	public int compareTo(GenesisPoint o) {
+		if (!(o instanceof TxOutGenesisPoint)) {
+			if (getType() > o.getType())
+				return 1;
+			else if (getType() < o.getType())
+				return -1;
+			return 0;
+		}
+		TxOutGenesisPoint p = (TxOutGenesisPoint) o;
+		byte[] bytes = outPoint.getHash().getBytes();
+		byte[] obytes = p.outPoint.getHash().getBytes();
+		for (int i = 0; i < bytes.length; i++) {
+			if (bytes[i] > obytes[i])
+				return 1;
+			else if (bytes[i] < obytes[i])
+				return -1;
+		}
+		if (outPoint.getIndex() > p.outPoint.getIndex())
+			return 1;
+		else if (outPoint.getIndex() < p.outPoint.getIndex())
+			return -1;
+		return 0;
 	}
 }
