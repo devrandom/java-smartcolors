@@ -5,6 +5,7 @@ import com.google.common.collect.Sets;
 
 import org.bitcoinj.core.AbstractBlockChain;
 import org.bitcoinj.core.BloomFilter;
+import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Sha256Hash;
@@ -14,6 +15,7 @@ import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.Wallet;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
+import org.bitcoinj.script.ScriptOpCodes;
 import org.bitcoinj.store.MemoryBlockStore;
 import org.bitcoinj.testing.FakeTxBuilder;
 import org.junit.Before;
@@ -37,6 +39,7 @@ public class ColorScannerTest {
 	private StoredBlock genesisBlock;
 	private ColorProof proof;
 	private ColorDefinition def;
+	private Script opReturnScript;
 
 	@Before
 	public void setUp() throws Exception {
@@ -44,7 +47,12 @@ public class ColorScannerTest {
 		blockStore = new MemoryBlockStore(params);
 		genesisTx = new Transaction(params);
 		genesisTx.addInput(Sha256Hash.ZERO_HASH, 0, EMPTY_SCRIPT);
+		ScriptBuilder ret = new ScriptBuilder();
+		ret.op(ScriptOpCodes.OP_RETURN);
+		ret.data(ColorProof.SMART_ASSET_MARKER.getBytes());
+		opReturnScript = ret.build();
 		genesisTx.addOutput(Utils.makeAssetCoin(10), new Script(new byte[0]));
+		genesisTx.addOutput(Coin.ZERO, opReturnScript);
 		genesisBlock = FakeTxBuilder.createFakeBlock(blockStore, genesisTx).storedBlock;
 		genesisOutPoint = new TransactionOutPoint(params, 0, genesisTx);
 		TxOutGenesisPoint genesis = new TxOutGenesisPoint(params, genesisOutPoint);
@@ -76,6 +84,7 @@ public class ColorScannerTest {
 		Transaction tx2 = new Transaction(params);
 		tx2.addInput(genesisTx.getOutput(0));
 		tx2.addOutput(Utils.makeAssetCoin(5), ScriptBuilder.createOutputScript(new ECKey()));
+		tx2.addOutput(Coin.ZERO, opReturnScript);
 		Map<ColorDefinition, Long> res = scanner.getNetAssetChange(tx2, wallet);
 		Map<ColorDefinition, Long> expected = Maps.newHashMap();
 		expected.put(ColorDefinition.UNKNOWN, 5L);
@@ -96,6 +105,7 @@ public class ColorScannerTest {
 		Transaction tx2 = new Transaction(params);
 		tx2.addInput(genesisTx.getOutput(0));
 		tx2.addOutput(Utils.makeAssetCoin(5), ScriptBuilder.createOutputScript(myKey));
+		tx2.addOutput(Coin.ZERO, opReturnScript);
 		scanner.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
 		wallet.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
 		Map<ColorDefinition, Long> expected = Maps.newHashMap();
@@ -108,6 +118,7 @@ public class ColorScannerTest {
 		tx3.addInput(tx2.getOutput(0));
 		tx3.addOutput(Utils.makeAssetCoin(2), ScriptBuilder.createOutputScript(myKey));
 		tx3.addOutput(Utils.makeAssetCoin(3), ScriptBuilder.createOutputScript(new ECKey()));
+		tx3.addOutput(Coin.ZERO, opReturnScript);
 		scanner.receiveFromBlock(tx3, FakeTxBuilder.createFakeBlock(blockStore, tx3).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
 		wallet.receiveFromBlock(tx3, FakeTxBuilder.createFakeBlock(blockStore, tx3).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
 

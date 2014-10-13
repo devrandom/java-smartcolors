@@ -5,6 +5,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultimap;
+import com.google.common.primitives.Bytes;
 
 import org.bitcoinj.core.AbstractBlockChain;
 import org.bitcoinj.core.AbstractPeerEventListener;
@@ -21,11 +22,15 @@ import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.VerificationException;
 import org.bitcoinj.core.Wallet;
+import org.bitcoinj.script.Script;
+import org.bitcoinj.script.ScriptChunk;
+import org.bitcoinj.script.ScriptOpCodes;
 import org.bitcoinj.utils.Threading;
 import org.bitcoinj.wallet.WalletTransaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -106,7 +111,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	@Override
 	public boolean isTransactionRelevant(Transaction tx) throws ScriptException {
 		log.info("isRelevant {}", tx.getHash());
-		return true; // Always relevant with OP_RETURN marker scanning
+		return isRelevant(tx);
 	}
 
 	@Override
@@ -116,6 +121,8 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 
 	private boolean receive(Transaction tx, StoredBlock block, AbstractBlockChain.NewBlockType blockType, int relativityOffset) {
 		log.info("receive {} {}", tx, relativityOffset);
+		if (!isRelevant(tx))
+			return false;
 		mapBlockTx.put(block.getHeader().getHash(), new SortedTransaction(tx, relativityOffset));
 		if (blockType == AbstractBlockChain.NewBlockType.BEST_CHAIN) {
 			for (ColorProof proof : proofs) {
@@ -124,7 +131,19 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 				}
 			}
 		}
-		return true; // Always relevant with OP_RETURN marker scanning
+		return true;
+	}
+
+	private boolean isRelevant(Transaction tx) {
+		for (TransactionOutput output: tx.getOutputs()) {
+			Script script = output.getScriptPubKey();
+			List<ScriptChunk> chunks = script.getChunks();
+			if (chunks.size() == 2 && chunks.get(0).opcode == ScriptOpCodes.OP_RETURN && Arrays.equals(chunks.get(1).data, ColorProof.SMART_ASSET_MARKER.getBytes())) {
+				return true;
+			}
+		}
+		log.info("not relevant");
+		return false;
 	}
 
 	@Override
