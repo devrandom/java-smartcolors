@@ -1,5 +1,6 @@
 package org.smartcolors;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
@@ -16,6 +17,7 @@ import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.StoredBlock;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionBag;
+import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.VerificationException;
 import org.bitcoinj.utils.Threading;
@@ -169,19 +171,43 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 
 	public Map<ColorDefinition, Long> getAssetValues(Transaction tx, TransactionBag bag) {
 		HashMap<ColorDefinition, Long> res = Maps.newHashMap();
-		for (ColorProof proof: proofs) {
-			for (TransactionOutput out : tx.getOutputs()) {
-				if (out.isMine(bag)) {
+		outs: for (TransactionOutput out : getColoredOutputs(tx)) {
+			if (out.isMine(bag)) {
+				for (ColorProof proof: proofs) {
 					Long value = proof.getOutputs().get(out.getOutPointFor());
 					if (value != null) {
 						Long existing = res.get(proof.getDefinition());
 						if (existing != null)
 							value = value + existing;
 						res.put(proof.getDefinition(), value);
+						continue outs;
 					}
 				}
+				// Unknown asset on this output
+				Long value = SmartColors.removeMsbdropValuePadding(out.getValue().getValue());
+				Long existing = res.get(ColorDefinition.UNKNOWN);
+				if (existing != null)
+					value = value + existing;
+				res.put(ColorDefinition.UNKNOWN, value);
 			}
 		}
 		return res;
+	}
+
+	private List<TransactionOutput> getColoredOutputs(Transaction tx) {
+		long mask = ~0;
+		for (TransactionInput input: tx.getInputs()) {
+			mask = mask & input.getSequenceNumber();
+		}
+
+		List<TransactionOutput> outputs = Lists.newArrayList();
+		for (TransactionOutput output: tx.getOutputs()) {
+			if ((mask & 1) == 1) {
+				outputs.add(output);
+			}
+			mask = mask >> 1;
+		}
+
+		return outputs;
 	}
 }

@@ -2,7 +2,7 @@ package org.smartcolors;
 
 import java.math.BigInteger;
 
-public class Utils {
+public class Utils extends org.bitcoinj.core.Utils {
 	public static long parseBinary(String s) {
 		BigInteger v = new BigInteger(s, 2);
 		if (v.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0)

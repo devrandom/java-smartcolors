@@ -1,5 +1,6 @@
 package org.smartcolors;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Maps;
@@ -7,14 +8,18 @@ import com.google.common.collect.Sets;
 
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.ProtocolException;
+import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.Utils;
 import org.bitcoinj.core.VarInt;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.SortedSet;
 
@@ -31,19 +36,35 @@ public class ColorDefinition {
 	protected byte[] payload;
 	public static final int MAX_COLOR_OUTPUTS = 32;
 	public static final int VERSION = 0;
+	public static final ColorDefinition UNKNOWN = makeUnknown();
+
+	private static ColorDefinition makeUnknown() {
+		Map<String, String> metadata = Maps.newHashMap();
+		metadata.put("name", "UNKNOWN");
+		return new ColorDefinition(Sets.<GenesisPoint>newTreeSet(), metadata);
+	}
 
 	private final ImmutableSortedSet<GenesisPoint> genesisPoints;
 	private final ImmutableMap<String, String> metadata;
+	private final long blockheight;
+	private final Sha256Hash prevdefHash;
 	private long creationTime;
+	private Sha256Hash hash;
 
-	public ColorDefinition(SortedSet<GenesisPoint> genesisPoints, Map<String, String> metadata) {
-		this.genesisPoints = ImmutableSortedSet.copyOf(genesisPoints);
+	public ColorDefinition(SortedSet<GenesisPoint> points, Map<String, String> metadata) {
+		this(points, metadata, 0, new byte[32]);
+	}
+
+	public ColorDefinition(SortedSet<GenesisPoint> points, Map<String, String> metadata, long blockheight, byte[] prevdefHash) {
+		this.genesisPoints = ImmutableSortedSet.copyOf(points);
 		try {
 			this.creationTime = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").parse("2014-09-24T00:00:00+0000").getTime() / 1000;
 		} catch (ParseException e) {
 			throw new RuntimeException(e);
 		}
 		this.metadata = ImmutableMap.copyOf(metadata);
+		this.blockheight = blockheight;
+		this.prevdefHash = new Sha256Hash(prevdefHash);
 		// TODO creationTime
 	}
 
@@ -64,6 +85,7 @@ public class ColorDefinition {
 			throw new ProtocolException("unexpected version " + version);
 		long blockheight = Utils.readUint32(payload, cursor); // TODO convert to timestamp
 		cursor += 4;
+		byte[] prevdefHash = Arrays.copyOfRange(payload, cursor, cursor+32);
 		cursor += 32; // TODO prevdef hash
 		VarInt numPoints = new VarInt(payload, cursor);
 		cursor += numPoints.getOriginalSizeInBytes();
@@ -72,7 +94,18 @@ public class ColorDefinition {
 			GenesisPoint point = GenesisPoint.fromPayload(params, payload, cursor);
 			points.add(point);
 		}
-		return new ColorDefinition(points, metadata);
+		return new ColorDefinition(points, metadata, blockheight, prevdefHash);
+	}
+
+	public void bitcoinSerialize(ByteArrayOutputStream bos) throws IOException {
+		Utils.uint32ToByteStreamLE(VERSION, bos);
+		Utils.uint32ToByteStreamLE(blockheight, bos);
+		bos.write(prevdefHash.getBytes());
+		VarInt numPoints = new VarInt(genesisPoints.size());
+		bos.write(numPoints.encode());
+		for (GenesisPoint point: genesisPoints) {
+			point.bitcoinSerializeToStream(bos);
+		}
 	}
 
 	public String getName() {
@@ -176,5 +209,18 @@ public class ColorDefinition {
 		}
 		builder.append("]");
 		return builder.toString();
+	}
+
+	public Sha256Hash getHash() {
+		if (hash != null)
+			return hash;
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		try {
+			bitcoinSerialize(bos);
+		} catch (IOException e) {
+			Throwables.propagate(e);
+		}
+		hash = Sha256Hash.createDouble(bos.toByteArray());
+		return hash;
 	}
 }

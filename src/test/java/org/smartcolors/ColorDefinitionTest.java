@@ -12,12 +12,14 @@ import org.bitcoinj.script.Script;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 
 import io.dropwizard.testing.FixtureHelpers;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.smartcolors.Utils.parseBinary;
 
 public class ColorDefinitionTest {
@@ -49,6 +51,16 @@ public class ColorDefinitionTest {
 		for (KernelTestItem item : items) {
 			checkKernel(item);
 		}
+	}
+
+	@Test
+	public void deserialize() throws IOException {
+		byte[] defBytes = Utils.HEX.decode("00000000000000000000000000000000000000000000000000000000000000000000000000000000010174b16bf3ce53c26c3bc7a42f06328b4776a616182478b7011fba181db0539fc500000000");
+		ColorDefinition def = ColorDefinition.fromPayload(params, defBytes);
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		def.bitcoinSerialize(bos);
+		assertArrayEquals(defBytes, bos.toByteArray());
+		assertEquals("0a20faec7138b5f312ed58fb86cb181fc3719c28f2a167f02064f2cd5a90ec3a", Utils.HEX.encode(def.getHash().getBytes()));
 	}
 
 	private void checkKernel(KernelTestItem item) {
