@@ -16,11 +16,13 @@ import org.bitcoinj.core.ScriptException;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.StoredBlock;
 import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionBag;
 import org.bitcoinj.core.TransactionInput;
+import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.VerificationException;
+import org.bitcoinj.core.Wallet;
 import org.bitcoinj.utils.Threading;
+import org.bitcoinj.wallet.WalletTransaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -169,16 +171,22 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		return lock;
 	}
 
-	public Map<ColorDefinition, Long> getAssetValues(Transaction tx, TransactionBag bag) {
+	/**
+	 * Get the net movement of assets caused by the transaction.
+	 *
+	 * <p>If we notice an output that is marked as carrying color, but we don't know what asset
+	 * it is, it will be marked as {@link org.smartcolors.ColorDefinition#UNKNOWN}</p>
+	 */
+	public Map<ColorDefinition, Long> getNetAssetChange(Transaction tx, Wallet wallet) {
 		HashMap<ColorDefinition, Long> res = Maps.newHashMap();
 		outs: for (TransactionOutput out : getColoredOutputs(tx)) {
-			if (out.isMine(bag)) {
+			if (out.isMine(wallet)) {
 				for (ColorProof proof: proofs) {
 					Long value = proof.getOutputs().get(out.getOutPointFor());
 					if (value != null) {
 						Long existing = res.get(proof.getDefinition());
 						if (existing != null)
-							value = value + existing;
+							value = existing + value;
 						res.put(proof.getDefinition(), value);
 						continue outs;
 					}
@@ -191,7 +199,42 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 				res.put(ColorDefinition.UNKNOWN, value);
 			}
 		}
+		inps: for (TransactionInput inp: tx.getInputs()) {
+			if (isInputMine(inp, wallet)) {
+				for (ColorProof proof : proofs) {
+					Long value = proof.getOutputs().get(inp.getOutpoint());
+					if (value != null) {
+						Long existing = res.get(proof.getDefinition());
+						if (existing != null)
+							value = existing - value;
+						res.put(proof.getDefinition(), value);
+						continue inps;
+					}
+				}
+			}
+		}
 		return res;
+	}
+
+	private boolean isInputMine(TransactionInput input, Wallet wallet) {
+		TransactionOutPoint outpoint = input.getOutpoint();
+		TransactionOutput connected = getConnected(outpoint, wallet.getTransactionPool(WalletTransaction.Pool.UNSPENT));
+		if (connected == null)
+			connected = getConnected(outpoint, wallet.getTransactionPool(WalletTransaction.Pool.SPENT));
+		if (connected == null)
+			connected = getConnected(outpoint, wallet.getTransactionPool(WalletTransaction.Pool.PENDING));
+		if (connected == null)
+			return false;
+		// The connected output may be the change to the sender of a previous input sent to this wallet. In this
+		// case we ignore it.
+		return connected.isMine(wallet);
+	}
+
+	private TransactionOutput getConnected(TransactionOutPoint outpoint, Map<Sha256Hash, Transaction> transactions) {
+		Transaction tx = transactions.get(outpoint.getHash());
+		if (tx == null)
+			return null;
+		return tx.getOutputs().get((int) outpoint.getIndex());
 	}
 
 	private List<TransactionOutput> getColoredOutputs(Transaction tx) {

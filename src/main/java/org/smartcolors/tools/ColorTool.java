@@ -264,7 +264,7 @@ public class ColorTool {
 		System.out.println(wallet);
 		System.out.println(wallet.currentReceiveAddress());
 		for (Transaction tx: wallet.getTransactionPool(WalletTransaction.Pool.UNSPENT).values()) {
-			Map<ColorDefinition, Long> values = scanner.getAssetValues(tx, wallet);
+			Map<ColorDefinition, Long> values = scanner.getNetAssetChange(tx, wallet);
 			System.out.println(tx.getHash());
 			System.out.println(values);
 		}
