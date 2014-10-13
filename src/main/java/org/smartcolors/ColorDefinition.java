@@ -1,5 +1,8 @@
 package org.smartcolors;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import org.bitcoinj.core.NetworkParameters;
@@ -12,7 +15,7 @@ import org.bitcoinj.core.VarInt;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Set;
+import java.util.Map;
 import java.util.SortedSet;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -29,21 +32,31 @@ public class ColorDefinition {
 	public static final int MAX_COLOR_OUTPUTS = 32;
 	public static final int VERSION = 0;
 
-	private final SortedSet<GenesisPoint> genesisPoints;
+	private final ImmutableSortedSet<GenesisPoint> genesisPoints;
+	private final ImmutableMap<String, String> metadata;
 	private long creationTime;
 
-	public ColorDefinition(SortedSet<GenesisPoint> genesisPoints) {
-		this.genesisPoints = genesisPoints;
-		// TODO ordered?
+	public ColorDefinition(SortedSet<GenesisPoint> genesisPoints, Map<String, String> metadata) {
+		this.genesisPoints = ImmutableSortedSet.copyOf(genesisPoints);
 		try {
 			this.creationTime = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").parse("2014-09-24T00:00:00+0000").getTime() / 1000;
 		} catch (ParseException e) {
 			throw new RuntimeException(e);
 		}
+		this.metadata = ImmutableMap.copyOf(metadata);
 		// TODO creationTime
 	}
 
+	public ColorDefinition(SortedSet<GenesisPoint> points) {
+		this(points, Maps.<String, String>newHashMap());
+	}
+
+
 	public static ColorDefinition fromPayload(NetworkParameters params, byte[] payload) throws ProtocolException {
+		return fromPayload(params, payload, Maps.<String, String>newHashMap());
+	}
+
+	public static ColorDefinition fromPayload(NetworkParameters params, byte[] payload, Map<String, String> metadata) throws ProtocolException {
 		int cursor = 0;
 		long version = Utils.readUint32(payload, cursor);
 		cursor += 4;
@@ -59,7 +72,11 @@ public class ColorDefinition {
 			GenesisPoint point = GenesisPoint.fromPayload(params, payload, cursor);
 			points.add(point);
 		}
-		return new ColorDefinition(points);
+		return new ColorDefinition(points, metadata);
+	}
+
+	public String getName() {
+		return metadata.get("name");
 	}
 
 	public boolean contains(GenesisPoint point) {
@@ -140,12 +157,16 @@ public class ColorDefinition {
 		this.creationTime = creationTime;
 	}
 
-	public Set<GenesisPoint> getGenesisPoints() {
+	public ImmutableSortedSet<GenesisPoint> getGenesisPoints() {
 		return genesisPoints;
 	}
 
 	@Override
 	public String toString() {
+		return getName();
+	}
+
+	public String toStringFull() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("[ColorDefinition:\n");
 		for (GenesisPoint point: genesisPoints) {

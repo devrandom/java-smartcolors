@@ -15,11 +15,14 @@ import org.bitcoinj.core.ScriptException;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.StoredBlock;
 import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionBag;
+import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.VerificationException;
 import org.bitcoinj.utils.Threading;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -162,5 +165,23 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	@Override
 	public Lock getLock() {
 		return lock;
+	}
+
+	public Map<ColorDefinition, Long> getAssetValues(Transaction tx, TransactionBag bag) {
+		HashMap<ColorDefinition, Long> res = Maps.newHashMap();
+		for (ColorProof proof: proofs) {
+			for (TransactionOutput out : tx.getOutputs()) {
+				if (out.isMine(bag)) {
+					Long value = proof.getOutputs().get(out.getOutPointFor());
+					if (value != null) {
+						Long existing = res.get(proof.getDefinition());
+						if (existing != null)
+							value = value + existing;
+						res.put(proof.getDefinition(), value);
+					}
+				}
+			}
+		}
+		return res;
 	}
 }

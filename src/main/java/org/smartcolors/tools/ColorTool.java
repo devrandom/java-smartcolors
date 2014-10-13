@@ -1,6 +1,7 @@
 package org.smartcolors.tools;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import org.bitcoinj.core.BlockChain;
@@ -10,18 +11,25 @@ import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.PeerAddress;
 import org.bitcoinj.core.PeerGroup;
 import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.Utils;
 import org.bitcoinj.core.Wallet;
 import org.bitcoinj.store.BlockStore;
 import org.bitcoinj.store.BlockStoreException;
 import org.bitcoinj.store.SPVBlockStore;
+import org.bitcoinj.store.UnreadableWalletException;
 import org.bitcoinj.store.WalletProtobufSerializer;
 import org.bitcoinj.utils.BriefLogFormatter;
 import org.bitcoinj.utils.Threading;
+import org.bitcoinj.wallet.DeterministicKeyChain;
+import org.bitcoinj.wallet.DeterministicSeed;
+import org.bitcoinj.wallet.WalletTransaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.smartcolors.ColorDefinition;
+import org.smartcolors.ColorKeyChain;
+import org.smartcolors.ColorKeyChainFactory;
 import org.smartcolors.ColorProof;
 import org.smartcolors.ColorScanner;
 import org.smartcolors.GenesisPoint;
@@ -33,7 +41,11 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedSet;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
@@ -57,6 +69,7 @@ public class ColorTool {
 	private static File walletFile;
 	private static ColorScanner scanner;
 	private static File checkpointFile;
+	private static ColorKeyChain colorChain;
 
 	public static void main(String[] args) throws IOException {
 		parser = new OptionParser();
@@ -108,6 +121,7 @@ public class ColorTool {
 		BufferedInputStream walletInputStream = null;
 		try {
 			WalletProtobufSerializer loader = new WalletProtobufSerializer();
+			loader.setKeyChainFactory(new ColorKeyChainFactory());
 			if (options.has("ignore-mandatory-extensions"))
 				loader.setRequireMandatoryExtensions(false);
 			walletInputStream = new BufferedInputStream(new FileInputStream(walletFile));
@@ -117,6 +131,7 @@ public class ColorTool {
 						wallet.getParams().getId() + " vs " + params.getId());
 				return;
 			}
+			wallet.clearTransactions(0);
 		} catch (Exception e) {
 			System.err.println("Failed to load wallet '" + walletFile + "': " + e.getMessage());
 			e.printStackTrace();
@@ -221,30 +236,60 @@ public class ColorTool {
 			return;
 		}
 		wallet = new Wallet(params);
+		try {
+			colorChain =
+					ColorKeyChain.builder()
+							.seed(new DeterministicSeed("correct battery horse staple bogum", null, "", getEpoch()))
+							.build();
+			DeterministicKeyChain chain =
+					DeterministicKeyChain.builder()
+							.seed(new DeterministicSeed("correct battery horse staple bogum", null, "", getEpoch()))
+							.build();
+			wallet.addAndActivateHDChain(colorChain);
+			wallet.addAndActivateHDChain(chain);
+		} catch (UnreadableWalletException e) {
+			throw new RuntimeException(e);
+		}
 		wallet.saveToFile(walletFile);
 	}
 
 	private static void scan(List<?> cmdArgs) {
-		String ser = "000000005b0000000000000000000000000000000000000000000000000000000000000000000000010174b16bf3ce53c26c3bc7a42f06328b4776a616182478b7011fba181db0539fc500000000";
-		ColorDefinition def = ColorDefinition.fromPayload(params, Utils.HEX.decode(ser));
-		System.out.println(def);
+		ColorDefinition def = makeColorDefinition();
 		ColorProof proof = new ColorProof(def);
 		scanner = new ColorScanner();
 		scanner.addProof(proof);
 		syncChain();
 		System.out.println(proof);
 		//Utils.sleep(1000);
+		System.out.println(wallet);
+		System.out.println(wallet.currentReceiveAddress());
+		for (Transaction tx: wallet.getTransactionPool(WalletTransaction.Pool.UNSPENT).values()) {
+			Map<ColorDefinition, Long> values = scanner.getAssetValues(tx, wallet);
+			System.out.println(tx.getHash());
+			System.out.println(values);
+		}
 		System.exit(0);
 	}
 
-	private static ColorDefinition getColorDefinition() {
+	private static ColorDefinition makeColorDefinition() {
+		String ser = "000000005b0000000000000000000000000000000000000000000000000000000000000000000000010174b16bf3ce53c26c3bc7a42f06328b4776a616182478b7011fba181db0539fc500000000";
+		HashMap<String, String> metadata = Maps.newHashMap();
+		metadata.put("name", "widgets");
+		ColorDefinition def = ColorDefinition.fromPayload(params, Utils.HEX.decode(ser), metadata);
+		System.out.println(def);
+		return def;
+	}
+
+	private static ColorDefinition makeColorDefinition1() {
 		List<String> genesisStrings = Lists.newArrayList("a18ed2595af17c30f5968a1c93de2364ae8d5af9d547f2336aafda8ed529fb2e:0");
 		SortedSet<GenesisPoint> genesisPoints = Sets.newTreeSet();
 		for (String str: genesisStrings) {
 			String[] sp = str.split(":", 2);
 			genesisPoints.add(new TxOutGenesisPoint(params, new TransactionOutPoint(params, Long.parseLong(sp[1]), new Sha256Hash(sp[0]))));
 		}
-		return new ColorDefinition(genesisPoints);
+		HashMap<String, String> metadata = Maps.newHashMap();
+		metadata.put("name", "widgets");
+		return new ColorDefinition(genesisPoints, metadata);
 	}
 
 	private static void usage() throws IOException {
@@ -260,6 +305,15 @@ public class ColorTool {
 
 		public void roll(int height) throws BlockStoreException {
 			rollbackBlockStore(height);
+		}
+	}
+
+	// seconds
+	private static long getEpoch() {
+		try {
+			return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").parse("2014-09-24T00:00:00+0000").getTime() / 1000;
+		} catch (ParseException e) {
+			throw new RuntimeException(e);
 		}
 	}
 }

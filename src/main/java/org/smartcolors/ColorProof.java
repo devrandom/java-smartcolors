@@ -192,4 +192,8 @@ public class ColorProof {
 		builder.append("\n]");
 		return builder.toString();
 	}
+
+	public ColorDefinition getDefinition() {
+		return definition;
+	}
 }
