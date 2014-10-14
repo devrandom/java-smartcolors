@@ -5,7 +5,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultimap;
-import com.google.common.primitives.Bytes;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 
 import org.bitcoinj.core.AbstractBlockChain;
 import org.bitcoinj.core.AbstractPeerEventListener;
@@ -31,12 +32,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import javax.annotation.concurrent.GuardedBy;
 
 /**
  * A blockchain and peer listener that keeps a set of color trackers updated with blockchain events.
@@ -47,8 +49,12 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	private final AbstractPeerEventListener peerEventListener;
 	Set<ColorProof> proofs = Sets.newHashSet();
 	protected final ReentrantLock lock = Threading.lock("colorScanner");
+	@GuardedBy("lock")
 	SetMultimap<Sha256Hash, SortedTransaction> mapBlockTx = TreeMultimap.create();
-	Map<Sha256Hash, Transaction> pending = Maps.newHashMap();
+	@GuardedBy("lock")
+	Map<Sha256Hash, Transaction> pending = Maps.newConcurrentMap();
+	@GuardedBy("lock")
+	private Map<Transaction, SettableFuture<Transaction>> unknownTransactionFutures = Maps.newHashMap();
 
 	public ColorScanner() {
 		peerEventListener = new AbstractPeerEventListener() {
@@ -71,7 +77,12 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 
 	/** Add a color to the set of tracked colors */
 	public void addProof(ColorProof proof) {
-		proofs.add(proof);
+		lock.lock();
+		try {
+			proofs.add(proof);
+		} finally {
+   			lock.unlock();
+		}
 	}
 
 	@Override
@@ -80,6 +91,15 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 
 	@Override
 	public void reorganize(StoredBlock splitPoint, List<StoredBlock> oldBlocks, List<StoredBlock> newBlocks) throws VerificationException {
+		lock.lock();
+		try {
+			doRorganize(oldBlocks, newBlocks);
+		} finally {
+   			lock.unlock();
+		}
+	}
+
+	private void doRorganize(List<StoredBlock> oldBlocks, List<StoredBlock> newBlocks) {
 		log.info("reorganize {} -> {}", newBlocks.size(), oldBlocks.size());
 		// Remove transactions from old blocks
 		for (ColorProof proof : proofs) {
@@ -120,18 +140,27 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	}
 
 	private boolean receive(Transaction tx, StoredBlock block, AbstractBlockChain.NewBlockType blockType, int relativityOffset) {
-		log.info("receive {} {}", tx, relativityOffset);
-		if (!isRelevant(tx))
-			return false;
-		mapBlockTx.put(block.getHeader().getHash(), new SortedTransaction(tx, relativityOffset));
-		if (blockType == AbstractBlockChain.NewBlockType.BEST_CHAIN) {
-			for (ColorProof proof : proofs) {
-				if (proof.isTransactionRelevant(tx)) {
-					proof.add(tx);
+		lock.lock();
+		try {
+			log.info("receive {} {}", tx, relativityOffset);
+			if (!isRelevant(tx))
+				return false;
+			mapBlockTx.put(block.getHeader().getHash(), new SortedTransaction(tx, relativityOffset));
+			if (blockType == AbstractBlockChain.NewBlockType.BEST_CHAIN) {
+				for (ColorProof proof : proofs) {
+					if (proof.isTransactionRelevant(tx)) {
+						proof.add(tx);
+					}
 				}
 			}
+			SettableFuture<Transaction> future = unknownTransactionFutures.remove(tx);
+			if (future != null) {
+				future.set(tx);
+			}
+			return true;
+		} finally {
+			lock.unlock();
 		}
-		return true;
 	}
 
 	private boolean isRelevant(Transaction tx) {
@@ -155,18 +184,28 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 
 	@Override
 	public long getEarliestKeyCreationTime() {
-		long creationTime = Long.MAX_VALUE;
-		for (ColorProof proof : proofs) {
-			creationTime = Math.min(creationTime, proof.getCreationTime());
+		lock.lock();
+		try {
+			long creationTime = Long.MAX_VALUE;
+			for (ColorProof proof : proofs) {
+				creationTime = Math.min(creationTime, proof.getCreationTime());
+			}
+			return creationTime;
+		} finally {
+            lock.unlock();
 		}
-		return creationTime;
 	}
 
 	@Override
 	public int getBloomFilterElementCount() {
 		int count = 0;
-		for (ColorProof proof : proofs) {
-			count += proof.getBloomFilterElementCount();
+		lock.lock();
+		try {
+			for (ColorProof proof : proofs) {
+				count += proof.getBloomFilterElementCount();
+			}
+		} finally {
+            lock.unlock();
 		}
 		return count;
 	}
@@ -174,8 +213,13 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	@Override
 	public BloomFilter getBloomFilter(int size, double falsePositiveRate, long nTweak) {
 		BloomFilter filter = new BloomFilter(size, falsePositiveRate, nTweak);
-		for (ColorProof proof : proofs) {
-			proof.updateBloomFilter(filter);
+		lock.lock();
+		try {
+			for (ColorProof proof : proofs) {
+				proof.updateBloomFilter(filter);
+			}
+		} finally {
+            lock.unlock();
 		}
 		return filter;
 	}
@@ -197,42 +241,62 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	 * it is, it will be marked as {@link org.smartcolors.ColorDefinition#UNKNOWN}</p>
 	 */
 	public Map<ColorDefinition, Long> getNetAssetChange(Transaction tx, Wallet wallet) {
-		HashMap<ColorDefinition, Long> res = Maps.newHashMap();
-		outs: for (TransactionOutput out : getColoredOutputs(tx)) {
-			if (out.isMine(wallet)) {
-				for (ColorProof proof: proofs) {
-					Long value = proof.getOutputs().get(out.getOutPointFor());
-					if (value != null) {
-						Long existing = res.get(proof.getDefinition());
-						if (existing != null)
-							value = existing + value;
-						res.put(proof.getDefinition(), value);
-						continue outs;
+		Map<ColorDefinition, Long> res = Maps.newHashMap();
+		lock.lock();
+		try {
+			outs: for (TransactionOutput out : getColoredOutputs(tx)) {
+				if (out.isMine(wallet)) {
+					for (ColorProof proof: proofs) {
+						Long value = proof.getOutputs().get(out.getOutPointFor());
+						if (value != null) {
+							Long existing = res.get(proof.getDefinition());
+							if (existing != null)
+								value = existing + value;
+							res.put(proof.getDefinition(), value);
+							continue outs;
+						}
 					}
-				}
-				// Unknown asset on this output
-				Long value = SmartColors.removeMsbdropValuePadding(out.getValue().getValue());
-				Long existing = res.get(ColorDefinition.UNKNOWN);
-				if (existing != null)
-					value = value + existing;
-				res.put(ColorDefinition.UNKNOWN, value);
-			}
-		}
-		inps: for (TransactionInput inp: tx.getInputs()) {
-			if (isInputMine(inp, wallet)) {
-				for (ColorProof proof : proofs) {
-					Long value = proof.getOutputs().get(inp.getOutpoint());
-					if (value != null) {
-						Long existing = res.get(proof.getDefinition());
-						if (existing != null)
-							value = existing - value;
-						res.put(proof.getDefinition(), value);
-						continue inps;
-					}
+					// Unknown asset on this output
+					Long value = SmartColors.removeMsbdropValuePadding(out.getValue().getValue());
+					Long existing = res.get(ColorDefinition.UNKNOWN);
+					if (existing != null)
+						value = value + existing;
+					res.put(ColorDefinition.UNKNOWN, value);
 				}
 			}
+			inps: for (TransactionInput inp: tx.getInputs()) {
+				if (isInputMine(inp, wallet)) {
+					for (ColorProof proof : proofs) {
+						Long value = proof.getOutputs().get(inp.getOutpoint());
+						if (value != null) {
+							Long existing = res.get(proof.getDefinition());
+							if (existing != null)
+								value = existing - value;
+							res.put(proof.getDefinition(), value);
+							continue inps;
+						}
+					}
+				}
+			}
+		} finally {
+   			lock.unlock();
 		}
 		return res;
+	}
+
+	public ListenableFuture<Transaction> getTransactionWithKnownAssets(Transaction tx, Wallet wallet) {
+		lock.lock();
+		try {
+			SettableFuture<Transaction> future = SettableFuture.create();
+			if (getNetAssetChange(tx, wallet).containsKey(ColorDefinition.UNKNOWN)) {
+				unknownTransactionFutures.put(tx, future);
+			} else {
+				future.set(tx);
+			}
+			return future;
+		} finally {
+            lock.unlock();
+		}
 	}
 
 	private boolean isInputMine(TransactionInput input, Wallet wallet) {
