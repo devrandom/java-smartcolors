@@ -3,9 +3,14 @@ package org.smartcolors.tools;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 
+import org.bitcoinj.core.AbstractWalletEventListener;
 import org.bitcoinj.core.BlockChain;
 import org.bitcoinj.core.CheckpointManager;
+import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.DownloadListener;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.PeerAddress;
@@ -50,6 +55,8 @@ import java.util.SortedSet;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 
+import javax.annotation.Nullable;
+
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -86,7 +93,7 @@ public class ColorTool {
 			log.info("Starting up ...");
 		} else {
 			// Disable logspam unless there is a flag.
-			LogManager.getLogManager().getLogger("").setLevel(Level.FINE);
+			LogManager.getLogManager().getLogger("").setLevel(Level.INFO);
 		}
 
 		List<?> cmds = options.nonOptionArguments();
@@ -141,6 +148,25 @@ public class ColorTool {
 				walletInputStream.close();
 			}
 		}
+
+		wallet.addEventListener(new AbstractWalletEventListener() {
+			@Override
+			public void onCoinsReceived(final Wallet wallet, Transaction tx, Coin prevBalance, Coin newBalance) {
+				ListenableFuture<Transaction> res = scanner.getTransactionWithKnownAssets(tx, wallet);
+				Futures.addCallback(res, new FutureCallback<Transaction>() {
+					@Override
+					public void onSuccess(@Nullable Transaction result) {
+						Map<ColorDefinition, Long> change = scanner.getNetAssetChange(result, wallet);
+						System.out.println(change);
+					}
+
+					@Override
+					public void onFailure(Throwable t) {
+						log.error("*** failed");
+					}
+				});
+			}
+		});
 
 		if (cmd.equals("help")) {
 			usage();
@@ -259,20 +285,29 @@ public class ColorTool {
 		scanner = new ColorScanner();
 		scanner.addProof(proof);
 		syncChain();
-		System.out.println(proof);
-		//Utils.sleep(1000);
-		System.out.println(wallet);
-		System.out.println(wallet.currentReceiveAddress());
-		for (Transaction tx: wallet.getTransactionPool(WalletTransaction.Pool.UNSPENT).values()) {
-			Map<ColorDefinition, Long> values = scanner.getNetAssetChange(tx, wallet);
-			System.out.println(tx.getHash());
-			System.out.println(values);
+		if (false) {
+			System.out.println(proof);
+			System.out.println(wallet);
+			System.out.println(wallet.currentReceiveAddress());
+			for (Transaction tx: wallet.getTransactionPool(WalletTransaction.Pool.UNSPENT).values()) {
+				Map<ColorDefinition, Long> values = scanner.getNetAssetChange(tx, wallet);
+				System.out.println(tx.getHash());
+				System.out.println(values);
+			}
 		}
+		Utils.sleep(1000);
 		System.exit(0);
 	}
 
 	private static ColorDefinition makeColorDefinition() {
-		String ser = "000000005b0000000000000000000000000000000000000000000000000000000000000000000000010174b16bf3ce53c26c3bc7a42f06328b4776a616182478b7011fba181db0539fc500000000";
+		String ser;
+		if (params.getId().equals(NetworkParameters.ID_REGTEST)) {
+			ser = "000000005b0000000000000000000000000000000000000000000000000000000000000000000000010174b16bf3ce53c26c3bc7a42f06328b4776a616182478b7011fba181db0539fc500000000";
+		} else if (params.getId().equals(NetworkParameters.ID_TESTNET)) {
+			ser = "000000002e970400000000000000000000000000000000000000000000000000000000000000000001019fe1cdae009a55d0877550aabdc7a1dc187f1dabcea8cf167827d6401f912db100000000";
+		} else {
+			throw new IllegalArgumentException();
+		}
 		HashMap<String, String> metadata = Maps.newHashMap();
 		metadata.put("name", "widgets");
 		ColorDefinition def = ColorDefinition.fromPayload(params, Utils.HEX.decode(ser), metadata);
