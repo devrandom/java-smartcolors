@@ -72,8 +72,10 @@ public class ColorScannerTest {
 	@Test
 	public void testGetColors() {
 		Set<ColorDefinition> colors = scanner.getColorDefinitions();
-		assertEquals(1, colors.size());
-		assertEquals(def, colors.iterator().next());
+		assertEquals(3, colors.size());
+		assertTrue(colors.contains(ColorDefinition.BITCOIN));
+		assertTrue(colors.contains(ColorDefinition.UNKNOWN));
+		assertTrue(colors.contains(def));
 	}
 
 	@Test

@@ -37,10 +37,17 @@ public class ColorDefinition {
 	public static final int MAX_COLOR_OUTPUTS = 32;
 	public static final int VERSION = 0;
 	public static final ColorDefinition UNKNOWN = makeUnknown();
+	public static final ColorDefinition BITCOIN = makeBitcoin();
 
 	private static ColorDefinition makeUnknown() {
 		Map<String, String> metadata = Maps.newHashMap();
 		metadata.put("name", "UNKNOWN");
+		return new ColorDefinition(Sets.<GenesisPoint>newTreeSet(), metadata);
+	}
+
+	private static ColorDefinition makeBitcoin() {
+		Map<String, String> metadata = Maps.newHashMap();
+		metadata.put("name", "Bitcoin");
 		return new ColorDefinition(Sets.<GenesisPoint>newTreeSet(), metadata);
 	}
 

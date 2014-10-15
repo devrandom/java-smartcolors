@@ -32,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -252,26 +253,16 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	 */
 	public Map<ColorDefinition, Long> getNetAssetChange(Transaction tx, Wallet wallet) {
 		Map<ColorDefinition, Long> res = Maps.newHashMap();
+		applyNetAssetChange(tx, wallet, res);
+		return res;
+	}
+
+	private void applyNetAssetChange(Transaction tx, Wallet wallet, Map<ColorDefinition, Long> res) {
 		lock.lock();
 		try {
 			outs: for (TransactionOutput out : getColoredOutputs(tx)) {
 				if (out.isMine(wallet)) {
-					for (ColorProof proof: proofs) {
-						Long value = proof.getOutputs().get(out.getOutPointFor());
-						if (value != null) {
-							Long existing = res.get(proof.getDefinition());
-							if (existing != null)
-								value = existing + value;
-							res.put(proof.getDefinition(), value);
-							continue outs;
-						}
-					}
-					// Unknown asset on this output
-					Long value = SmartColors.removeMsbdropValuePadding(out.getValue().getValue());
-					Long existing = res.get(ColorDefinition.UNKNOWN);
-					if (existing != null)
-						value = value + existing;
-					res.put(ColorDefinition.UNKNOWN, value);
+					if (applyOutputValue(out, res)) continue outs;
 				}
 			}
 			inps: for (TransactionInput inp: tx.getInputs()) {
@@ -291,6 +282,41 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		} finally {
    			lock.unlock();
 		}
+	}
+
+	private boolean applyOutputValue(TransactionOutput out, Map<ColorDefinition, Long> res) {
+		for (ColorProof proof: proofs) {
+			Long value = proof.getOutputs().get(out.getOutPointFor());
+			if (value != null) {
+				Long existing = res.get(proof.getDefinition());
+				if (existing != null)
+					value = existing + value;
+				res.put(proof.getDefinition(), value);
+				return true;
+			}
+		}
+		// Unknown asset on this output
+		Long value = SmartColors.removeMsbdropValuePadding(out.getValue().getValue());
+		Long existing = res.get(ColorDefinition.UNKNOWN);
+		if (existing != null)
+			value = value + existing;
+		res.put(ColorDefinition.UNKNOWN, value);
+		return false;
+	}
+
+	public Map<ColorDefinition, Long> getBalances(Wallet wallet) {
+		Map<ColorDefinition, Long> res = Maps.newHashMap();
+		res.put(ColorDefinition.BITCOIN, 0L);
+		lock.lock();
+		try {
+			LinkedList<TransactionOutput> all = wallet.calculateAllSpendCandidates(false);
+			for (TransactionOutput output: all) {
+				applyOutputValue(output, res);
+				res.put(ColorDefinition.BITCOIN, res.get(ColorDefinition.BITCOIN) + output.getValue().getValue());
+			}
+		} finally {
+   			lock.unlock();
+		}
 		return res;
 	}
 
@@ -301,7 +327,6 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	 *
 	 * <p>The caller may have to run this again if we find one asset, but there are other unknown outputs</p>
  	 */
-
 	public ListenableFuture<Transaction> getTransactionWithKnownAssets(Transaction tx, Wallet wallet) {
 		lock.lock();
 		try {
@@ -366,9 +391,11 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		lock.lock();
 		try {
 			Set<ColorDefinition> colors = Sets.newHashSet();
+			colors.add(ColorDefinition.BITCOIN);
 			for (ColorProof proof: proofs) {
 				colors.add(proof.getDefinition());
 			}
+			colors.add(ColorDefinition.UNKNOWN);
 			return colors;
 		} finally {
    			lock.unlock();
