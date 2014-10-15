@@ -24,6 +24,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.ExecutionException;
 
@@ -68,6 +69,13 @@ public class ColorScannerTest {
 		proof = new ColorProof(def);
 		scanner = new ColorScanner();
 		scanner.addProof(proof);
+	}
+
+	@Test
+	public void testGetColors() {
+		Set<ColorDefinition> colors = scanner.getColorDefinitions();
+		assertEquals(1, colors.size());
+		assertEquals(def, colors.iterator().next());
 	}
 
 	@Test

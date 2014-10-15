@@ -361,4 +361,17 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 			super(reason);
 		}
 	}
+
+	public Set<ColorDefinition> getColorDefinitions() {
+		lock.lock();
+		try {
+			Set<ColorDefinition> colors = Sets.newHashSet();
+			for (ColorProof proof: proofs) {
+				colors.add(proof.getDefinition());
+			}
+			return colors;
+		} finally {
+   			lock.unlock();
+		}
+	}
 }
