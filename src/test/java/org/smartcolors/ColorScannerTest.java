@@ -2,6 +2,7 @@ package org.smartcolors;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.ListenableFuture;
 
 import org.bitcoinj.core.AbstractBlockChain;
 import org.bitcoinj.core.BloomFilter;
@@ -24,9 +25,12 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.SortedSet;
+import java.util.concurrent.ExecutionException;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class ColorScannerTest {
 	public static final Script EMPTY_SCRIPT = new Script(new byte[0]);
@@ -126,6 +130,58 @@ public class ColorScannerTest {
 		res = scanner.getNetAssetChange(tx3, wallet);
 		expected.put(def, -3L);
 		assertEquals(expected, res);
+	}
+
+	@Test
+	public void testGetTransactionWithUnknownAsset() throws ExecutionException, InterruptedException {
+		final ECKey myKey = new ECKey();
+		scanner.receiveFromBlock(genesisTx, FakeTxBuilder.createFakeBlock(blockStore, genesisTx).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
+		Wallet wallet = new Wallet(params) {
+			@Override
+			public boolean isPubKeyMine(byte[] pubkey) {
+				return Arrays.equals(pubkey, myKey.getPubKey());
+			}
+		};
+
+		Transaction tx2 = new Transaction(params);
+		tx2.addInput(genesisTx.getOutput(0));
+		tx2.addOutput(Utils.makeAssetCoin(5), ScriptBuilder.createOutputScript(myKey));
+		tx2.addOutput(Coin.ZERO, opReturnScript);
+		wallet.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
+		ListenableFuture<Transaction> future = scanner.getTransactionWithKnownAssets(tx2, wallet);
+		assertFalse(future.isDone());
+		scanner.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
+		assertTrue(future.isDone());
+		assertEquals(tx2, future.get());
+	}
+
+	@Test
+	public void testGetTransactionWithUnknownAssetFail() throws ExecutionException, InterruptedException {
+		final ECKey myKey = new ECKey();
+		scanner.receiveFromBlock(genesisTx, FakeTxBuilder.createFakeBlock(blockStore, genesisTx).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
+		Wallet wallet = new Wallet(params) {
+			@Override
+			public boolean isPubKeyMine(byte[] pubkey) {
+				return Arrays.equals(pubkey, myKey.getPubKey());
+			}
+		};
+
+		Transaction tx2 = new Transaction(params);
+		tx2.addInput(genesisTx.getOutput(0));
+		tx2.addOutput(Utils.makeAssetCoin(5), ScriptBuilder.createOutputScript(myKey));
+		tx2.addOutput(Coin.ZERO, opReturnScript);
+		StoredBlock storedBlock = FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock;
+		wallet.receiveFromBlock(tx2, storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
+		ListenableFuture<Transaction> future = scanner.getTransactionWithKnownAssets(tx2, wallet);
+		assertFalse(future.isDone());
+		scanner.notifyNewBestBlock(storedBlock);
+		assertTrue(future.isDone());
+		try {
+			future.get();
+			fail();
+		} catch (ExecutionException ex) {
+			assertEquals(ColorScanner.ScanningException.class, ex.getCause().getClass());
+		}
 	}
 
 	private BloomFilter getBloomFilter() {

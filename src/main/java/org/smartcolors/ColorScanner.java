@@ -87,6 +87,16 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 
 	@Override
 	public void notifyNewBestBlock(StoredBlock block) throws VerificationException {
+		lock.lock();
+		try {
+			// Assume that any pending unknowns will not become known and therefore should fail
+			for (SettableFuture<Transaction> future: unknownTransactionFutures.values()) {
+				future.setException(new ScanningException("could not find asset type"));
+			}
+			unknownTransactionFutures.clear();
+		} finally {
+   			lock.unlock();
+		}
 	}
 
 	@Override
@@ -152,10 +162,10 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 						proof.add(tx);
 					}
 				}
-			}
-			SettableFuture<Transaction> future = unknownTransactionFutures.remove(tx);
-			if (future != null) {
-				future.set(tx);
+				SettableFuture<Transaction> future = unknownTransactionFutures.remove(tx);
+				if (future != null) {
+					future.set(tx);
+				}
 			}
 			return true;
 		} finally {
@@ -284,11 +294,20 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		return res;
 	}
 
+	/**
+	 * Get a future that will be ready when we make progress finding out the asset types that this
+	 * transaction outputs, or throw {@link org.smartcolors.ColorScanner.ScanningException}
+	 * if we were unable to ascertain some of the outputs.
+	 *
+	 * <p>The caller may have to run this again if we find one asset, but there are other unknown outputs</p>
+ 	 */
+
 	public ListenableFuture<Transaction> getTransactionWithKnownAssets(Transaction tx, Wallet wallet) {
 		lock.lock();
 		try {
 			SettableFuture<Transaction> future = SettableFuture.create();
 			if (getNetAssetChange(tx, wallet).containsKey(ColorDefinition.UNKNOWN)) {
+				// FIXME need to fail here right away if we are past the block where this tx appears and we are bloom filtering
 				unknownTransactionFutures.put(tx, future);
 			} else {
 				future.set(tx);
@@ -335,5 +354,11 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		}
 
 		return outputs;
+	}
+
+	public static class ScanningException extends RuntimeException {
+		public ScanningException(String reason) {
+			super(reason);
+		}
 	}
 }
