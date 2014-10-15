@@ -412,4 +412,12 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		builder.append("]");
 		return builder.toString();
 	}
+
+	public ColorDefinition getColorDefinitionByHash(Sha256Hash hash) {
+		for (ColorDefinition def: getColorDefinitions()) {
+			if (def.getHash().equals(hash))
+				return def;
+		}
+		return null;
+	}
 }
