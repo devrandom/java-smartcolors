@@ -230,4 +230,8 @@ public class ColorDefinition {
 		hash = Sha256Hash.createDouble(bos.toByteArray());
 		return hash;
 	}
+
+	public ImmutableMap<String, String> getMetadata() {
+		return metadata;
+	}
 }
