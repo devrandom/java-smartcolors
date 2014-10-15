@@ -76,10 +76,10 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	}
 
 	/** Add a color to the set of tracked colors */
-	public void addProof(ColorProof proof) {
+	public void addDefinition(ColorDefinition definition) {
 		lock.lock();
 		try {
-			proofs.add(proof);
+			proofs.add(new ColorProof(definition));
 		} finally {
    			lock.unlock();
 		}
@@ -373,5 +373,16 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		} finally {
    			lock.unlock();
 		}
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("[ColorScanner\n");
+		for (ColorProof proof: proofs) {
+			builder.append(proof.toString());
+		}
+		builder.append("]");
+		return builder.toString();
 	}
 }

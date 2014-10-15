@@ -35,7 +35,6 @@ import org.slf4j.LoggerFactory;
 import org.smartcolors.ColorDefinition;
 import org.smartcolors.ColorKeyChain;
 import org.smartcolors.ColorKeyChainFactory;
-import org.smartcolors.ColorProof;
 import org.smartcolors.ColorScanner;
 import org.smartcolors.GenesisPoint;
 import org.smartcolors.TxOutGenesisPoint;
@@ -281,12 +280,11 @@ public class ColorTool {
 
 	private static void scan(List<?> cmdArgs) {
 		ColorDefinition def = makeColorDefinition();
-		ColorProof proof = new ColorProof(def);
 		scanner = new ColorScanner();
-		scanner.addProof(proof);
+		scanner.addDefinition(def);
 		syncChain();
 		if (false) {
-			System.out.println(proof);
+			System.out.println(scanner);
 			System.out.println(wallet);
 			System.out.println(wallet.currentReceiveAddress());
 			for (Transaction tx: wallet.getTransactionPool(WalletTransaction.Pool.UNSPENT).values()) {

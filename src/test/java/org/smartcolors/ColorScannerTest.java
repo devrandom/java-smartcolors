@@ -42,7 +42,6 @@ public class ColorScannerTest {
 	private TransactionOutPoint genesisOutPoint;
 	private MemoryBlockStore blockStore;
 	private StoredBlock genesisBlock;
-	private ColorProof proof;
 	private ColorDefinition def;
 	private Script opReturnScript;
 
@@ -66,9 +65,8 @@ public class ColorScannerTest {
 		Map<String, String> metadata = Maps.newHashMap();
 		metadata.put("name", "widgets");
 		def = new ColorDefinition(points, metadata);
-		proof = new ColorProof(def);
 		scanner = new ColorScanner();
-		scanner.addProof(proof);
+		scanner.addDefinition(def);
 	}
 
 	@Test
