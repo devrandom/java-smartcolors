@@ -39,17 +39,26 @@ public class ColorDefinition {
 	public static final ColorDefinition UNKNOWN = makeUnknown();
 	public static final ColorDefinition BITCOIN = makeBitcoin();
 
+	public static final String METADATA_NAME = "name";
+	public static final String METADATA_EXTRAHASH = "extrahash";
+	public static final String METADATA_ISSUER = "issuer";
+	public static final String METADATA_UNIT = "unit";
+	public static final String METADATA_ATOMIC_SIZE = "atomic_size";
+	public static final String METADATA_SIGNATURE = "signature";
+	public static final String METADATA_GENESIS_TXID = "genesis_txid";
+	public static final String METADATA_COLORDEF_URL = "url";
+
 	private static ColorDefinition makeUnknown() {
 		Map<String, String> metadata = Maps.newHashMap();
-		metadata.put("name", "UNKNOWN");
-		metadata.put("extrahash", "UNKNOWN");
+		metadata.put(METADATA_NAME, "UNKNOWN");
+		metadata.put(METADATA_EXTRAHASH, "UNKNOWN");
 		return new ColorDefinition(Sets.<GenesisPoint>newTreeSet(), metadata);
 	}
 
 	private static ColorDefinition makeBitcoin() {
 		Map<String, String> metadata = Maps.newHashMap();
-		metadata.put("name", "Bitcoin");
-		metadata.put("extrahash", "Bitcoin");
+		metadata.put(METADATA_NAME, "Bitcoin");
+		metadata.put(METADATA_EXTRAHASH, "Bitcoin");
 		// FIXME protect the extra hash field from being input by untrusted parties
 		return new ColorDefinition(Sets.<GenesisPoint>newTreeSet(), metadata);
 	}
@@ -119,7 +128,7 @@ public class ColorDefinition {
 	}
 
 	public String getName() {
-		return metadata.get("name");
+		return metadata.get(METADATA_NAME);
 	}
 
 	public boolean contains(GenesisPoint point) {
@@ -227,8 +236,8 @@ public class ColorDefinition {
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
 		try {
 			bitcoinSerialize(bos);
-			if (metadata.containsKey("extrahash")) {
-				bos.write(metadata.get("extrahash").getBytes());
+			if (metadata.containsKey(METADATA_EXTRAHASH)) {
+				bos.write(metadata.get(METADATA_EXTRAHASH).getBytes());
 			}
 		} catch (IOException e) {
 			Throwables.propagate(e);
