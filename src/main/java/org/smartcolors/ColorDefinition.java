@@ -42,12 +42,15 @@ public class ColorDefinition {
 	private static ColorDefinition makeUnknown() {
 		Map<String, String> metadata = Maps.newHashMap();
 		metadata.put("name", "UNKNOWN");
+		metadata.put("extrahash", "UNKNOWN");
 		return new ColorDefinition(Sets.<GenesisPoint>newTreeSet(), metadata);
 	}
 
 	private static ColorDefinition makeBitcoin() {
 		Map<String, String> metadata = Maps.newHashMap();
 		metadata.put("name", "Bitcoin");
+		metadata.put("extrahash", "Bitcoin");
+		// FIXME protect the extra hash field from being input by untrusted parties
 		return new ColorDefinition(Sets.<GenesisPoint>newTreeSet(), metadata);
 	}
 
@@ -224,6 +227,9 @@ public class ColorDefinition {
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
 		try {
 			bitcoinSerialize(bos);
+			if (metadata.containsKey("extrahash")) {
+				bos.write(metadata.get("extrahash").getBytes());
+			}
 		} catch (IOException e) {
 			Throwables.propagate(e);
 		}
