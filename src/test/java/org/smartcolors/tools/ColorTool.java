@@ -60,6 +60,8 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 public class ColorTool {
 	private static final Logger log = LoggerFactory.getLogger(ColorTool.class);
 
@@ -127,7 +129,13 @@ public class ColorTool {
 		BufferedInputStream walletInputStream = null;
 		try {
 			WalletProtobufSerializer loader = new WalletProtobufSerializer();
-			loader.setKeyChainFactory(new ColorKeyChainFactory());
+			loader.setKeyChainFactory(new ColorKeyChainFactory(new ColorKeyChainFactory.Callback() {
+				@Override
+				public void onRestore(ColorKeyChain chain) {
+					colorChain = chain;
+				}
+			}));
+			checkNotNull(colorChain);
 			if (options.has("ignore-mandatory-extensions"))
 				loader.setRequireMandatoryExtensions(false);
 			walletInputStream = new BufferedInputStream(new FileInputStream(walletFile));

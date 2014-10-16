@@ -10,33 +10,45 @@ import org.bitcoinj.wallet.Protos;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Created by android on 10/12/14.
  */
 public class ColorKeyChainFactory extends DefaultKeyChainFactory {
+	private final Callback callback;
+
+	public interface Callback {
+		public void onRestore(ColorKeyChain chain);
+	}
+
+	public ColorKeyChainFactory(Callback callback) {
+		checkNotNull(callback);
+		this.callback = callback;
+	}
+
 	@Override
 	public DeterministicKeyChain makeKeyChain(Protos.Key key, Protos.Key firstSubKey, DeterministicSeed seed, KeyCrypter crypter, boolean isMarried) {
-		DeterministicKeyChain result;
 		List<Integer> path = firstSubKey.getDeterministicKey().getPathList();
 		if (!path.isEmpty() && path.get(0).equals(ColorKeyChain.ASSET_PATH.get(0).i())) {
 			checkArgument(!isMarried, "no multisig support yet");
-			result = new ColorKeyChain(seed, crypter);
+			ColorKeyChain result = new ColorKeyChain(seed, crypter);
+			callback.onRestore(result);
+			return result;
 		} else {
-			result = new DefaultKeyChainFactory().makeKeyChain(key, firstSubKey, seed, crypter, isMarried);
+			return new DefaultKeyChainFactory().makeKeyChain(key, firstSubKey, seed, crypter, isMarried);
 		}
-		return result;
 	}
 
 	@Override
 	public DeterministicKeyChain makeWatchingKeyChain(Protos.Key key, Protos.Key firstSubKey, DeterministicKey accountKey, boolean isFollowingKey, boolean isMarried) {
-		DeterministicKeyChain result;
 		List<Integer> path = firstSubKey.getDeterministicKey().getPathList();
 		if (!path.isEmpty() && path.get(0).equals(ColorKeyChain.ASSET_PATH)) {
-			result = new ColorKeyChain(accountKey, isFollowingKey);
+			ColorKeyChain result = new ColorKeyChain(accountKey, isFollowingKey);
+			callback.onRestore(result);
+			return result;
 		} else {
-			result = new DefaultKeyChainFactory().makeWatchingKeyChain(key, firstSubKey, accountKey, isFollowingKey, isMarried);
+			return new DefaultKeyChainFactory().makeWatchingKeyChain(key, firstSubKey, accountKey, isFollowingKey, isMarried);
 		}
-		return result;
 	}
 }

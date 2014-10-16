@@ -1,10 +1,13 @@
 package org.smartcolors;
 
 import com.google.common.collect.ImmutableList;
+import com.google.protobuf.ByteString;
 
+import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.crypto.ChildNumber;
 import org.bitcoinj.crypto.DeterministicKey;
 import org.bitcoinj.crypto.KeyCrypter;
+import org.bitcoinj.script.Script;
 import org.bitcoinj.wallet.DeterministicKeyChain;
 import org.bitcoinj.wallet.DeterministicSeed;
 
@@ -64,4 +67,18 @@ public class ColorKeyChain extends DeterministicKeyChain {
 	protected ImmutableList<ChildNumber> getAccountPath() {
 		return ASSET_PATH;
 	}
+
+	public boolean isOutputToMe(TransactionOutput output) {
+		Script script = output.getScriptPubKey();
+		if (script.isSentToRawPubKey()) {
+			byte[] pubkey = script.getPubKey();
+			return findKeyFromPubKey(pubkey) != null;
+		} if (script.isPayToScriptHash()) {
+			return findRedeemDataByScriptHash(ByteString.copyFrom(script.getPubKeyHash())) != null;
+		} else {
+			byte[] pubkeyHash = script.getPubKeyHash();
+			return findKeyFromPubHash(pubkeyHash) != null;
+		}
+	}
+
 }

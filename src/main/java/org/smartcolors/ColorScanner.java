@@ -7,6 +7,7 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultimap;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import com.google.protobuf.ByteString;
 
 import org.bitcoinj.core.AbstractBlockChain;
 import org.bitcoinj.core.AbstractPeerEventListener;
@@ -27,6 +28,7 @@ import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptChunk;
 import org.bitcoinj.script.ScriptOpCodes;
 import org.bitcoinj.utils.Threading;
+import org.bitcoinj.wallet.DeterministicKeyChain;
 import org.bitcoinj.wallet.WalletTransaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -304,15 +306,17 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		return false;
 	}
 
-	public Map<ColorDefinition, Long> getBalances(Wallet wallet) {
+	public Map<ColorDefinition, Long> getBalances(Wallet wallet, ColorKeyChain colorKeyChain) {
 		Map<ColorDefinition, Long> res = Maps.newHashMap();
 		res.put(ColorDefinition.BITCOIN, 0L);
 		lock.lock();
 		try {
 			LinkedList<TransactionOutput> all = wallet.calculateAllSpendCandidates(false);
 			for (TransactionOutput output: all) {
-				applyOutputValue(output, res);
-				res.put(ColorDefinition.BITCOIN, res.get(ColorDefinition.BITCOIN) + output.getValue().getValue());
+				if (colorKeyChain.isOutputToMe(output))
+					applyOutputValue(output, res);
+				else
+					res.put(ColorDefinition.BITCOIN, res.get(ColorDefinition.BITCOIN) + output.getValue().getValue());
 			}
 		} finally {
    			lock.unlock();
