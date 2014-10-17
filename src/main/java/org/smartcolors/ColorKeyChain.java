@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
 
 import org.bitcoinj.core.TransactionOutput;
+import org.bitcoinj.core.Utils;
 import org.bitcoinj.crypto.ChildNumber;
 import org.bitcoinj.crypto.DeterministicKey;
 import org.bitcoinj.crypto.KeyCrypter;
@@ -49,9 +50,9 @@ public class ColorKeyChain extends DeterministicKeyChain {
 			checkState(random != null || entropy != null || seed != null, "Must provide either entropy or random");
 			ColorKeyChain chain;
 			if (random != null) {
-				chain = new ColorKeyChain(random, bits, passphrase, seedCreationTimeSecs);
+				chain = new ColorKeyChain(random, bits, passphrase, Utils.currentTimeSeconds());
 			} else if (entropy != null) {
-				chain = new ColorKeyChain(entropy, passphrase, seedCreationTimeSecs);
+				chain = new ColorKeyChain(entropy, passphrase, Utils.currentTimeSeconds());
 			} else {
 				chain = new ColorKeyChain(seed);
 			}
