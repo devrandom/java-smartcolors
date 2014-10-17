@@ -1,13 +1,14 @@
 package org.smartcolors;
 
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultimap;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import com.google.protobuf.ByteString;
 
 import org.bitcoinj.core.AbstractBlockChain;
 import org.bitcoinj.core.AbstractPeerEventListener;
@@ -28,12 +29,12 @@ import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptChunk;
 import org.bitcoinj.script.ScriptOpCodes;
 import org.bitcoinj.utils.Threading;
-import org.bitcoinj.wallet.DeterministicKeyChain;
 import org.bitcoinj.wallet.WalletTransaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -57,7 +58,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	@GuardedBy("lock")
 	Map<Sha256Hash, Transaction> pending = Maps.newConcurrentMap();
 	@GuardedBy("lock")
-	private Map<Transaction, SettableFuture<Transaction>> unknownTransactionFutures = Maps.newHashMap();
+	private Multimap<Transaction, SettableFuture<Transaction>> unknownTransactionFutures = ArrayListMultimap.create();
 
 	public ColorScanner() {
 		peerEventListener = new AbstractPeerEventListener() {
@@ -165,8 +166,8 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 						proof.add(tx);
 					}
 				}
-				SettableFuture<Transaction> future = unknownTransactionFutures.remove(tx);
-				if (future != null) {
+				Collection<SettableFuture<Transaction>> futures = unknownTransactionFutures.removeAll(tx);
+				for (SettableFuture<Transaction> future: futures) {
 					future.set(tx);
 				}
 			}
