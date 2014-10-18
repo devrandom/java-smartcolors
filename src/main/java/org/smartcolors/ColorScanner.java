@@ -33,6 +33,7 @@ import org.bitcoinj.wallet.WalletTransaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -68,6 +69,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		peerEventListener = new AbstractPeerEventListener() {
 			@Override
 			public void onTransaction(Peer peer, Transaction t) {
+				log.info("pending {}", t);
 				pending.put(t.getHash(), t);
 			}
 
@@ -96,14 +98,16 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	@Override
 	public void notifyNewBestBlock(StoredBlock block) throws VerificationException {
 		lock.lock();
+		ArrayList<SettableFuture<Transaction>> futures;
 		try {
-			// Assume that any pending unknowns will not become known and therefore should fail
-			for (SettableFuture<Transaction> future: unknownTransactionFutures.values()) {
-				future.setException(new ScanningException("could not find asset type"));
-			}
+			futures = Lists.newArrayList(unknownTransactionFutures.values());
 			unknownTransactionFutures.clear();
 		} finally {
    			lock.unlock();
+		}
+		// Assume that any pending unknowns will not become known and therefore should fail
+		for (SettableFuture<Transaction> future: futures) {
+			future.setException(new ScanningException("could not find asset type"));
 		}
 	}
 
@@ -159,6 +163,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 
 	private boolean receive(Transaction tx, StoredBlock block, AbstractBlockChain.NewBlockType blockType, int relativityOffset) {
 		lock.lock();
+		Collection<SettableFuture<Transaction>> futures = null;
 		try {
 			log.info("receive {} {}", tx, relativityOffset);
 			if (!isRelevant(tx))
@@ -170,15 +175,18 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 						proof.add(tx);
 					}
 				}
-				Collection<SettableFuture<Transaction>> futures = unknownTransactionFutures.removeAll(tx);
-				for (SettableFuture<Transaction> future: futures) {
-					future.set(tx);
-				}
+				futures = unknownTransactionFutures.removeAll(tx);
 			}
-			return true;
 		} finally {
 			lock.unlock();
 		}
+
+		if (futures != null) {
+			for (SettableFuture<Transaction> future : futures) {
+				future.set(tx);
+			}
+		}
+		return true;
 	}
 
 	private boolean isRelevant(Transaction tx) {
@@ -196,7 +204,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	@Override
 	public boolean notifyTransactionIsInBlock(Sha256Hash txHash, StoredBlock block, AbstractBlockChain.NewBlockType blockType, int relativityOffset) throws VerificationException {
 		Transaction tx = pending.get(txHash);
-		log.info("in block {} {}", tx, relativityOffset);
+		log.info("in block {} {} {}", txHash, tx, relativityOffset);
 		return (tx != null) && receive(tx, block, blockType, relativityOffset);
 	}
 
