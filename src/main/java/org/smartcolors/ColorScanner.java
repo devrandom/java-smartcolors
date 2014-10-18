@@ -399,6 +399,18 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		return outputs;
 	}
 
+	void setMapBlockTx(SetMultimap<Sha256Hash, SortedTransaction> mapBlockTx) {
+		this.mapBlockTx = mapBlockTx;
+	}
+
+	SetMultimap<Sha256Hash, SortedTransaction> getMapBlockTx() {
+		return mapBlockTx;
+	}
+
+	public Set<ColorProof> getColorProofs() {
+		return proofs;
+	}
+
 	public static class ScanningException extends RuntimeException {
 		public ScanningException(String reason) {
 			super(reason);
@@ -435,6 +447,14 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		for (ColorDefinition def: getColorDefinitions()) {
 			if (def.getHash().equals(hash))
 				return def;
+		}
+		return null;
+	}
+
+	public ColorProof getColorProofByHash(Sha256Hash hash) {
+		for (ColorProof proof: proofs) {
+			if (proof.getDefinition().getHash().equals(hash))
+				return proof;
 		}
 		return null;
 	}

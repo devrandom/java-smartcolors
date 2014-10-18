@@ -21,12 +21,15 @@ import org.bitcoinj.store.MemoryBlockStore;
 import org.bitcoinj.testing.FakeTxBuilder;
 import org.junit.Before;
 import org.junit.Test;
+import org.smartcolors.protos.Protos;
 
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.ExecutionException;
+
+import javax.annotation.Nullable;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -106,11 +109,18 @@ public class ColorScannerTest {
 	@Test
 	public void testGetNetAssetChange() {
 		final ECKey myKey = new ECKey();
+		final Map<Sha256Hash, Transaction> txs = Maps.newHashMap();
 		scanner.receiveFromBlock(genesisTx, FakeTxBuilder.createFakeBlock(blockStore, genesisTx).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
 		Wallet wallet = new Wallet(params) {
 			@Override
 			public boolean isPubKeyMine(byte[] pubkey) {
 				return Arrays.equals(pubkey, myKey.getPubKey());
+			}
+
+			@Nullable
+			@Override
+			public Transaction getTransaction(Sha256Hash hash) {
+				return txs.get(hash);
 			}
 		};
 
@@ -138,6 +148,16 @@ public class ColorScannerTest {
 		res = scanner.getNetAssetChange(tx3, wallet);
 		expected.put(def, -3L);
 		assertEquals(expected, res);
+
+		txs.put(genesisTx.getHash(), genesisTx);
+		txs.put(tx2.getHash(), tx2);
+		txs.put(tx3.getHash(), tx3);
+
+		ColorScanner scanner1 = new ColorScanner();
+		scanner1.addDefinition(def);
+		Protos.ColorScanner proto = SmartwalletExtension.serializeScanner(scanner);
+		SmartwalletExtension.deserializeScanner(wallet, proto, scanner1);
+		assertEquals(scanner.getMapBlockTx(), scanner1.getMapBlockTx());
 	}
 
 	@Test

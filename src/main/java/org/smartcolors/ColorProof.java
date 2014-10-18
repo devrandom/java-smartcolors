@@ -1,13 +1,19 @@
 package org.smartcolors;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import org.bitcoinj.core.BloomFilter;
+import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutPoint;
+import org.bitcoinj.core.Utils;
+import org.bitcoinj.core.VarInt;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.Map;
 import java.util.TreeSet;
 
@@ -34,6 +40,34 @@ public class ColorProof {
 		outputs = Maps.newHashMap();
 		unspentOutputs = Maps.newHashMap();
 		txs = Sets.newTreeSet();
+	}
+
+	/**
+	 * A hash covering all of the color proof state, including definition hash, outpoints with values and
+	 * unspent outpoints with values.
+	 */
+	public Sha256Hash getStateHash() {
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		try {
+			bos.write(definition.getHash().getBytes());
+			for (Map.Entry<TransactionOutPoint, Long> entry : outputs.entrySet()) {
+				bos.write(entry.getKey().bitcoinSerialize());
+				Utils.uint32ToByteStreamLE(entry.getValue(), bos);
+			}
+			bos.write(new byte[1]);
+			for (Map.Entry<TransactionOutPoint, Long> entry : unspentOutputs.entrySet()) {
+				bos.write(entry.getKey().bitcoinSerialize());
+				Utils.uint32ToByteStreamLE(entry.getValue(), bos);
+			}
+			bos.write(new byte[1]);
+			for (SortedTransaction tx : txs) {
+				bos.write(tx.tx.getHash().getBytes());
+				bos.write(new VarInt(tx.index).encode());
+			}
+		} catch (IOException e) {
+			Throwables.propagate(e);
+		}
+		return Sha256Hash.create(bos.toByteArray());
 	}
 
 	/**
@@ -201,5 +235,21 @@ public class ColorProof {
 		outputs.clear();
 		unspentOutputs.clear();
 		txs.clear();
+	}
+
+	void setOutputs(Map<TransactionOutPoint, Long> outputs) {
+		this.outputs = outputs;
+	}
+
+	void setUnspentOutputs(Map<TransactionOutPoint, Long> unspentOutputs) {
+		this.unspentOutputs = unspentOutputs;
+	}
+
+	void setTxs(TreeSet<SortedTransaction> txs) {
+		this.txs = txs;
+	}
+
+	TreeSet<SortedTransaction> getTxs() {
+		return txs;
 	}
 }
