@@ -196,4 +196,10 @@ public class ColorProof {
 	public ColorDefinition getDefinition() {
 		return definition;
 	}
+
+	public void reset() {
+		outputs.clear();
+		unspentOutputs.clear();
+		txs.clear();
+	}
 }
