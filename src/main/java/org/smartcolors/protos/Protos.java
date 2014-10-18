@@ -3936,6 +3936,20 @@ public final class Protos {
      */
     org.smartcolors.protos.Protos.ColorProofOrBuilder getProofsOrBuilder(
         int index);
+
+    // repeated bytes pending = 3;
+    /**
+     * <code>repeated bytes pending = 3;</code>
+     */
+    java.util.List<com.google.protobuf.ByteString> getPendingList();
+    /**
+     * <code>repeated bytes pending = 3;</code>
+     */
+    int getPendingCount();
+    /**
+     * <code>repeated bytes pending = 3;</code>
+     */
+    com.google.protobuf.ByteString getPending(int index);
   }
   /**
    * Protobuf type {@code smartcolors.ColorScanner}
@@ -4004,6 +4018,14 @@ public final class Protos {
               proofs_.add(input.readMessage(org.smartcolors.protos.Protos.ColorProof.PARSER, extensionRegistry));
               break;
             }
+            case 26: {
+              if (!((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
+                pending_ = new java.util.ArrayList<com.google.protobuf.ByteString>();
+                mutable_bitField0_ |= 0x00000004;
+              }
+              pending_.add(input.readBytes());
+              break;
+            }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
@@ -4017,6 +4039,9 @@ public final class Protos {
         }
         if (((mutable_bitField0_ & 0x00000002) == 0x00000002)) {
           proofs_ = java.util.Collections.unmodifiableList(proofs_);
+        }
+        if (((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
+          pending_ = java.util.Collections.unmodifiableList(pending_);
         }
         this.unknownFields = unknownFields.build();
         makeExtensionsImmutable();
@@ -4121,9 +4146,33 @@ public final class Protos {
       return proofs_.get(index);
     }
 
+    // repeated bytes pending = 3;
+    public static final int PENDING_FIELD_NUMBER = 3;
+    private java.util.List<com.google.protobuf.ByteString> pending_;
+    /**
+     * <code>repeated bytes pending = 3;</code>
+     */
+    public java.util.List<com.google.protobuf.ByteString>
+        getPendingList() {
+      return pending_;
+    }
+    /**
+     * <code>repeated bytes pending = 3;</code>
+     */
+    public int getPendingCount() {
+      return pending_.size();
+    }
+    /**
+     * <code>repeated bytes pending = 3;</code>
+     */
+    public com.google.protobuf.ByteString getPending(int index) {
+      return pending_.get(index);
+    }
+
     private void initFields() {
       blockToTransaction_ = java.util.Collections.emptyList();
       proofs_ = java.util.Collections.emptyList();
+      pending_ = java.util.Collections.emptyList();
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -4155,6 +4204,9 @@ public final class Protos {
       for (int i = 0; i < proofs_.size(); i++) {
         output.writeMessage(2, proofs_.get(i));
       }
+      for (int i = 0; i < pending_.size(); i++) {
+        output.writeBytes(3, pending_.get(i));
+      }
       getUnknownFields().writeTo(output);
     }
 
@@ -4171,6 +4223,15 @@ public final class Protos {
       for (int i = 0; i < proofs_.size(); i++) {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(2, proofs_.get(i));
+      }
+      {
+        int dataSize = 0;
+        for (int i = 0; i < pending_.size(); i++) {
+          dataSize += com.google.protobuf.CodedOutputStream
+            .computeBytesSizeNoTag(pending_.get(i));
+        }
+        size += dataSize;
+        size += 1 * getPendingList().size();
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -4302,6 +4363,8 @@ public final class Protos {
         } else {
           proofsBuilder_.clear();
         }
+        pending_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000004);
         return this;
       }
 
@@ -4347,6 +4410,11 @@ public final class Protos {
         } else {
           result.proofs_ = proofsBuilder_.build();
         }
+        if (((bitField0_ & 0x00000004) == 0x00000004)) {
+          pending_ = java.util.Collections.unmodifiableList(pending_);
+          bitField0_ = (bitField0_ & ~0x00000004);
+        }
+        result.pending_ = pending_;
         onBuilt();
         return result;
       }
@@ -4413,6 +4481,16 @@ public final class Protos {
               proofsBuilder_.addAllMessages(other.proofs_);
             }
           }
+        }
+        if (!other.pending_.isEmpty()) {
+          if (pending_.isEmpty()) {
+            pending_ = other.pending_;
+            bitField0_ = (bitField0_ & ~0x00000004);
+          } else {
+            ensurePendingIsMutable();
+            pending_.addAll(other.pending_);
+          }
+          onChanged();
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -4933,6 +5011,78 @@ public final class Protos {
         return proofsBuilder_;
       }
 
+      // repeated bytes pending = 3;
+      private java.util.List<com.google.protobuf.ByteString> pending_ = java.util.Collections.emptyList();
+      private void ensurePendingIsMutable() {
+        if (!((bitField0_ & 0x00000004) == 0x00000004)) {
+          pending_ = new java.util.ArrayList<com.google.protobuf.ByteString>(pending_);
+          bitField0_ |= 0x00000004;
+         }
+      }
+      /**
+       * <code>repeated bytes pending = 3;</code>
+       */
+      public java.util.List<com.google.protobuf.ByteString>
+          getPendingList() {
+        return java.util.Collections.unmodifiableList(pending_);
+      }
+      /**
+       * <code>repeated bytes pending = 3;</code>
+       */
+      public int getPendingCount() {
+        return pending_.size();
+      }
+      /**
+       * <code>repeated bytes pending = 3;</code>
+       */
+      public com.google.protobuf.ByteString getPending(int index) {
+        return pending_.get(index);
+      }
+      /**
+       * <code>repeated bytes pending = 3;</code>
+       */
+      public Builder setPending(
+          int index, com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  ensurePendingIsMutable();
+        pending_.set(index, value);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated bytes pending = 3;</code>
+       */
+      public Builder addPending(com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  ensurePendingIsMutable();
+        pending_.add(value);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated bytes pending = 3;</code>
+       */
+      public Builder addAllPending(
+          java.lang.Iterable<? extends com.google.protobuf.ByteString> values) {
+        ensurePendingIsMutable();
+        super.addAll(values, pending_);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated bytes pending = 3;</code>
+       */
+      public Builder clearPending() {
+        pending_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000004);
+        onChanged();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:smartcolors.ColorScanner)
     }
 
@@ -4995,11 +5145,12 @@ public final class Protos {
       "on\022+\n\007outputs\030\002 \003(\0132\032.smartcolors.OutPoi",
       "ntValue\0223\n\017unspent_outputs\030\003 \003(\0132\032.smart" +
       "colors.OutPointValue\022+\n\003txs\030\004 \003(\0132\036.smar" +
-      "tcolors.SortedTransaction\"|\n\014ColorScanne" +
-      "r\022C\n\024block_to_transaction\030\001 \003(\0132%.smartc" +
-      "olors.BlockToSortedTransaction\022\'\n\006proofs" +
-      "\030\002 \003(\0132\027.smartcolors.ColorProofB \n\026org.s" +
-      "martcolors.protosB\006Protos"
+      "tcolors.SortedTransaction\"\215\001\n\014ColorScann" +
+      "er\022C\n\024block_to_transaction\030\001 \003(\0132%.smart" +
+      "colors.BlockToSortedTransaction\022\'\n\006proof" +
+      "s\030\002 \003(\0132\027.smartcolors.ColorProof\022\017\n\007pend" +
+      "ing\030\003 \003(\014B \n\026org.smartcolors.protosB\006Pro" +
+      "tos"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -5041,7 +5192,7 @@ public final class Protos {
           internal_static_smartcolors_ColorScanner_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_smartcolors_ColorScanner_descriptor,
-              new java.lang.String[] { "BlockToTransaction", "Proofs", });
+              new java.lang.String[] { "BlockToTransaction", "Proofs", "Pending", });
           return null;
         }
       };

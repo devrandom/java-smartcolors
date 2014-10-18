@@ -37,4 +37,5 @@ message ColorProof {
 message ColorScanner {
     repeated BlockToSortedTransaction block_to_transaction = 1;
     repeated ColorProof proofs = 2;
+    repeated bytes pending = 3;
 }

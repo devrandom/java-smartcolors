@@ -411,6 +411,14 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		return proofs;
 	}
 
+	Map<Sha256Hash,Transaction> getPending() {
+		return pending;
+	}
+
+	void setPending(Map<Sha256Hash, Transaction> pending) {
+		this.pending = pending;
+	}
+
 	public static class ScanningException extends RuntimeException {
 		public ScanningException(String reason) {
 			super(reason);

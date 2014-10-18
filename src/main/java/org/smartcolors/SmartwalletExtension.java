@@ -57,6 +57,9 @@ public class SmartwalletExtension implements WalletExtension {
 							.setTransaction(ByteString.copyFrom(entry.getValue().tx.bitcoinSerialize()))
 							.setIndex(entry.getValue().index)));
 		}
+		for (Transaction transaction : scanner.getPending().values()) {
+			scannerBuilder.addPending(ByteString.copyFrom(transaction.bitcoinSerialize()));
+		}
 		return scannerBuilder.build();
 	}
 
@@ -102,6 +105,15 @@ public class SmartwalletExtension implements WalletExtension {
 					new SortedTransaction(transaction, bstxp.getTransaction().getIndex());
 			mapBlockTx.put(getHash(bstxp.getBlockHash()), stx);
 		}
+		scanner.setMapBlockTx(mapBlockTx);
+
+		Map<Sha256Hash,Transaction> pending = Maps.newHashMap();
+		for (ByteString bytes : proto.getPendingList()) {
+			Transaction tx = new Transaction(params, bytes.toByteArray());
+			pending.put(tx.getHash(), tx);
+		}
+		scanner.setPending(pending);
+
 		for (Protos.ColorProof proofp : proto.getProofsList()) {
 			Sha256Hash hash = getHash(proofp.getColorDefinition().getHash());
 			ColorProof proof = scanner.getColorProofByHash(hash);
@@ -111,8 +123,6 @@ public class SmartwalletExtension implements WalletExtension {
 			}
 			deserializeProof(params, proofp, proof);
 		}
-
-		scanner.setMapBlockTx(mapBlockTx);
 	}
 
 	static void deserializeProof(NetworkParameters params, Protos.ColorProof proofp, ColorProof proof) {
