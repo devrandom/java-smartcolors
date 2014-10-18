@@ -11,23 +11,23 @@ public final class Protos {
   public interface SortedTransactionOrBuilder
       extends com.google.protobuf.MessageOrBuilder {
 
-    // required bytes transaction_hash = 1;
+    // required bytes transaction = 1;
     /**
-     * <code>required bytes transaction_hash = 1;</code>
+     * <code>required bytes transaction = 1;</code>
      *
      * <pre>
-     * Hash of the transaction.
+     * Bitcoin serialized transaction
      * </pre>
      */
-    boolean hasTransactionHash();
+    boolean hasTransaction();
     /**
-     * <code>required bytes transaction_hash = 1;</code>
+     * <code>required bytes transaction = 1;</code>
      *
      * <pre>
-     * Hash of the transaction.
+     * Bitcoin serialized transaction
      * </pre>
      */
-    com.google.protobuf.ByteString getTransactionHash();
+    com.google.protobuf.ByteString getTransaction();
 
     // required uint32 index = 2;
     /**
@@ -100,7 +100,7 @@ public final class Protos {
             }
             case 10: {
               bitField0_ |= 0x00000001;
-              transactionHash_ = input.readBytes();
+              transaction_ = input.readBytes();
               break;
             }
             case 16: {
@@ -148,28 +148,28 @@ public final class Protos {
     }
 
     private int bitField0_;
-    // required bytes transaction_hash = 1;
-    public static final int TRANSACTION_HASH_FIELD_NUMBER = 1;
-    private com.google.protobuf.ByteString transactionHash_;
+    // required bytes transaction = 1;
+    public static final int TRANSACTION_FIELD_NUMBER = 1;
+    private com.google.protobuf.ByteString transaction_;
     /**
-     * <code>required bytes transaction_hash = 1;</code>
+     * <code>required bytes transaction = 1;</code>
      *
      * <pre>
-     * Hash of the transaction.
+     * Bitcoin serialized transaction
      * </pre>
      */
-    public boolean hasTransactionHash() {
+    public boolean hasTransaction() {
       return ((bitField0_ & 0x00000001) == 0x00000001);
     }
     /**
-     * <code>required bytes transaction_hash = 1;</code>
+     * <code>required bytes transaction = 1;</code>
      *
      * <pre>
-     * Hash of the transaction.
+     * Bitcoin serialized transaction
      * </pre>
      */
-    public com.google.protobuf.ByteString getTransactionHash() {
-      return transactionHash_;
+    public com.google.protobuf.ByteString getTransaction() {
+      return transaction_;
     }
 
     // required uint32 index = 2;
@@ -197,7 +197,7 @@ public final class Protos {
     }
 
     private void initFields() {
-      transactionHash_ = com.google.protobuf.ByteString.EMPTY;
+      transaction_ = com.google.protobuf.ByteString.EMPTY;
       index_ = 0;
     }
     private byte memoizedIsInitialized = -1;
@@ -205,7 +205,7 @@ public final class Protos {
       byte isInitialized = memoizedIsInitialized;
       if (isInitialized != -1) return isInitialized == 1;
 
-      if (!hasTransactionHash()) {
+      if (!hasTransaction()) {
         memoizedIsInitialized = 0;
         return false;
       }
@@ -221,7 +221,7 @@ public final class Protos {
                         throws java.io.IOException {
       getSerializedSize();
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        output.writeBytes(1, transactionHash_);
+        output.writeBytes(1, transaction_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         output.writeUInt32(2, index_);
@@ -237,7 +237,7 @@ public final class Protos {
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(1, transactionHash_);
+          .computeBytesSize(1, transaction_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
@@ -359,7 +359,7 @@ public final class Protos {
 
       public Builder clear() {
         super.clear();
-        transactionHash_ = com.google.protobuf.ByteString.EMPTY;
+        transaction_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000001);
         index_ = 0;
         bitField0_ = (bitField0_ & ~0x00000002);
@@ -394,7 +394,7 @@ public final class Protos {
         if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
           to_bitField0_ |= 0x00000001;
         }
-        result.transactionHash_ = transactionHash_;
+        result.transaction_ = transaction_;
         if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
           to_bitField0_ |= 0x00000002;
         }
@@ -415,8 +415,8 @@ public final class Protos {
 
       public Builder mergeFrom(org.smartcolors.protos.Protos.SortedTransaction other) {
         if (other == org.smartcolors.protos.Protos.SortedTransaction.getDefaultInstance()) return this;
-        if (other.hasTransactionHash()) {
-          setTransactionHash(other.getTransactionHash());
+        if (other.hasTransaction()) {
+          setTransaction(other.getTransaction());
         }
         if (other.hasIndex()) {
           setIndex(other.getIndex());
@@ -426,7 +426,7 @@ public final class Protos {
       }
 
       public final boolean isInitialized() {
-        if (!hasTransactionHash()) {
+        if (!hasTransaction()) {
           
           return false;
         }
@@ -456,54 +456,54 @@ public final class Protos {
       }
       private int bitField0_;
 
-      // required bytes transaction_hash = 1;
-      private com.google.protobuf.ByteString transactionHash_ = com.google.protobuf.ByteString.EMPTY;
+      // required bytes transaction = 1;
+      private com.google.protobuf.ByteString transaction_ = com.google.protobuf.ByteString.EMPTY;
       /**
-       * <code>required bytes transaction_hash = 1;</code>
+       * <code>required bytes transaction = 1;</code>
        *
        * <pre>
-       * Hash of the transaction.
+       * Bitcoin serialized transaction
        * </pre>
        */
-      public boolean hasTransactionHash() {
+      public boolean hasTransaction() {
         return ((bitField0_ & 0x00000001) == 0x00000001);
       }
       /**
-       * <code>required bytes transaction_hash = 1;</code>
+       * <code>required bytes transaction = 1;</code>
        *
        * <pre>
-       * Hash of the transaction.
+       * Bitcoin serialized transaction
        * </pre>
        */
-      public com.google.protobuf.ByteString getTransactionHash() {
-        return transactionHash_;
+      public com.google.protobuf.ByteString getTransaction() {
+        return transaction_;
       }
       /**
-       * <code>required bytes transaction_hash = 1;</code>
+       * <code>required bytes transaction = 1;</code>
        *
        * <pre>
-       * Hash of the transaction.
+       * Bitcoin serialized transaction
        * </pre>
        */
-      public Builder setTransactionHash(com.google.protobuf.ByteString value) {
+      public Builder setTransaction(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
   bitField0_ |= 0x00000001;
-        transactionHash_ = value;
+        transaction_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required bytes transaction_hash = 1;</code>
+       * <code>required bytes transaction = 1;</code>
        *
        * <pre>
-       * Hash of the transaction.
+       * Bitcoin serialized transaction
        * </pre>
        */
-      public Builder clearTransactionHash() {
+      public Builder clearTransaction() {
         bitField0_ = (bitField0_ & ~0x00000001);
-        transactionHash_ = getDefaultInstance().getTransactionHash();
+        transaction_ = getDefaultInstance().getTransaction();
         onChanged();
         return this;
       }
@@ -4984,22 +4984,22 @@ public final class Protos {
   static {
     java.lang.String[] descriptorData = {
       "\n\030main/proto/scanner.proto\022\013smartcolors\"" +
-      "<\n\021SortedTransaction\022\030\n\020transaction_hash" +
-      "\030\001 \002(\014\022\r\n\005index\030\002 \002(\r\"c\n\030BlockToSortedTr" +
-      "ansaction\022\022\n\nblock_hash\030\001 \002(\014\0223\n\013transac" +
-      "tion\030\002 \002(\0132\036.smartcolors.SortedTransacti" +
-      "on\";\n\rOutPointValue\022\014\n\004hash\030\001 \002(\014\022\r\n\005ind" +
-      "ex\030\002 \002(\004\022\r\n\005value\030\003 \002(\004\"\037\n\017ColorDefiniti" +
-      "on\022\014\n\004hash\030\001 \002(\014\"\323\001\n\nColorProof\0226\n\020color" +
-      "_definition\030\001 \002(\0132\034.smartcolors.ColorDef" +
-      "inition\022+\n\007outputs\030\002 \003(\0132\032.smartcolors.O",
-      "utPointValue\0223\n\017unspent_outputs\030\003 \003(\0132\032." +
-      "smartcolors.OutPointValue\022+\n\003txs\030\004 \003(\0132\036" +
-      ".smartcolors.SortedTransaction\"|\n\014ColorS" +
-      "canner\022C\n\024block_to_transaction\030\001 \003(\0132%.s" +
-      "martcolors.BlockToSortedTransaction\022\'\n\006p" +
-      "roofs\030\002 \003(\0132\027.smartcolors.ColorProofB \n\026" +
-      "org.smartcolors.protosB\006Protos"
+      "7\n\021SortedTransaction\022\023\n\013transaction\030\001 \002(" +
+      "\014\022\r\n\005index\030\002 \002(\r\"c\n\030BlockToSortedTransac" +
+      "tion\022\022\n\nblock_hash\030\001 \002(\014\0223\n\013transaction\030" +
+      "\002 \002(\0132\036.smartcolors.SortedTransaction\";\n" +
+      "\rOutPointValue\022\014\n\004hash\030\001 \002(\014\022\r\n\005index\030\002 " +
+      "\002(\004\022\r\n\005value\030\003 \002(\004\"\037\n\017ColorDefinition\022\014\n" +
+      "\004hash\030\001 \002(\014\"\323\001\n\nColorProof\0226\n\020color_defi" +
+      "nition\030\001 \002(\0132\034.smartcolors.ColorDefiniti" +
+      "on\022+\n\007outputs\030\002 \003(\0132\032.smartcolors.OutPoi",
+      "ntValue\0223\n\017unspent_outputs\030\003 \003(\0132\032.smart" +
+      "colors.OutPointValue\022+\n\003txs\030\004 \003(\0132\036.smar" +
+      "tcolors.SortedTransaction\"|\n\014ColorScanne" +
+      "r\022C\n\024block_to_transaction\030\001 \003(\0132%.smartc" +
+      "olors.BlockToSortedTransaction\022\'\n\006proofs" +
+      "\030\002 \003(\0132\027.smartcolors.ColorProofB \n\026org.s" +
+      "martcolors.protosB\006Protos"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -5011,7 +5011,7 @@ public final class Protos {
           internal_static_smartcolors_SortedTransaction_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_smartcolors_SortedTransaction_descriptor,
-              new java.lang.String[] { "TransactionHash", "Index", });
+              new java.lang.String[] { "Transaction", "Index", });
           internal_static_smartcolors_BlockToSortedTransaction_descriptor =
             getDescriptor().getMessageTypes().get(1);
           internal_static_smartcolors_BlockToSortedTransaction_fieldAccessorTable = new

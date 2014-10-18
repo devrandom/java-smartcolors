@@ -156,7 +156,7 @@ public class ColorScannerTest {
 		ColorScanner scanner1 = new ColorScanner();
 		scanner1.addDefinition(def);
 		Protos.ColorScanner proto = SmartwalletExtension.serializeScanner(scanner);
-		SmartwalletExtension.deserializeScanner(wallet, proto, scanner1);
+		SmartwalletExtension.deserializeScanner(params, proto, scanner1);
 		assertEquals(scanner.getMapBlockTx(), scanner1.getMapBlockTx());
 	}
 

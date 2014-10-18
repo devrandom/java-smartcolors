@@ -29,6 +29,6 @@ public class SortedTransaction implements Comparable<SortedTransaction> {
 
 	@Override
 	public boolean equals(Object obj) {
-		return this.tx.equals(((Transaction)obj).hashCode());
+		return this.tx.equals(obj);
 	}
 }

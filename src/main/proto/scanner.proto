@@ -4,8 +4,8 @@ option java_package = "org.smartcolors.protos";
 option java_outer_classname = "Protos";
 
 message SortedTransaction {
-    // Hash of the transaction.
-    required bytes transaction_hash = 1;
+    // Bitcoin serialized transaction
+    required bytes transaction = 1;
     // Index of transaction output used by this input.
     required uint32 index = 2;
 }

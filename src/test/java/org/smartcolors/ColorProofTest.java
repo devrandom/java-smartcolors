@@ -146,12 +146,12 @@ public class ColorProofTest {
 				return txs.get(hash);
 			}
 		};
-		SmartwalletExtension.deserializeProof(wallet, proofProto, proof1);
+		SmartwalletExtension.deserializeProof(params, proofProto, proof1);
 		assertEquals(proof.getStateHash(), proof1.getStateHash());
 		proof.undoLast();
 		Protos.ColorProof proofProto2 = SmartwalletExtension.serializeProof(proof);
 		ColorProof proof2 = new ColorProof(def);
-		SmartwalletExtension.deserializeProof(wallet, proofProto2, proof2);
+		SmartwalletExtension.deserializeProof(params, proofProto2, proof2);
 		assertEquals(proof.getStateHash(), proof2.getStateHash());
 	}
 

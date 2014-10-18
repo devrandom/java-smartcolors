@@ -207,7 +207,9 @@ public class ColorProof {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("[ColorProof\nAll:\n");
+		builder.append("[ColorProof");
+		builder.append(" name=" + definition.getName() + "hash=" + definition.getHash());
+		builder.append("All:\n");
 		for (TransactionOutPoint point: outputs.keySet()) {
 			builder.append("  ");
 			builder.append(point.toString());

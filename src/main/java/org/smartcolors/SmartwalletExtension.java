@@ -6,7 +6,9 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultimap;
 import com.google.protobuf.ByteString;
 
+import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.Wallet;
 import org.bitcoinj.core.WalletExtension;
@@ -52,7 +54,7 @@ public class SmartwalletExtension implements WalletExtension {
 			scannerBuilder.addBlockToTransaction(Protos.BlockToSortedTransaction.newBuilder()
 					.setBlockHash(getHash(entry.getKey()))
 					.setTransaction(Protos.SortedTransaction.newBuilder()
-							.setTransactionHash(getHash(entry.getValue().tx.getHash()))
+							.setTransaction(ByteString.copyFrom(entry.getValue().tx.bitcoinSerialize()))
 							.setIndex(entry.getValue().index)));
 		}
 		return scannerBuilder.build();
@@ -75,7 +77,7 @@ public class SmartwalletExtension implements WalletExtension {
 		for (SortedTransaction tx : proof.getTxs()) {
 			proofBuilder.addTxs(Protos.SortedTransaction.newBuilder()
 					.setIndex(tx.index)
-					.setTransactionHash(getHash(tx.tx.getHash())));
+					.setTransaction(ByteString.copyFrom(tx.tx.bitcoinSerialize())));
 		}
 		proofBuilder.setColorDefinition(Protos.ColorDefinition.newBuilder()
 				.setHash(getHash(proof.getDefinition().getHash())));
@@ -89,16 +91,16 @@ public class SmartwalletExtension implements WalletExtension {
 	@Override
 	public void deserializeWalletExtension(Wallet wallet, byte[] data) throws Exception {
 		Protos.ColorScanner proto = Protos.ColorScanner.parseFrom(data);
-		deserializeScanner(wallet, proto, scanner);
+		deserializeScanner(wallet.getParams(), proto, scanner);
 	}
 
-	static void deserializeScanner(Wallet wallet, Protos.ColorScanner proto, ColorScanner scanner) {
+	static void deserializeScanner(NetworkParameters params, Protos.ColorScanner proto, ColorScanner scanner) {
 		SetMultimap<Sha256Hash, SortedTransaction> mapBlockTx = TreeMultimap.create();
-		for (Protos.BlockToSortedTransaction stxp : proto.getBlockToTransactionList()) {
-			SortedTransaction tx =
-					new SortedTransaction(checkNotNull(wallet.getTransaction(getHash(stxp.getTransaction().getTransactionHash()))),
-							stxp.getTransaction().getIndex());
-			mapBlockTx.put(getHash(stxp.getBlockHash()), tx);
+		for (Protos.BlockToSortedTransaction bstxp : proto.getBlockToTransactionList()) {
+			Transaction transaction = new Transaction(params, bstxp.getTransaction().getTransaction().toByteArray());
+			SortedTransaction stx =
+					new SortedTransaction(transaction, bstxp.getTransaction().getIndex());
+			mapBlockTx.put(getHash(bstxp.getBlockHash()), stx);
 		}
 		for (Protos.ColorProof proofp : proto.getProofsList()) {
 			Sha256Hash hash = getHash(proofp.getColorDefinition().getHash());
@@ -107,28 +109,27 @@ public class SmartwalletExtension implements WalletExtension {
 				log.warn("Could not find color proof {} for deserializing", hash);
 				continue;
 			}
-			deserializeProof(wallet, proofp, proof);
+			deserializeProof(params, proofp, proof);
 		}
 
 		scanner.setMapBlockTx(mapBlockTx);
 	}
 
-	static void deserializeProof(Wallet wallet, Protos.ColorProof proofp, ColorProof proof) {
+	static void deserializeProof(NetworkParameters params, Protos.ColorProof proofp, ColorProof proof) {
 		Map<TransactionOutPoint, Long> outputs = Maps.newHashMap();
 		Map<TransactionOutPoint, Long> unspentOutputs = Maps.newHashMap();
 		TreeSet<SortedTransaction> txs = Sets.newTreeSet();
 		for (Protos.OutPointValue outp : proofp.getOutputsList()) {
-			TransactionOutPoint out = new TransactionOutPoint(wallet.getParams(), outp.getIndex(), getHash(outp.getHash()));
+			TransactionOutPoint out = new TransactionOutPoint(params, outp.getIndex(), getHash(outp.getHash()));
 			outputs.put(out, outp.getValue());
 		}
 		for (Protos.OutPointValue outp : proofp.getUnspentOutputsList()) {
-			TransactionOutPoint out = new TransactionOutPoint(wallet.getParams(), outp.getIndex(), getHash(outp.getHash()));
+			TransactionOutPoint out = new TransactionOutPoint(params, outp.getIndex(), getHash(outp.getHash()));
 			unspentOutputs.put(out, outp.getValue());
 		}
-		for (Protos.SortedTransaction txp : proofp.getTxsList()) {
-			SortedTransaction tx =
-					new SortedTransaction(checkNotNull(wallet.getTransaction(getHash(txp.getTransactionHash()))),
-							txp.getIndex());
+		for (Protos.SortedTransaction stxp : proofp.getTxsList()) {
+			Transaction transaction = new Transaction(params, stxp.getTransaction().toByteArray());
+			SortedTransaction tx = new SortedTransaction(transaction, stxp.getIndex());
 			txs.add(tx);
 		}
 		proof.setOutputs(outputs);
