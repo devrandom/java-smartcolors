@@ -43,6 +43,7 @@ import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 
 /**
@@ -260,28 +261,33 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		return filterLock;
 	}
 
+	public Map<ColorDefinition, Long> getNetAssetChange(Transaction tx, Wallet wallet) {
+		return getNetAssetChange(tx, wallet, null);
+	}
+
 	/**
 	 * Get the net movement of assets caused by the transaction.
 	 *
 	 * <p>If we notice an output that is marked as carrying color, but we don't know what asset
 	 * it is, it will be marked as {@link org.smartcolors.ColorDefinition#UNKNOWN}</p>
 	 */
-	public Map<ColorDefinition, Long> getNetAssetChange(Transaction tx, Wallet wallet) {
+	public Map<ColorDefinition, Long> getNetAssetChange(Transaction tx, Wallet wallet, @Nullable ColorKeyChain chain) {
+		// FIXME make chain mandatory
 		wallet.getLock().lock();
 		try {
 			Map<ColorDefinition, Long> res = Maps.newHashMap();
-			applyNetAssetChange(tx, wallet, res);
+			applyNetAssetChange(tx, wallet, chain, res);
 			return res;
 		} finally {
    			wallet.getLock().unlock();
 		}
 	}
 
-	private void applyNetAssetChange(Transaction tx, Wallet wallet, Map<ColorDefinition, Long> res) {
+	private void applyNetAssetChange(Transaction tx, Wallet wallet, @Nullable ColorKeyChain chain, Map<ColorDefinition, Long> res) {
 		lock.lock();
 		try {
 			outs: for (TransactionOutput out : getColoredOutputs(tx)) {
-				if (out.isMine(wallet)) {
+				if (chain != null ? chain.isOutputToMe(out) : out.isMine(wallet)) {
 					if (applyOutputValue(out, res)) continue outs;
 				}
 			}
