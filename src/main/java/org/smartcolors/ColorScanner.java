@@ -43,7 +43,6 @@ import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 
 /**
@@ -261,18 +260,13 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		return filterLock;
 	}
 
-	public Map<ColorDefinition, Long> getNetAssetChange(Transaction tx, Wallet wallet) {
-		return getNetAssetChange(tx, wallet, null);
-	}
-
 	/**
 	 * Get the net movement of assets caused by the transaction.
 	 *
 	 * <p>If we notice an output that is marked as carrying color, but we don't know what asset
 	 * it is, it will be marked as {@link org.smartcolors.ColorDefinition#UNKNOWN}</p>
 	 */
-	public Map<ColorDefinition, Long> getNetAssetChange(Transaction tx, Wallet wallet, @Nullable ColorKeyChain chain) {
-		// FIXME make chain mandatory
+	public Map<ColorDefinition, Long> getNetAssetChange(Transaction tx, Wallet wallet, ColorKeyChain chain) {
 		wallet.getLock().lock();
 		try {
 			Map<ColorDefinition, Long> res = Maps.newHashMap();
@@ -283,12 +277,12 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		}
 	}
 
-	private void applyNetAssetChange(Transaction tx, Wallet wallet, @Nullable ColorKeyChain chain, Map<ColorDefinition, Long> res) {
+	private void applyNetAssetChange(Transaction tx, Wallet wallet, ColorKeyChain chain, Map<ColorDefinition, Long> res) {
 		lock.lock();
 		try {
-			outs: for (TransactionOutput out : getColoredOutputs(tx)) {
-				if (chain != null ? chain.isOutputToMe(out) : out.isMine(wallet)) {
-					if (applyOutputValue(out, res)) continue outs;
+			for (TransactionOutput out : getColoredOutputs(tx)) {
+				if (chain.isOutputToMe(out)) {
+					applyOutputValue(out, res);
 				}
 			}
 			inps: for (TransactionInput inp: tx.getInputs()) {
@@ -357,12 +351,12 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	 *
 	 * <p>The caller may have to run this again if we find one asset, but there are other unknown outputs</p>
  	 */
-	public ListenableFuture<Transaction> getTransactionWithKnownAssets(Transaction tx, Wallet wallet) {
+	public ListenableFuture<Transaction> getTransactionWithKnownAssets(Transaction tx, Wallet wallet, ColorKeyChain chain) {
 		wallet.getLock().lock();
 		lock.lock();
 		try {
 			SettableFuture<Transaction> future = SettableFuture.create();
-			if (getNetAssetChange(tx, wallet).containsKey(ColorDefinition.UNKNOWN)) {
+			if (getNetAssetChange(tx, wallet, chain).containsKey(ColorDefinition.UNKNOWN)) {
 				// FIXME need to fail here right away if we are past the block where this tx appears and we are bloom filtering
 				unknownTransactionFutures.put(tx, future);
 			} else {

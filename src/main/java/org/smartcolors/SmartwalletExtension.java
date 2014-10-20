@@ -26,12 +26,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class SmartwalletExtension implements WalletExtension {
 	private static final Logger log = LoggerFactory.getLogger(SmartwalletExtension.class);
+	public static final String IDENTIFIER = "org.smartcolors";
 
 	protected ColorScanner scanner;
+	protected ColorKeyChain colorKeyChain;
 
 	@Override
 	public String getWalletExtensionID() {
-		return "org.smartcolors";
+		return IDENTIFIER;
 	}
 
 	@Override
@@ -159,5 +161,13 @@ public class SmartwalletExtension implements WalletExtension {
 	public ColorScanner getScanner() {
 		checkNotNull(scanner);
 		return scanner;
+	}
+
+	public void setColorKeyChain(ColorKeyChain colorKeyChain) {
+		this.colorKeyChain = colorKeyChain;
+	}
+
+	public ColorKeyChain getColorKeyChain() {
+		return colorKeyChain;
 	}
 }

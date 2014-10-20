@@ -159,11 +159,11 @@ public class ColorTool {
 		wallet.addEventListener(new AbstractWalletEventListener() {
 			@Override
 			public void onCoinsReceived(final Wallet wallet, Transaction tx, Coin prevBalance, Coin newBalance) {
-				ListenableFuture<Transaction> res = scanner.getTransactionWithKnownAssets(tx, wallet);
+				ListenableFuture<Transaction> res = scanner.getTransactionWithKnownAssets(tx, wallet, colorChain);
 				Futures.addCallback(res, new FutureCallback<Transaction>() {
 					@Override
 					public void onSuccess(@Nullable Transaction result) {
-						Map<ColorDefinition, Long> change = scanner.getNetAssetChange(result, wallet);
+						Map<ColorDefinition, Long> change = scanner.getNetAssetChange(result, wallet, colorChain);
 						System.out.println(change);
 					}
 
@@ -296,7 +296,7 @@ public class ColorTool {
 			System.out.println(wallet);
 			System.out.println(wallet.currentReceiveAddress());
 			for (Transaction tx: wallet.getTransactionPool(WalletTransaction.Pool.UNSPENT).values()) {
-				Map<ColorDefinition, Long> values = scanner.getNetAssetChange(tx, wallet);
+				Map<ColorDefinition, Long> values = scanner.getNetAssetChange(tx, wallet, colorChain);
 				System.out.println(tx.getHash());
 				System.out.println(values);
 			}

@@ -13,6 +13,7 @@ import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.StoredBlock;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutPoint;
+import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.Wallet;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
@@ -23,6 +24,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.smartcolors.protos.Protos;
 
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
@@ -47,6 +49,8 @@ public class ColorScannerTest {
 	private StoredBlock genesisBlock;
 	private ColorDefinition def;
 	private Script opReturnScript;
+	private ColorKeyChain colorChain;
+	private Wallet wallet;
 
 	@Before
 	public void setUp() throws Exception {
@@ -70,6 +74,19 @@ public class ColorScannerTest {
 		def = new ColorDefinition(points, metadata);
 		scanner = new ColorScanner();
 		scanner.addDefinition(def);
+
+		// Hack - delegate to the current wallet
+		colorChain = new ColorKeyChain(new SecureRandom(), 128, "", 0) {
+			@Override
+			public boolean isOutputToMe(TransactionOutput output) {
+				if (output.getScriptPubKey().isSentToAddress())
+					return wallet.isPubKeyHashMine(output.getScriptPubKey().getPubKeyHash());
+				else if (output.getScriptPubKey().isSentToRawPubKey())
+					return wallet.isPubKeyMine(output.getScriptPubKey().getPubKey());
+				return false;
+			}
+		};
+		wallet = null;
 	}
 
 	@Test
@@ -90,7 +107,7 @@ public class ColorScannerTest {
 
 	@Test
 	public void testGetNetAssetChangeUnknown() {
-		Wallet wallet = new Wallet(params) {
+		wallet = new Wallet(params) {
 			@Override
 			public boolean isPubKeyMine(byte[] pubkey) {
 				return true;
@@ -100,7 +117,7 @@ public class ColorScannerTest {
 		tx2.addInput(genesisTx.getOutput(0));
 		tx2.addOutput(Utils.makeAssetCoin(5), ScriptBuilder.createOutputScript(new ECKey()));
 		tx2.addOutput(Coin.ZERO, opReturnScript);
-		Map<ColorDefinition, Long> res = scanner.getNetAssetChange(tx2, wallet);
+		Map<ColorDefinition, Long> res = scanner.getNetAssetChange(tx2, wallet, colorChain);
 		Map<ColorDefinition, Long> expected = Maps.newHashMap();
 		expected.put(ColorDefinition.UNKNOWN, 5L);
 		assertEquals(expected, res);
@@ -111,7 +128,7 @@ public class ColorScannerTest {
 		final ECKey myKey = new ECKey();
 		final Map<Sha256Hash, Transaction> txs = Maps.newHashMap();
 		scanner.receiveFromBlock(genesisTx, FakeTxBuilder.createFakeBlock(blockStore, genesisTx).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
-		Wallet wallet = new Wallet(params) {
+		wallet = new Wallet(params) {
 			@Override
 			public boolean isPubKeyMine(byte[] pubkey) {
 				return Arrays.equals(pubkey, myKey.getPubKey());
@@ -131,7 +148,7 @@ public class ColorScannerTest {
 		scanner.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
 		wallet.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
 		Map<ColorDefinition, Long> expected = Maps.newHashMap();
-		Map<ColorDefinition, Long> res = scanner.getNetAssetChange(tx2, wallet);
+		Map<ColorDefinition, Long> res = scanner.getNetAssetChange(tx2, wallet, colorChain);
 		expected.put(def, 5L);
 		assertEquals(expected, res);
 
@@ -145,7 +162,7 @@ public class ColorScannerTest {
 		wallet.receiveFromBlock(tx3, FakeTxBuilder.createFakeBlock(blockStore, tx3).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
 
 		expected.clear();
-		res = scanner.getNetAssetChange(tx3, wallet);
+		res = scanner.getNetAssetChange(tx3, wallet, colorChain);
 		expected.put(def, -3L);
 		assertEquals(expected, res);
 
@@ -164,7 +181,7 @@ public class ColorScannerTest {
 	public void testGetTransactionWithUnknownAsset() throws ExecutionException, InterruptedException {
 		final ECKey myKey = new ECKey();
 		scanner.receiveFromBlock(genesisTx, FakeTxBuilder.createFakeBlock(blockStore, genesisTx).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
-		Wallet wallet = new Wallet(params) {
+		wallet = new Wallet(params) {
 			@Override
 			public boolean isPubKeyMine(byte[] pubkey) {
 				return Arrays.equals(pubkey, myKey.getPubKey());
@@ -176,7 +193,7 @@ public class ColorScannerTest {
 		tx2.addOutput(Utils.makeAssetCoin(5), ScriptBuilder.createOutputScript(myKey));
 		tx2.addOutput(Coin.ZERO, opReturnScript);
 		wallet.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
-		ListenableFuture<Transaction> future = scanner.getTransactionWithKnownAssets(tx2, wallet);
+		ListenableFuture<Transaction> future = scanner.getTransactionWithKnownAssets(tx2, wallet, colorChain);
 		assertFalse(future.isDone());
 		scanner.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
 		assertTrue(future.isDone());
@@ -187,7 +204,7 @@ public class ColorScannerTest {
 	public void testGetTransactionWithUnknownAssetFail() throws ExecutionException, InterruptedException {
 		final ECKey myKey = new ECKey();
 		scanner.receiveFromBlock(genesisTx, FakeTxBuilder.createFakeBlock(blockStore, genesisTx).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
-		Wallet wallet = new Wallet(params) {
+		wallet = new Wallet(params) {
 			@Override
 			public boolean isPubKeyMine(byte[] pubkey) {
 				return Arrays.equals(pubkey, myKey.getPubKey());
@@ -200,7 +217,7 @@ public class ColorScannerTest {
 		tx2.addOutput(Coin.ZERO, opReturnScript);
 		StoredBlock storedBlock = FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock;
 		wallet.receiveFromBlock(tx2, storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
-		ListenableFuture<Transaction> future = scanner.getTransactionWithKnownAssets(tx2, wallet);
+		ListenableFuture<Transaction> future = scanner.getTransactionWithKnownAssets(tx2, wallet, colorChain);
 		assertFalse(future.isDone());
 		scanner.notifyNewBestBlock(storedBlock);
 		assertTrue(future.isDone());
