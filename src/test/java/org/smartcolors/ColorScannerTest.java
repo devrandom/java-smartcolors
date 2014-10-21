@@ -20,6 +20,7 @@ import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.script.ScriptOpCodes;
 import org.bitcoinj.store.MemoryBlockStore;
 import org.bitcoinj.testing.FakeTxBuilder;
+import org.bitcoinj.wallet.KeyChainGroup;
 import org.junit.Before;
 import org.junit.Test;
 import org.smartcolors.protos.Protos;
@@ -107,7 +108,12 @@ public class ColorScannerTest {
 
 	@Test
 	public void testGetNetAssetChangeUnknown() {
-		wallet = new Wallet(params) {
+		KeyChainGroup group = new KeyChainGroup(params);
+		group.setLookaheadSize(20);
+		group.setLookaheadThreshold(7);
+		group.addAndActivateHDChain(colorChain);
+		group.createAndActivateNewHDChain();
+		wallet = new Wallet(params, group) {
 			@Override
 			public boolean isPubKeyMine(byte[] pubkey) {
 				return true;
