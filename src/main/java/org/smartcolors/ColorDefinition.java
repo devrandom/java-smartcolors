@@ -43,6 +43,7 @@ public class ColorDefinition {
 	public static final String METADATA_EXTRAHASH = "extrahash";
 	public static final String METADATA_ISSUER = "issuer";
 	public static final String METADATA_UNIT = "unit";
+	public static final String METADATA_TOTAL_UNITS = "total_unit";
 	public static final String METADATA_ATOMIC_SIZE = "atomic_size";
 	public static final String METADATA_SIGNATURE = "signature";
 	public static final String METADATA_GENESIS_TXID = "genesis_txid";
