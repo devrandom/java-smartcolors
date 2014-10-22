@@ -70,7 +70,7 @@ public class AssetCoinSelector extends DefaultCoinSelector {
 			// Only pick chain-included transactions, or transactions that are ours and pending.
 			if (!shouldSelect(output)) continue;
 			selected.add(output);
-			assetTotal += SmartColors.removeMsbdropValuePadding(output.getValue().value);
+			assetTotal += proof.getOutputs().get(output.getOutPointFor());
 			total += output.getValue().value;
 		}
 		// Total may be lower than target here, if the given candidates were insufficient to create to requested
@@ -145,6 +145,12 @@ public class AssetCoinSelector extends DefaultCoinSelector {
 
 			// Select and add requested asset
 			AssetCoinSelection assetSelection = select(candidates, assetAmount);
+
+			if (assetSelection.assetGathered < assetAmount) {
+				long missing = assetAmount - assetSelection.assetGathered;
+				String message = "Insufficient, missing " + missing + " " + proof.getDefinition().getMetadata().get(ColorDefinition.METADATA_UNIT);
+				throw new InsufficientMoneyException(Coin.valueOf((int) missing, 0), message);
+			}
 			for (TransactionOutput output : assetSelection.gathered) {
 				TransactionInput input = req.tx.addInput(output);
 				originalInputs.add(input);
