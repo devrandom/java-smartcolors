@@ -1,5 +1,9 @@
 package org.smartcolors;
 
+import org.bitcoinj.script.Script;
+import org.bitcoinj.script.ScriptBuilder;
+import org.bitcoinj.script.ScriptOpCodes;
+
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
@@ -49,5 +53,12 @@ public class SmartColors {
 		while (((1L << i) | v | 1) < minimumNValue)
 			i++;
 		return (1L << i) | v | 1;
+	}
+
+	public static Script makeOpReturnScript() {
+		ScriptBuilder ret = new ScriptBuilder();
+		ret.op(ScriptOpCodes.OP_RETURN);
+		ret.data(ColorProof.SMART_ASSET_MARKER.getBytes());
+		return ret.build();
 	}
 }

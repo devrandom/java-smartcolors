@@ -76,9 +76,11 @@ public class ColorKeyChain extends DeterministicKeyChain {
 			return findKeyFromPubKey(pubkey) != null;
 		} if (script.isPayToScriptHash()) {
 			return findRedeemDataByScriptHash(ByteString.copyFrom(script.getPubKeyHash())) != null;
-		} else {
+		} else if (script.isSentToAddress()) {
 			byte[] pubkeyHash = script.getPubKeyHash();
 			return findKeyFromPubHash(pubkeyHash) != null;
+		} else {
+			return false;
 		}
 	}
 

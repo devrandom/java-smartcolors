@@ -291,9 +291,9 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 						Long value = proof.getOutputs().get(inp.getOutpoint());
 						if (value != null) {
 							Long existing = res.get(proof.getDefinition());
-							if (existing != null)
-								value = existing - value;
-							res.put(proof.getDefinition(), value);
+							if (existing == null)
+								existing = 0L;
+							res.put(proof.getDefinition(), existing - value);
 							continue inps;
 						}
 					}

@@ -1,24 +1,18 @@
 package org.smartcolors;
 
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import org.bitcoinj.core.AbstractBlockChain;
 import org.bitcoinj.core.BloomFilter;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.StoredBlock;
 import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.Wallet;
-import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
-import org.bitcoinj.script.ScriptOpCodes;
-import org.bitcoinj.store.MemoryBlockStore;
 import org.bitcoinj.testing.FakeTxBuilder;
 import org.bitcoinj.wallet.KeyChainGroup;
 import org.junit.Before;
@@ -29,7 +23,6 @@ import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nullable;
@@ -39,45 +32,12 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class ColorScannerTest {
-	public static final Script EMPTY_SCRIPT = new Script(new byte[0]);
-
-	private NetworkParameters params;
-	private ColorScanner scanner;
-	private Transaction genesisTx;
-	private TransactionOutPoint genesisOutPoint;
-	private MemoryBlockStore blockStore;
-	private StoredBlock genesisBlock;
-	private ColorDefinition def;
-	private Script opReturnScript;
-	private ColorKeyChain colorChain;
-	private Wallet wallet;
-
+public class ColorScannerTest extends ColorTest {
 	@Before
-	public void setUp() throws Exception {
-		params = NetworkParameters.fromID(NetworkParameters.ID_REGTEST);
-		blockStore = new MemoryBlockStore(params);
-		genesisTx = new Transaction(params);
-		genesisTx.addInput(Sha256Hash.ZERO_HASH, 0, EMPTY_SCRIPT);
-		ScriptBuilder ret = new ScriptBuilder();
-		ret.op(ScriptOpCodes.OP_RETURN);
-		ret.data(ColorProof.SMART_ASSET_MARKER.getBytes());
-		opReturnScript = ret.build();
-		genesisTx.addOutput(Utils.makeAssetCoin(10), new Script(new byte[0]));
-		genesisTx.addOutput(Coin.ZERO, opReturnScript);
-		genesisBlock = FakeTxBuilder.createFakeBlock(blockStore, genesisTx).storedBlock;
-		genesisOutPoint = new TransactionOutPoint(params, 0, genesisTx);
-		TxOutGenesisPoint genesis = new TxOutGenesisPoint(params, genesisOutPoint);
-		SortedSet<GenesisPoint> points = Sets.newTreeSet();
-		points.add(genesis);
-		Map<String, String> metadata = Maps.newHashMap();
-		metadata.put("name", "widgets");
-		def = new ColorDefinition(points, metadata);
-		scanner = new ColorScanner();
-		scanner.addDefinition(def);
-
-		// Hack - delegate to the current wallet
+	public void setUp() {
+		super.setUp();
 		colorChain = new ColorKeyChain(new SecureRandom(), 128, "", 0) {
+			// Hack - delegate to the current wallet
 			@Override
 			public boolean isOutputToMe(TransactionOutput output) {
 				if (output.getScriptPubKey().isSentToAddress())
@@ -87,7 +47,6 @@ public class ColorScannerTest {
 				return false;
 			}
 		};
-		wallet = null;
 	}
 
 	@Test

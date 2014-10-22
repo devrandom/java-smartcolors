@@ -208,8 +208,8 @@ public class ColorProof {
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("[ColorProof");
-		builder.append(" name=" + definition.getName() + "hash=" + definition.getHash());
-		builder.append("All:\n");
+		builder.append(" name=" + definition.getName() + " hash=" + definition.getHash());
+		builder.append("\nAll:\n");
 		for (TransactionOutPoint point: outputs.keySet()) {
 			builder.append("  ");
 			builder.append(point.toString());
@@ -253,5 +253,9 @@ public class ColorProof {
 
 	TreeSet<SortedTransaction> getTxs() {
 		return txs;
+	}
+
+	public boolean isColored(TransactionOutPoint point) {
+		return outputs.containsKey(point);
 	}
 }
