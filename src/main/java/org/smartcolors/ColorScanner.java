@@ -317,6 +317,12 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	private boolean applyOutputValue(TransactionOutput out, Map<ColorDefinition, Long> res) {
 		for (ColorProof proof: proofs) {
 			Long value = proof.getOutputs().get(out.getOutPointFor());
+			if (value == null) {
+				// We don't know about this output yet, try applying the color kernel to figure
+				// it out from the inputs.  This is likely an unconfirmed transaction.
+				Long[] colorOuts = proof.applyKernel(out.getParentTransaction());
+				value = colorOuts[out.getIndex()];
+			}
 			if (value != null) {
 				Long existing = res.get(proof.getDefinition());
 				if (existing != null)

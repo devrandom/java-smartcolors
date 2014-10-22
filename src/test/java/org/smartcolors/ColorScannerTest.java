@@ -161,8 +161,9 @@ public class ColorScannerTest extends ColorTest {
 		tx2.addOutput(Coin.ZERO, opReturnScript);
 		wallet.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
 		ListenableFuture<Transaction> future = scanner.getTransactionWithKnownAssets(tx2, wallet, colorChain);
-		assertFalse(future.isDone());
-		scanner.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
+		//assertFalse(future.isDone());
+		//scanner.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
+		// FIXME need a better test now that we apply the color kernel to unconfirmed
 		assertTrue(future.isDone());
 		assertEquals(tx2, future.get());
 	}
@@ -178,8 +179,10 @@ public class ColorScannerTest extends ColorTest {
 			}
 		};
 
+		Transaction tx2a = new Transaction(params);
+		tx2a.addOutput(Coin.ZERO, opReturnScript);
 		Transaction tx2 = new Transaction(params);
-		tx2.addInput(genesisTx.getOutput(0));
+		tx2.addInput(tx2a.getOutput(0));
 		tx2.addOutput(Utils.makeAssetCoin(5), ScriptBuilder.createOutputScript(myKey));
 		tx2.addOutput(Coin.ZERO, opReturnScript);
 		StoredBlock storedBlock = FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock;
@@ -194,6 +197,7 @@ public class ColorScannerTest extends ColorTest {
 		} catch (ExecutionException ex) {
 			assertEquals(ColorScanner.ScanningException.class, ex.getCause().getClass());
 		}
+		// FIXME need better test
 	}
 
 	private BloomFilter getBloomFilter() {

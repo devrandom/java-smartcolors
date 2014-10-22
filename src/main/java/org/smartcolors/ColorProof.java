@@ -106,16 +106,8 @@ public class ColorProof {
 			}
 		}
 
-		// Set up the input color
-		Long colorIn[] = new Long[tx.getInputs().size()];
-		for (int i = 0; i < colorIn.length; i++) {
-			TransactionOutPoint prev = tx.getInput(i).getOutpoint();
-			if (unspentOutputs.containsKey(prev))
-				colorIn[i] = unspentOutputs.get(prev);
-		}
+		Long[] colorOut = applyKernel(tx);
 
-		// Apply kernel and add output colors to output maps
-		Long colorOut[] = definition.applyKernel(tx, colorIn);
 		for (int i = 0; i < colorOut.length; i++) {
 			if (colorOut[i] != null) {
 				TransactionOutPoint outPoint = new TransactionOutPoint(tx.getParams(), i, tx);
@@ -129,6 +121,19 @@ public class ColorProof {
 			unspentOutputs.remove(input.getOutpoint());
 		}
 		txs.add(new SortedTransaction(tx, txs.size()));
+	}
+
+	public Long[] applyKernel(Transaction tx) {
+		// Set up the input color
+		Long colorIn[] = new Long[tx.getInputs().size()];
+		for (int i = 0; i < colorIn.length; i++) {
+			TransactionOutPoint prev = tx.getInput(i).getOutpoint();
+			if (unspentOutputs.containsKey(prev))
+				colorIn[i] = unspentOutputs.get(prev);
+		}
+
+		// Apply kernel and add output colors to output maps
+		return definition.applyKernel(tx, colorIn);
 	}
 
 	public boolean contains(Transaction tx) {
