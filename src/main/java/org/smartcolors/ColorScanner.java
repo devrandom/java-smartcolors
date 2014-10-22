@@ -69,8 +69,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		peerEventListener = new AbstractPeerEventListener() {
 			@Override
 			public void onTransaction(Peer peer, Transaction t) {
-				log.info("pending {}", t);
-				pending.put(t.getHash(), t);
+				addPending(t);
 			}
 
 			@Override
@@ -79,6 +78,12 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 				peer.addEventListener(this);
 			}
 		};
+	}
+
+	/** Add a pending transaction from a peer or outgoing from us */
+	public void addPending(Transaction t) {
+		log.info("pending {}", t);
+		pending.put(t.getHash(), t);
 	}
 
 	public AbstractPeerEventListener getPeerEventListener() {
@@ -204,8 +209,13 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	@Override
 	public boolean notifyTransactionIsInBlock(Sha256Hash txHash, StoredBlock block, AbstractBlockChain.NewBlockType blockType, int relativityOffset) throws VerificationException {
 		Transaction tx = pending.get(txHash);
-		log.info("in block {} {} {}", txHash, tx, relativityOffset);
-		return (tx != null) && receive(tx, block, blockType, relativityOffset);
+		if (tx == null) {
+			log.error("in block with no pending tx {} {}", txHash, tx, relativityOffset);
+			return false;
+		} else {
+			log.info("in block {} {} {}", txHash, tx, relativityOffset);
+			return receive(tx, block, blockType, relativityOffset);
+		}
 	}
 
 	@Override
@@ -470,6 +480,14 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	public ColorProof getColorProofByHash(Sha256Hash hash) {
 		for (ColorProof proof: proofs) {
 			if (proof.getDefinition().getHash().equals(hash))
+				return proof;
+		}
+		return null;
+	}
+
+	public ColorProof getColorProofByDefinition(ColorDefinition def) {
+		for (ColorProof proof: proofs) {
+			if (proof.getDefinition().equals(def))
 				return proof;
 		}
 		return null;

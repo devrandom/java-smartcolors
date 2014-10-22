@@ -1,7 +1,9 @@
 package org.smartcolors;
 
+import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 
 import org.bitcoinj.core.BloomFilter;
@@ -16,6 +18,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Map;
 import java.util.TreeSet;
+
+import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
@@ -34,6 +38,14 @@ public class ColorProof {
 	private Map<TransactionOutPoint, Long> outputs;
 	private Map<TransactionOutPoint, Long> unspentOutputs;
 	private TreeSet<SortedTransaction> txs;
+	private Ordering<TransactionOutPoint> outputOrdering =
+			Ordering.natural().onResultOf(new Function<TransactionOutPoint, Comparable>() {
+				@Nullable
+				@Override
+				public Comparable apply(@Nullable TransactionOutPoint input) {
+					return Sha256Hash.create(input.bitcoinSerialize());
+				}
+			});
 
 	public ColorProof(ColorDefinition definition) {
 		this.definition = definition;
@@ -50,14 +62,14 @@ public class ColorProof {
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
 		try {
 			bos.write(definition.getHash().getBytes());
-			for (Map.Entry<TransactionOutPoint, Long> entry : outputs.entrySet()) {
-				bos.write(entry.getKey().bitcoinSerialize());
-				Utils.uint32ToByteStreamLE(entry.getValue(), bos);
+			for (TransactionOutPoint point : outputOrdering.immutableSortedCopy(outputs.keySet())) {
+				bos.write(point.bitcoinSerialize());
+				Utils.uint32ToByteStreamLE(outputs.get(point), bos);
 			}
 			bos.write(new byte[1]);
-			for (Map.Entry<TransactionOutPoint, Long> entry : unspentOutputs.entrySet()) {
-				bos.write(entry.getKey().bitcoinSerialize());
-				Utils.uint32ToByteStreamLE(entry.getValue(), bos);
+			for (TransactionOutPoint point : outputOrdering.immutableSortedCopy(unspentOutputs.keySet())) {
+				bos.write(point.bitcoinSerialize());
+				Utils.uint32ToByteStreamLE(unspentOutputs.get(point), bos);
 			}
 			bos.write(new byte[1]);
 			for (SortedTransaction tx : txs) {
@@ -210,7 +222,8 @@ public class ColorProof {
 		builder.append("[ColorProof");
 		builder.append(" name=" + definition.getName() + " hash=" + definition.getHash());
 		builder.append("\nAll:\n");
-		for (TransactionOutPoint point: outputs.keySet()) {
+
+		for (TransactionOutPoint point: outputOrdering.immutableSortedCopy(outputs.keySet())) {
 			builder.append("  ");
 			builder.append(point.toString());
 			builder.append(" = ");
@@ -218,13 +231,15 @@ public class ColorProof {
 			builder.append("\n");
 		}
 		builder.append("\nUnspent:\n");
-		for (TransactionOutPoint point: unspentOutputs.keySet()) {
+		for (TransactionOutPoint point: outputOrdering.immutableSortedCopy(unspentOutputs.keySet())) {
 			builder.append("  ");
 			builder.append(point.toString());
 			builder.append(" = ");
 			builder.append(unspentOutputs.get(point));
 			builder.append("\n");
 		}
+		builder.append("\nState hash: ");
+		builder.append(getStateHash());
 		builder.append("\n]");
 		return builder.toString();
 	}

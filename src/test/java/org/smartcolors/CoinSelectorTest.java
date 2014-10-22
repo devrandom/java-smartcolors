@@ -33,7 +33,7 @@ public class CoinSelectorTest extends ColorTest {
 	private AssetCoinSelector assetSelector;
 
 	@Before
-	public void setUp() {
+	public void setUp() throws Exception {
 		super.setUp();
 		colorChain =
 				ColorKeyChain.builder()

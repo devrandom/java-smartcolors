@@ -34,7 +34,7 @@ import static org.junit.Assert.fail;
 
 public class ColorScannerTest extends ColorTest {
 	@Before
-	public void setUp() {
+	public void setUp() throws Exception {
 		super.setUp();
 		colorChain = new ColorKeyChain(new SecureRandom(), 128, "", 0) {
 			// Hack - delegate to the current wallet
@@ -90,7 +90,7 @@ public class ColorScannerTest extends ColorTest {
 
 	@Test
 	public void testGetNetAssetChange() {
-		final ECKey myKey = new ECKey();
+		final ECKey myKey = ECKey.fromPrivate(privkey);
 		final Map<Sha256Hash, Transaction> txs = Maps.newHashMap();
 		scanner.receiveFromBlock(genesisTx, FakeTxBuilder.createFakeBlock(blockStore, genesisTx).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
 		wallet = new Wallet(params) {
@@ -121,7 +121,7 @@ public class ColorScannerTest extends ColorTest {
 		Transaction tx3 = new Transaction(params);
 		tx3.addInput(tx2.getOutput(0));
 		tx3.addOutput(Utils.makeAssetCoin(2), ScriptBuilder.createOutputScript(myKey));
-		tx3.addOutput(Utils.makeAssetCoin(3), ScriptBuilder.createOutputScript(new ECKey()));
+		tx3.addOutput(Utils.makeAssetCoin(3), ScriptBuilder.createOutputScript(privkey1));
 		tx3.addOutput(Coin.ZERO, opReturnScript);
 		scanner.receiveFromBlock(tx3, FakeTxBuilder.createFakeBlock(blockStore, tx3).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
 		wallet.receiveFromBlock(tx3, FakeTxBuilder.createFakeBlock(blockStore, tx3).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
@@ -140,6 +140,8 @@ public class ColorScannerTest extends ColorTest {
 		Protos.ColorScanner proto = SmartwalletExtension.serializeScanner(scanner);
 		SmartwalletExtension.deserializeScanner(params, proto, scanner1);
 		assertEquals(scanner.getMapBlockTx(), scanner1.getMapBlockTx());
+		assertEquals("2469b7459399d9078b96987eb4fbaf2ee6c3df8c80039fef780ca41cc4557d63",
+				scanner.getColorProofByDefinition(def).getStateHash().toString());
 	}
 
 	@Test
