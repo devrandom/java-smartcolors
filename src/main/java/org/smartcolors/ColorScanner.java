@@ -1,9 +1,11 @@
 package org.smartcolors;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultimap;
@@ -43,6 +45,7 @@ import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 
 /**
@@ -120,13 +123,13 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	public void reorganize(StoredBlock splitPoint, List<StoredBlock> oldBlocks, List<StoredBlock> newBlocks) throws VerificationException {
 		lock.lock();
 		try {
-			doRorganize(oldBlocks, newBlocks);
+			doReorganize(oldBlocks, newBlocks);
 		} finally {
    			lock.unlock();
 		}
 	}
 
-	private void doRorganize(List<StoredBlock> oldBlocks, List<StoredBlock> newBlocks) {
+	private void doReorganize(List<StoredBlock> oldBlocks, List<StoredBlock> newBlocks) {
 		log.info("reorganize {} -> {}", newBlocks.size(), oldBlocks.size());
 		// Remove transactions from old blocks
 		for (ColorProof proof : proofs) {
@@ -468,10 +471,17 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("[ColorScanner\n");
-		for (ColorProof proof: proofs) {
+		Ordering<ColorProof> ordering = Ordering.natural().onResultOf(new Function<ColorProof, Comparable>() {
+			@Nullable
+			@Override
+			public Comparable apply(@Nullable ColorProof input) {
+				return input.getDefinition().getHash();
+			}
+		});
+		for (ColorProof proof: ordering.immutableSortedCopy(proofs)) {
 			builder.append(proof.toString());
 		}
-		builder.append("]");
+		builder.append("\n]");
 		return builder.toString();
 	}
 

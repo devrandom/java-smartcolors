@@ -226,7 +226,9 @@ public class ColorProof {
 		StringBuilder builder = new StringBuilder();
 		builder.append("[ColorProof");
 		builder.append(" name=" + definition.getName() + " hash=" + definition.getHash());
-		builder.append("\nAll:\n");
+		builder.append("\n State hash: ");
+		builder.append(getStateHash());
+		builder.append("\n All:\n");
 
 		for (TransactionOutPoint point: outputOrdering.immutableSortedCopy(outputs.keySet())) {
 			builder.append("  ");
@@ -243,9 +245,7 @@ public class ColorProof {
 			builder.append(unspentOutputs.get(point));
 			builder.append("\n");
 		}
-		builder.append("\nState hash: ");
-		builder.append(getStateHash());
-		builder.append("\n]");
+		builder.append("]\n");
 		return builder.toString();
 	}
 
