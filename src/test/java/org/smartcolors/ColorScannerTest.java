@@ -203,4 +203,17 @@ public class ColorScannerTest extends ColorTest {
 	private BloomFilter getBloomFilter() {
 		return scanner.getBloomFilter(10, 1e-12, (long) (Math.random() * Long.MAX_VALUE));
 	}
+
+	@Test
+	public void testSerializePending() {
+		Transaction tx2 = new Transaction(params);
+		tx2.addInput(genesisTx.getOutput(0));
+		tx2.addOutput(Utils.makeAssetCoin(5), ScriptBuilder.createOutputScript(privkey1));
+		tx2.addOutput(Coin.ZERO, opReturnScript);
+		scanner.addPending(tx2);
+		Protos.ColorScanner scannerProto = SmartwalletExtension.serializeScanner(scanner);
+		ColorScanner scanner1 = new ColorScanner();
+		SmartwalletExtension.deserializeScanner(params, scannerProto, scanner1);
+		assertEquals(tx2.getHash(), scanner1.getPending().keySet().iterator().next());
+	}
 }

@@ -50,6 +50,12 @@ import javax.annotation.concurrent.GuardedBy;
 
 /**
  * A blockchain and peer listener that keeps a set of color trackers updated with blockchain events.
+ *
+ * <p>You must call {@link #addAllPending(java.util.Collection)} after deserializing the wallet
+ * so that we pick up any pending transactions that were saved with the wallet but we didn't get to save.
+ * The peer will not let us know about it again, and we will be unable to find it when its hash
+ * gets into a block.
+ * </p>
  */
 public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	private static final Logger log = LoggerFactory.getLogger(ColorScanner.class);
@@ -440,6 +446,13 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 
 	Map<Sha256Hash,Transaction> getPending() {
 		return pending;
+	}
+
+	/** Call this after deserializing the wallet with any wallet pending transactions */
+	public void addAllPending(Collection<Transaction> txs) {
+		for (Transaction tx : txs) {
+			pending.put(tx.getHash(), tx);
+		}
 	}
 
 	void setPending(Map<Sha256Hash, Transaction> pending) {
