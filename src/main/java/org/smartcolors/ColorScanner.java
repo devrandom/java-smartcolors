@@ -522,6 +522,12 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		return null;
 	}
 
+	public boolean removeColorDefinition(ColorDefinition def) throws Exception {
+		Sha256Hash hash = def.getHash();
+		ColorProof proof = getColorProofByHash(hash);
+		return proofs.remove(proof);
+	}
+
 	/** Reset all state.  Used for blockchain rescan. */
 	public void reset() {
 		lock.lock();
