@@ -1,5 +1,8 @@
 package org.smartcolors;
 
+import org.bitcoinj.core.Address;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.params.MainNetParams;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.script.ScriptOpCodes;
@@ -8,6 +11,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
 public class SmartColors {
+
 	/**
 	 * Remove MSB-Drop nValue padding.
 	 *
@@ -60,5 +64,22 @@ public class SmartColors {
 		ret.op(ScriptOpCodes.OP_RETURN);
 		ret.data(ColorProof.SMART_ASSET_MARKER.getBytes());
 		return ret.build();
+	}
+
+	public static final int ASSET_ADDRESS_VERSION = 63;
+	public final static NetworkParameters ASSET_PARAMETERS = new MainNetParams() {
+		@Override
+		public int getAddressHeader() {
+			return ASSET_ADDRESS_VERSION;
+		}
+	};
+
+	public static Address toAssetAddress(Address address) {
+		return new Address(ASSET_PARAMETERS, address.getHash160());
+	}
+
+	public static Address fromAssetAddress(Address address, NetworkParameters params) {
+		checkState(address.getParameters() == ASSET_PARAMETERS);
+		return new Address(params, address.getHash160());
 	}
 }
