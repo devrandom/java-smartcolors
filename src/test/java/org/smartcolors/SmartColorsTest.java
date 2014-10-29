@@ -2,14 +2,19 @@ package org.smartcolors;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.dropwizard.testing.FixtureHelpers;
+
+import org.bitcoinj.core.Address;
+import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.NetworkParameters;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.util.List;
 
+import io.dropwizard.testing.FixtureHelpers;
+
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.smartcolors.Utils.parseBinary;
 
@@ -43,6 +48,17 @@ public class SmartColorsTest {
 		for (List<String> item : items) {
 			checkPad(item.get(0), item.get(1), item.get(2));
 		}
+	}
+
+	@Test
+	public void testAddress() {
+		NetworkParameters params = NetworkParameters.fromID(NetworkParameters.ID_MAINNET);
+		Address address = new ECKey().toAddress(params);
+		Address assetAddress = SmartColors.toAssetAddress(address);
+		assertEquals("S", assetAddress.toString().substring(0, 1));
+		Address address1 = SmartColors.fromAssetAddress(assetAddress, params);
+		assertArrayEquals(address.getHash160(), address1.getHash160());
+		assertEquals(params, address1.getParameters());
 	}
 
 	private void checkPad(String binaryString, String binaryMinimum, String expected) {
