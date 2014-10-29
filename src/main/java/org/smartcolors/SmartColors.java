@@ -67,19 +67,43 @@ public class SmartColors {
 	}
 
 	public static final int ASSET_ADDRESS_VERSION = 63;
+	public static final int ASSET_ADDRESS_VERSION_TESTNET = 81;
+	public static final int[] ACCEPTABLE_VERSIONS = new int[]{ASSET_ADDRESS_VERSION};
+	public static final int[] ACCEPTABLE_VERSIONS_TESTNET = new int[]{ASSET_ADDRESS_VERSION_TESTNET};
 	public final static NetworkParameters ASSET_PARAMETERS = new MainNetParams() {
 		@Override
 		public int getAddressHeader() {
 			return ASSET_ADDRESS_VERSION;
 		}
+
+		@Override
+		public int[] getAcceptableAddressCodes() {
+			return ACCEPTABLE_VERSIONS;
+		}
 	};
 
-	public static Address toAssetAddress(Address address) {
-		return new Address(ASSET_PARAMETERS, address.getHash160());
+	public final static NetworkParameters ASSET_PARAMETERS_TESTNET = new MainNetParams() {
+		@Override
+		public int getAddressHeader() {
+			return ASSET_ADDRESS_VERSION_TESTNET;
+		}
+
+		@Override
+		public int[] getAcceptableAddressCodes() {
+			return ACCEPTABLE_VERSIONS_TESTNET;
+		}
+	};
+
+	public static NetworkParameters getAssetParameters(boolean isProd) {
+		return isProd ? ASSET_PARAMETERS : ASSET_PARAMETERS_TESTNET;
+	}
+
+	public static Address toAssetAddress(Address address, boolean isProd) {
+		return new Address(getAssetParameters(isProd), address.getHash160());
 	}
 
 	public static Address fromAssetAddress(Address address, NetworkParameters params) {
-		checkState(address.getParameters() == ASSET_PARAMETERS);
+		checkState(address.getParameters() == getAssetParameters(params.equals(NetworkParameters.fromID(NetworkParameters.ID_MAINNET))));
 		return new Address(params, address.getHash160());
 	}
 }

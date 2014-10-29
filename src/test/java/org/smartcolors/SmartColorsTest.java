@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.bitcoinj.core.Address;
+import org.bitcoinj.core.AddressFormatException;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
 import org.junit.Before;
@@ -51,13 +52,26 @@ public class SmartColorsTest {
 	}
 
 	@Test
-	public void testAddress() {
+	public void testAddress() throws AddressFormatException {
 		NetworkParameters params = NetworkParameters.fromID(NetworkParameters.ID_MAINNET);
 		Address address = new ECKey().toAddress(params);
-		Address assetAddress = SmartColors.toAssetAddress(address);
+		Address assetAddress = SmartColors.toAssetAddress(address, true);
 		assertEquals("S", assetAddress.toString().substring(0, 1));
 		Address address1 = SmartColors.fromAssetAddress(assetAddress, params);
 		assertArrayEquals(address.getHash160(), address1.getHash160());
+		assertArrayEquals(assetAddress.getHash160(), new Address(SmartColors.getAssetParameters(true), assetAddress.toString()).getHash160());
+		assertEquals(params, address1.getParameters());
+	}
+
+	@Test
+	public void testAddressTestnet() throws AddressFormatException {
+		NetworkParameters params = NetworkParameters.fromID(NetworkParameters.ID_TESTNET);
+		Address address = new ECKey().toAddress(params);
+		Address assetAddress = SmartColors.toAssetAddress(address, false);
+		assertEquals("Z", assetAddress.toString().substring(0, 1));
+		Address address1 = SmartColors.fromAssetAddress(assetAddress, params);
+		assertArrayEquals(address.getHash160(), address1.getHash160());
+		assertArrayEquals(assetAddress.getHash160(), new Address(SmartColors.getAssetParameters(false), assetAddress.toString()).getHash160());
 		assertEquals(params, address1.getParameters());
 	}
 
