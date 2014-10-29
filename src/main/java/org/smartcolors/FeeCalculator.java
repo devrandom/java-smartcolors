@@ -16,7 +16,7 @@ import org.bitcoinj.wallet.CoinSelector;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.Lock;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
@@ -33,8 +33,7 @@ public class FeeCalculator {
 
 	public static FeeCalculation calculateFee(Wallet wallet, Wallet.SendRequest req, Coin value, List<TransactionInput> originalInputs,
 	                                          boolean needAtLeastReferenceFee, LinkedList<TransactionOutput> candidates) throws InsufficientMoneyException {
-		ReentrantLock lock = wallet.getLock();
-		checkState(lock.isHeldByCurrentThread());
+		Lock lock = wallet.getLock();
 		FeeCalculation result = new FeeCalculation();
 		// There are 3 possibilities for what adding change might do:
 		// 1) No effect
