@@ -19,7 +19,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.Lock;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -100,7 +100,7 @@ public class AssetCoinSelector extends DefaultCoinSelector {
 	 */
 	public void completeTx(Wallet wallet, Wallet.SendRequest req, long assetAmount) throws InsufficientMoneyException {
 		checkArgument(req.coinSelector instanceof BitcoinCoinSelector, "Must provide a BitcoinCoinSelector");
-		ReentrantLock lock = wallet.getLock();
+		Lock lock = wallet.getLock();
 		lock.lock();
 		try {
 			// Calculate the amount of value we need to import.
