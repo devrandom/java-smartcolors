@@ -164,6 +164,7 @@ public class AssetCoinSelector extends DefaultCoinSelector {
 				long assetChange = assetSelection.assetGathered - assetAmount;
 				log.info("  with {} asset change", assetChange);
 				Coin change = Coin.valueOf(SmartColors.addMsbdropValuePadding(assetChange, Transaction.MIN_NONDUST_OUTPUT.getValue()));
+				value = value.add(change);
 				TransactionOutput changeOutput = new TransactionOutput(wallet.getParams(), req.tx, change, assetChangeKey.toAddress(wallet.getParams()));
 				req.tx.addOutput(changeOutput);
 			}

@@ -92,7 +92,7 @@ public class CoinSelectorTest extends ColorTest {
 		assetSelector.completeTx(wallet, request, 2L);
 		assertEquals(tx3.getOutput(0).getOutPointFor(), tx.getInput(0).getOutpoint());
 		assertEquals(tx4.getOutput(0).getOutPointFor(), tx.getInput(1).getOutpoint());
-		assertEquals(Coin.valueOf(1801), tx.getFee());
+		assertEquals(Coin.valueOf(1000), tx.getFee());
 		assertEquals(2L, SmartColors.removeMsbdropValuePadding(tx.getOutput(0).getValue().getValue()));
 		assertEquals(3L, SmartColors.removeMsbdropValuePadding(tx.getOutput(1).getValue().getValue()));
 
