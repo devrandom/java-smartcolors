@@ -100,7 +100,18 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	}
 
 	/** Add a color to the set of tracked colors */
-	public void addDefinition(ColorDefinition definition) {
+	public void addDefinition(ColorDefinition definition) throws ColorDefinitionExists, ColorDefinitionOutdated {
+
+		boolean exists = false;
+		if (exists) {
+			throw new ColorDefinitionExists();
+		}
+
+		boolean outdated = false;
+		if (outdated) {
+			throw new ColorDefinitionOutdated();
+		}
+
 		lock.lock();
 		try {
 			proofs.add(new ColorProof(definition));
@@ -540,6 +551,18 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 			pending.clear();
 		} finally {
    			lock.unlock();
+		}
+	}
+
+	public class ColorDefinitionOutdated extends Exception {
+		public ColorDefinitionOutdated() {
+			super("Trying to replace an existing definition with an older one.");
+		}
+	}
+
+	public class ColorDefinitionExists extends Exception {
+		public ColorDefinitionExists() {
+			super("Trying to replace an existing definition.");
 		}
 	}
 }
