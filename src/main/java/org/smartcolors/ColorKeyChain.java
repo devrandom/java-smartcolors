@@ -11,6 +11,7 @@ import org.bitcoinj.crypto.KeyCrypter;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.wallet.DeterministicKeyChain;
 import org.bitcoinj.wallet.DeterministicSeed;
+import org.spongycastle.crypto.params.KeyParameter;
 
 import java.security.SecureRandom;
 
@@ -40,6 +41,10 @@ public class ColorKeyChain extends DeterministicKeyChain {
 
 	public ColorKeyChain(DeterministicKey accountKey, boolean isFollowingKey) {
 		super(accountKey, isFollowingKey);
+	}
+
+	public ColorKeyChain(KeyCrypter keyCrypter, KeyParameter aesKey, ColorKeyChain colorKeyChain) {
+		super(keyCrypter, aesKey, colorKeyChain);
 	}
 
 	public static class Builder<T extends Builder<T>> extends DeterministicKeyChain.Builder<T> {
@@ -84,4 +89,13 @@ public class ColorKeyChain extends DeterministicKeyChain {
 		}
 	}
 
+	@Override
+	public DeterministicKeyChain toEncrypted(KeyCrypter keyCrypter, KeyParameter aesKey) {
+		return new ColorKeyChain(keyCrypter, aesKey, this);
+	}
+
+	@Override
+	protected DeterministicKeyChain makeDecryptedKeyChain(DeterministicSeed decSeed) {
+		return new ColorKeyChain(decSeed);
+	}
 }
