@@ -554,13 +554,19 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		}
 	}
 
-	public class ColorDefinitionOutdated extends Exception {
+	public class ColorDefinitionException extends Exception {
+		public ColorDefinitionException(String s) {
+			super(s);
+		}
+	}
+
+	public class ColorDefinitionOutdated extends ColorDefinitionException {
 		public ColorDefinitionOutdated() {
 			super("Trying to replace an existing definition with an older one.");
 		}
 	}
 
-	public class ColorDefinitionExists extends Exception {
+	public class ColorDefinitionExists extends ColorDefinitionException {
 		public ColorDefinitionExists() {
 			super("Trying to replace an existing definition.");
 		}

@@ -89,7 +89,7 @@ public class ColorScannerTest extends ColorTest {
 	}
 
 	@Test
-	public void testGetNetAssetChange() {
+	public void testGetNetAssetChange() throws ColorScanner.ColorDefinitionException {
 		final ECKey myKey = ECKey.fromPrivate(privkey);
 		final Map<Sha256Hash, Transaction> txs = Maps.newHashMap();
 		scanner.receiveFromBlock(genesisTx, FakeTxBuilder.createFakeBlock(blockStore, genesisTx).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);

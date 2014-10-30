@@ -289,7 +289,12 @@ public class ColorTool {
 	private static void scan(List<?> cmdArgs) {
 		ColorDefinition def = makeColorDefinition();
 		scanner = new ColorScanner();
-		scanner.addDefinition(def);
+		try {
+			scanner.addDefinition(def);
+		} catch (ColorScanner.ColorDefinitionException e) {
+			System.out.println("scan: " + e.getMessage());
+			System.exit(0);
+		}
 		syncChain();
 		if (false) {
 			System.out.println(scanner);
