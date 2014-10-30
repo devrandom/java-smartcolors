@@ -1,11 +1,16 @@
 package org.smartcolors;
 
+import com.google.common.base.Throwables;
+
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.params.MainNetParams;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.script.ScriptOpCodes;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
@@ -105,5 +110,14 @@ public class SmartColors {
 	public static Address fromAssetAddress(Address address, NetworkParameters params) {
 		checkState(address.getParameters() == getAssetParameters(params.equals(NetworkParameters.fromID(NetworkParameters.ID_MAINNET))));
 		return new Address(params, address.getHash160());
+	}
+
+	/** Seconds since the epoch when the first smartwallet was created */
+	public static long getSmartwalletEpoch() {
+		try {
+			return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").parse("2014-09-24T00:00:00+0000").getTime() / 1000;
+		} catch (ParseException e) {
+			throw Throwables.propagate(e);
+		}
 	}
 }
