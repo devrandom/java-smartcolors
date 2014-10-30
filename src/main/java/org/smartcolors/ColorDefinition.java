@@ -17,8 +17,6 @@ import org.bitcoinj.core.VarInt;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.SortedSet;
@@ -77,11 +75,7 @@ public class ColorDefinition {
 
 	public ColorDefinition(SortedSet<GenesisPoint> points, Map<String, String> metadata, long blockheight, byte[] prevdefHash) {
 		this.genesisPoints = ImmutableSortedSet.copyOf(points);
-		try {
-			this.creationTime = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").parse("2014-09-24T00:00:00+0000").getTime() / 1000;
-		} catch (ParseException e) {
-			throw new RuntimeException(e);
-		}
+		this.creationTime = SmartColors.getSmartwalletEpoch();
 		this.metadata = ImmutableMap.copyOf(metadata);
 		this.blockheight = blockheight;
 		this.prevdefHash = new Sha256Hash(prevdefHash);
