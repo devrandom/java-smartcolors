@@ -13,6 +13,7 @@ import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.testing.FakeTxBuilder;
 import org.bitcoinj.wallet.CoinSelection;
 import org.bitcoinj.wallet.DeterministicKeyChain;
+import org.bitcoinj.wallet.DeterministicSeed;
 import org.bitcoinj.wallet.KeyChain;
 import org.bitcoinj.wallet.KeyChainGroup;
 import org.junit.Before;
@@ -105,5 +106,25 @@ public class CoinSelectorTest extends ColorTest {
 	private void receiveTransaction(Transaction tx) {
 		scanner.receiveFromBlock(tx, FakeTxBuilder.createFakeBlock(blockStore, tx).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
 		wallet.receiveFromBlock(tx, FakeTxBuilder.createFakeBlock(blockStore, tx).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
+	}
+
+	@Test
+	public void testRestoreFromSeed() {
+		DeterministicSeed existingSeed = wallet.getKeyChainSeed();
+		DeterministicSeed seed = new DeterministicSeed(existingSeed.getMnemonicCode(), null, null, existingSeed.getCreationTimeSeconds());
+		assertEquals(seed, existingSeed);
+		ColorKeyChain colorChain1 = ColorKeyChain.builder()
+				.seed(seed)
+				.build();
+		DeterministicKeyChain chain =
+				DeterministicKeyChain.builder()
+						.seed(colorChain1.getSeed())
+						.build();
+		KeyChainGroup group = new KeyChainGroup(params);
+		group.addAndActivateHDChain(colorChain1);
+		group.addAndActivateHDChain(chain);
+		Wallet wallet1 = new Wallet(params, group);
+		DeterministicKey colorKey1 = colorChain1.getKey(KeyChain.KeyPurpose.RECEIVE_FUNDS);
+		assertEquals(colorKey, colorKey1);
 	}
 }
