@@ -25,6 +25,7 @@ message OutPointValue {
 
 message ColorDefinition {
     required bytes hash = 1;
+    optional string json = 2;
 }
 
 message ColorProof {

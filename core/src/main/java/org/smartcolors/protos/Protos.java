@@ -1844,6 +1844,21 @@ public final class Protos {
      * <code>required bytes hash = 1;</code>
      */
     com.google.protobuf.ByteString getHash();
+
+    // optional string json = 2;
+    /**
+     * <code>optional string json = 2;</code>
+     */
+    boolean hasJson();
+    /**
+     * <code>optional string json = 2;</code>
+     */
+    java.lang.String getJson();
+    /**
+     * <code>optional string json = 2;</code>
+     */
+    com.google.protobuf.ByteString
+        getJsonBytes();
   }
   /**
    * Protobuf type {@code smartcolors.ColorDefinition}
@@ -1899,6 +1914,11 @@ public final class Protos {
             case 10: {
               bitField0_ |= 0x00000001;
               hash_ = input.readBytes();
+              break;
+            }
+            case 18: {
+              bitField0_ |= 0x00000002;
+              json_ = input.readBytes();
               break;
             }
           }
@@ -1957,8 +1977,52 @@ public final class Protos {
       return hash_;
     }
 
+    // optional string json = 2;
+    public static final int JSON_FIELD_NUMBER = 2;
+    private java.lang.Object json_;
+    /**
+     * <code>optional string json = 2;</code>
+     */
+    public boolean hasJson() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    /**
+     * <code>optional string json = 2;</code>
+     */
+    public java.lang.String getJson() {
+      java.lang.Object ref = json_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          json_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>optional string json = 2;</code>
+     */
+    public com.google.protobuf.ByteString
+        getJsonBytes() {
+      java.lang.Object ref = json_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        json_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
     private void initFields() {
       hash_ = com.google.protobuf.ByteString.EMPTY;
+      json_ = "";
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -1979,6 +2043,9 @@ public final class Protos {
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         output.writeBytes(1, hash_);
       }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        output.writeBytes(2, getJsonBytes());
+      }
       getUnknownFields().writeTo(output);
     }
 
@@ -1991,6 +2058,10 @@ public final class Protos {
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBytesSize(1, hash_);
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(2, getJsonBytes());
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -2110,6 +2181,8 @@ public final class Protos {
         super.clear();
         hash_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000001);
+        json_ = "";
+        bitField0_ = (bitField0_ & ~0x00000002);
         return this;
       }
 
@@ -2142,6 +2215,10 @@ public final class Protos {
           to_bitField0_ |= 0x00000001;
         }
         result.hash_ = hash_;
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000002;
+        }
+        result.json_ = json_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -2160,6 +2237,11 @@ public final class Protos {
         if (other == org.smartcolors.protos.Protos.ColorDefinition.getDefaultInstance()) return this;
         if (other.hasHash()) {
           setHash(other.getHash());
+        }
+        if (other.hasJson()) {
+          bitField0_ |= 0x00000002;
+          json_ = other.json_;
+          onChanged();
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -2224,6 +2306,80 @@ public final class Protos {
       public Builder clearHash() {
         bitField0_ = (bitField0_ & ~0x00000001);
         hash_ = getDefaultInstance().getHash();
+        onChanged();
+        return this;
+      }
+
+      // optional string json = 2;
+      private java.lang.Object json_ = "";
+      /**
+       * <code>optional string json = 2;</code>
+       */
+      public boolean hasJson() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      /**
+       * <code>optional string json = 2;</code>
+       */
+      public java.lang.String getJson() {
+        java.lang.Object ref = json_;
+        if (!(ref instanceof java.lang.String)) {
+          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+              .toStringUtf8();
+          json_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string json = 2;</code>
+       */
+      public com.google.protobuf.ByteString
+          getJsonBytes() {
+        java.lang.Object ref = json_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          json_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string json = 2;</code>
+       */
+      public Builder setJson(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
+        json_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string json = 2;</code>
+       */
+      public Builder clearJson() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        json_ = getDefaultInstance().getJson();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string json = 2;</code>
+       */
+      public Builder setJsonBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
+        json_ = value;
         onChanged();
         return this;
       }
@@ -5139,18 +5295,18 @@ public final class Protos {
       "tion\022\022\n\nblock_hash\030\001 \002(\014\0223\n\013transaction\030" +
       "\002 \002(\0132\036.smartcolors.SortedTransaction\";\n" +
       "\rOutPointValue\022\014\n\004hash\030\001 \002(\014\022\r\n\005index\030\002 " +
-      "\002(\004\022\r\n\005value\030\003 \002(\004\"\037\n\017ColorDefinition\022\014\n" +
-      "\004hash\030\001 \002(\014\"\323\001\n\nColorProof\0226\n\020color_defi" +
-      "nition\030\001 \002(\0132\034.smartcolors.ColorDefiniti" +
-      "on\022+\n\007outputs\030\002 \003(\0132\032.smartcolors.OutPoi",
-      "ntValue\0223\n\017unspent_outputs\030\003 \003(\0132\032.smart" +
-      "colors.OutPointValue\022+\n\003txs\030\004 \003(\0132\036.smar" +
-      "tcolors.SortedTransaction\"\215\001\n\014ColorScann" +
-      "er\022C\n\024block_to_transaction\030\001 \003(\0132%.smart" +
-      "colors.BlockToSortedTransaction\022\'\n\006proof" +
-      "s\030\002 \003(\0132\027.smartcolors.ColorProof\022\017\n\007pend" +
-      "ing\030\003 \003(\014B \n\026org.smartcolors.protosB\006Pro" +
-      "tos"
+      "\002(\004\022\r\n\005value\030\003 \002(\004\"-\n\017ColorDefinition\022\014\n" +
+      "\004hash\030\001 \002(\014\022\014\n\004json\030\002 \001(\t\"\323\001\n\nColorProof" +
+      "\0226\n\020color_definition\030\001 \002(\0132\034.smartcolors" +
+      ".ColorDefinition\022+\n\007outputs\030\002 \003(\0132\032.smar",
+      "tcolors.OutPointValue\0223\n\017unspent_outputs" +
+      "\030\003 \003(\0132\032.smartcolors.OutPointValue\022+\n\003tx" +
+      "s\030\004 \003(\0132\036.smartcolors.SortedTransaction\"" +
+      "\215\001\n\014ColorScanner\022C\n\024block_to_transaction" +
+      "\030\001 \003(\0132%.smartcolors.BlockToSortedTransa" +
+      "ction\022\'\n\006proofs\030\002 \003(\0132\027.smartcolors.Colo" +
+      "rProof\022\017\n\007pending\030\003 \003(\014B \n\026org.smartcolo" +
+      "rs.protosB\006Protos"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -5180,7 +5336,7 @@ public final class Protos {
           internal_static_smartcolors_ColorDefinition_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_smartcolors_ColorDefinition_descriptor,
-              new java.lang.String[] { "Hash", });
+              new java.lang.String[] { "Hash", "Json", });
           internal_static_smartcolors_ColorProof_descriptor =
             getDescriptor().getMessageTypes().get(4);
           internal_static_smartcolors_ColorProof_fieldAccessorTable = new

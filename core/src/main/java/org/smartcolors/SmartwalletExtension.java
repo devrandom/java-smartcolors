@@ -1,5 +1,8 @@
 package org.smartcolors;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
@@ -16,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.smartcolors.protos.Protos;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.TreeSet;
 
@@ -27,6 +31,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class SmartwalletExtension implements WalletExtension {
 	private static final Logger log = LoggerFactory.getLogger(SmartwalletExtension.class);
 	public static final String IDENTIFIER = "org.smartcolors";
+	private static final ObjectMapper mapper = new ObjectMapper();
 
 	protected ColorScanner scanner;
 	protected ColorKeyChain colorKeyChain;
@@ -84,8 +89,14 @@ public class SmartwalletExtension implements WalletExtension {
 					.setIndex(tx.index)
 					.setTransaction(ByteString.copyFrom(tx.tx.bitcoinSerialize())));
 		}
-		proofBuilder.setColorDefinition(Protos.ColorDefinition.newBuilder()
-				.setHash(getHash(proof.getDefinition().getHash())));
+		try {
+			proofBuilder.setColorDefinition(Protos.ColorDefinition.newBuilder()
+					.setHash(getHash(proof.getDefinition().getHash()))
+					.setJson(mapper.writeValueAsString(proof.getDefinition()))
+			);
+		} catch (JsonProcessingException e) {
+			Throwables.propagate(e);
+		}
 		return proofBuilder.build();
 	}
 
@@ -120,8 +131,19 @@ public class SmartwalletExtension implements WalletExtension {
 			Sha256Hash hash = getHash(proofp.getColorDefinition().getHash());
 			ColorProof proof = scanner.getColorProofByHash(hash);
 			if (proof == null) {
-				log.warn("Could not find color proof {} for deserializing", hash);
-				continue;
+				String json = proofp.getColorDefinition().getJson();
+				if (json != null) {
+					ColorDefinition def;
+					try {
+						def = mapper.readValue(json, ColorDefinition.TYPE_REFERENCE);
+					} catch (IOException e) {
+						throw Throwables.propagate(e);
+					}
+					proof = new ColorProof(def);
+				} else {
+					log.warn("Could not find color proof {} for deserializing", hash);
+					continue;
+				}
 			}
 			deserializeProof(params, proofp, proof);
 		}
