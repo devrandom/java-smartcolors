@@ -15,8 +15,7 @@ import org.junit.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
-
-import io.dropwizard.testing.FixtureHelpers;
+import java.util.Map;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -61,6 +60,17 @@ public class ColorDefinitionTest {
 		def.bitcoinSerialize(bos);
 		assertArrayEquals(defBytes, bos.toByteArray());
 		assertEquals("0a20faec7138b5f312ed58fb86cb181fc3719c28f2a167f02064f2cd5a90ec3a", Utils.HEX.encode(def.getHash().getBytes()));
+	}
+
+	@Test
+	public void json() throws IOException {
+		ColorDefinition oil = mapper.readValue(FixtureHelpers.fixture("oil.json"), ColorDefinition.TYPE_REFERENCE);
+		assertEquals("Oil", oil.getName());
+		assertEquals("1357bf3a56cdb0af288805075c132d84510008f34a64043e9341ff9a1783b66b", oil.getHash().toString());
+		String oilJson = mapper.writeValueAsString(oil);
+		Map oilMap = mapper.readValue(FixtureHelpers.fixture("oil.json"), Map.class);
+		Map reconstructedMap = mapper.readValue(oilJson, Map.class);
+		assertEquals(oilMap, reconstructedMap);
 	}
 
 	private void checkKernel(KernelTestItem item) {

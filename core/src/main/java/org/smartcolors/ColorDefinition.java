@@ -1,5 +1,10 @@
 package org.smartcolors;
 
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
@@ -31,6 +36,7 @@ import static com.google.common.base.Preconditions.checkState;
  */
 // TODO serialization
 public class ColorDefinition {
+	public static final TypeReference<ColorDefinition> TYPE_REFERENCE = new TypeReference<ColorDefinition>() {};
 	protected byte[] payload;
 	public static final int MAX_COLOR_OUTPUTS = 32;
 	public static final int VERSION = 0;
@@ -63,11 +69,21 @@ public class ColorDefinition {
 	}
 
 	private final ImmutableSortedSet<GenesisPoint> genesisPoints;
-	private final ImmutableMap<String, String> metadata;
+	private final Map<String, String> metadata;
 	private final long blockheight;
 	private final Sha256Hash prevdefHash;
 	private long creationTime;
 	private Sha256Hash hash;
+
+	// For JSON deserialization
+	ColorDefinition(@JsonProperty("definition")String defHex) {
+		this.creationTime = SmartColors.getSmartwalletEpoch();
+		this.metadata = Maps.newHashMap();
+		ColorDefinition def = ColorDefinition.fromPayload(SmartColors.ASSET_PARAMETERS, Utils.parseAsHexOrBase58(defHex), metadata);
+		this.genesisPoints = def.genesisPoints;
+		this.blockheight = def.blockheight;
+		this.prevdefHash = def.prevdefHash;
+	}
 
 	public ColorDefinition(SortedSet<GenesisPoint> points, Map<String, String> metadata) {
 		this(points, metadata, 0, new byte[32]);
@@ -76,7 +92,7 @@ public class ColorDefinition {
 	public ColorDefinition(SortedSet<GenesisPoint> points, Map<String, String> metadata, long blockheight, byte[] prevdefHash) {
 		this.genesisPoints = ImmutableSortedSet.copyOf(points);
 		this.creationTime = SmartColors.getSmartwalletEpoch();
-		this.metadata = ImmutableMap.copyOf(metadata);
+		this.metadata = metadata;
 		this.blockheight = blockheight;
 		this.prevdefHash = new Sha256Hash(prevdefHash);
 		// TODO creationTime
@@ -122,6 +138,7 @@ public class ColorDefinition {
 		}
 	}
 
+	@JsonIgnore
 	public String getName() {
 		return metadata.get(METADATA_NAME);
 	}
@@ -195,6 +212,7 @@ public class ColorDefinition {
 	}
 
 	/** Creation time in seconds since the epoch */
+	@JsonIgnore
 	public long getCreationTime() {
 		return creationTime;
 	}
@@ -204,6 +222,7 @@ public class ColorDefinition {
 		this.creationTime = creationTime;
 	}
 
+	@JsonIgnore
 	public ImmutableSortedSet<GenesisPoint> getGenesisPoints() {
 		return genesisPoints;
 	}
@@ -225,9 +244,29 @@ public class ColorDefinition {
 		return builder.toString();
 	}
 
+	@JsonIgnore
 	public Sha256Hash getHash() {
 		if (hash != null)
 			return hash;
+		byte[] bytes = getDefinition();
+		hash = Sha256Hash.createDouble(bytes);
+		return hash;
+	}
+
+	@JsonIgnore
+	public Map<String, String> getMetadata() {
+		return ImmutableMap.copyOf(metadata);
+	}
+
+	@JsonAnyGetter
+	Map<String, String> anyGetter() {
+		byte[] bytes = getDefinition();
+		return ImmutableMap.<String, String>builder().putAll(metadata).put("definition", Utils.HEX.encode(bytes)).build();
+	}
+
+	/** Bitcoin serialized definition */
+	@JsonIgnore
+	public byte[] getDefinition() {
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
 		try {
 			bitcoinSerialize(bos);
@@ -237,11 +276,11 @@ public class ColorDefinition {
 		} catch (IOException e) {
 			Throwables.propagate(e);
 		}
-		hash = Sha256Hash.createDouble(bos.toByteArray());
-		return hash;
+		return bos.toByteArray();
 	}
 
-	public ImmutableMap<String, String> getMetadata() {
-		return metadata;
+	@JsonAnySetter
+	void anySetter(String key, String value) {
+		metadata.put(key, value);
 	}
 }
