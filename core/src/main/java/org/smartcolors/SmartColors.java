@@ -5,6 +5,7 @@ import com.google.common.base.Throwables;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.params.MainNetParams;
+import org.bitcoinj.params.TestNet3Params;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.script.ScriptOpCodes;
@@ -75,29 +76,9 @@ public class SmartColors {
 	public static final int ASSET_ADDRESS_VERSION_TESTNET = 81;
 	public static final int[] ACCEPTABLE_VERSIONS = new int[]{ASSET_ADDRESS_VERSION};
 	public static final int[] ACCEPTABLE_VERSIONS_TESTNET = new int[]{ASSET_ADDRESS_VERSION_TESTNET};
-	public final static NetworkParameters ASSET_PARAMETERS = new MainNetParams() {
-		@Override
-		public int getAddressHeader() {
-			return ASSET_ADDRESS_VERSION;
-		}
+	public final static NetworkParameters ASSET_PARAMETERS = new AssetMainNetParams();
 
-		@Override
-		public int[] getAcceptableAddressCodes() {
-			return ACCEPTABLE_VERSIONS;
-		}
-	};
-
-	public final static NetworkParameters ASSET_PARAMETERS_TESTNET = new MainNetParams() {
-		@Override
-		public int getAddressHeader() {
-			return ASSET_ADDRESS_VERSION_TESTNET;
-		}
-
-		@Override
-		public int[] getAcceptableAddressCodes() {
-			return ACCEPTABLE_VERSIONS_TESTNET;
-		}
-	};
+	public final static NetworkParameters ASSET_PARAMETERS_TESTNET = new AssetTestNetParams();
 
 	public static NetworkParameters getAssetParameters(boolean isProd) {
 		return isProd ? ASSET_PARAMETERS : ASSET_PARAMETERS_TESTNET;
@@ -118,6 +99,22 @@ public class SmartColors {
 			return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").parse("2014-09-24T00:00:00+0000").getTime() / 1000;
 		} catch (ParseException e) {
 			throw Throwables.propagate(e);
+		}
+	}
+
+	private static class AssetMainNetParams extends MainNetParams {
+		AssetMainNetParams() {
+			p2shHeader = ASSET_ADDRESS_VERSION;
+			addressHeader = ASSET_ADDRESS_VERSION;
+			acceptableAddressCodes = new int[] { ASSET_ADDRESS_VERSION };
+		}
+	}
+
+	private static class AssetTestNetParams extends TestNet3Params {
+		AssetTestNetParams() {
+			p2shHeader = ASSET_ADDRESS_VERSION_TESTNET;
+			addressHeader = ASSET_ADDRESS_VERSION_TESTNET;
+			acceptableAddressCodes = new int[] { ASSET_ADDRESS_VERSION_TESTNET };
 		}
 	}
 }

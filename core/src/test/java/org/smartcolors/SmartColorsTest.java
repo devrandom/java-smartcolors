@@ -15,6 +15,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.smartcolors.Utils.parseBinary;
 
 public class SmartColorsTest {
@@ -59,6 +60,7 @@ public class SmartColorsTest {
 		assertArrayEquals(address.getHash160(), address1.getHash160());
 		assertArrayEquals(assetAddress.getHash160(), new Address(SmartColors.getAssetParameters(true), assetAddress.toString()).getHash160());
 		assertEquals(params, address1.getParameters());
+		assertTrue(assetAddress.isP2SHAddress());
 	}
 
 	@Test
@@ -71,6 +73,7 @@ public class SmartColorsTest {
 		assertArrayEquals(address.getHash160(), address1.getHash160());
 		assertArrayEquals(assetAddress.getHash160(), new Address(SmartColors.getAssetParameters(false), assetAddress.toString()).getHash160());
 		assertEquals(params, address1.getParameters());
+		assertTrue(assetAddress.isP2SHAddress());
 	}
 
 	private void checkPad(String binaryString, String binaryMinimum, String expected) {

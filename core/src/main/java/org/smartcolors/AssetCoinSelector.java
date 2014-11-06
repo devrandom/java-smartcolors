@@ -7,7 +7,6 @@ import org.bitcoinj.core.TransactionConfidence;
 import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.Wallet;
-import org.bitcoinj.crypto.DeterministicKey;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.wallet.CoinSelection;
 import org.bitcoinj.wallet.KeyChain;
@@ -160,12 +159,12 @@ public class AssetCoinSelector extends DefaultCoinSelector {
 
 			// Create asset change output
 			if (assetSelection.assetGathered > assetAmount) {
-				DeterministicKey assetChangeKey = colorKeyChain.getKey(KeyChain.KeyPurpose.CHANGE);
+				Script assetChangeScript = colorKeyChain.freshOutputScript(KeyChain.KeyPurpose.CHANGE);
 				long assetChange = assetSelection.assetGathered - assetAmount;
 				log.info("  with {} asset change", assetChange);
 				Coin change = Coin.valueOf(SmartColors.addMsbdropValuePadding(assetChange, Transaction.MIN_NONDUST_OUTPUT.getValue()));
 				value = value.add(change);
-				TransactionOutput changeOutput = new TransactionOutput(wallet.getParams(), req.tx, change, assetChangeKey.toAddress(wallet.getParams()));
+				TransactionOutput changeOutput = new TransactionOutput(wallet.getParams(), req.tx, change, assetChangeScript.getToAddress(wallet.getParams()));
 				req.tx.addOutput(changeOutput);
 			}
 

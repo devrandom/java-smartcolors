@@ -7,6 +7,7 @@ import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.InsufficientMoneyException;
 import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.Wallet;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
@@ -97,6 +98,11 @@ public class CoinSelectorTest extends ColorTest {
 		assertEquals(2L, SmartColors.removeMsbdropValuePadding(tx.getOutput(0).getValue().getValue()));
 		assertEquals(3L, SmartColors.removeMsbdropValuePadding(tx.getOutput(1).getValue().getValue()));
 
+		tx.verify();
+		for (TransactionInput input : tx.getInputs()) {
+			input.verify();
+		}
+		assertEquals(Coin.COIN.add(Coin.valueOf(5L * 2)), tx.getValueSentFromMe(wallet));
 		receiveTransaction(tx);
 		Map<ColorDefinition, Long> change = scanner.getNetAssetChange(tx, wallet, colorChain);
 		assertEquals(1, change.size());
