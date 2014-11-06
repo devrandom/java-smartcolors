@@ -8,7 +8,7 @@ import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.InsufficientMoneyException;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.Wallet;
-import org.bitcoinj.crypto.DeterministicKey;
+import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.testing.FakeTxBuilder;
 import org.bitcoinj.wallet.CoinSelection;
@@ -29,7 +29,7 @@ import static org.junit.Assert.assertEquals;
 public class CoinSelectorTest extends ColorTest {
 	private static final Logger log = LoggerFactory.getLogger(CoinSelectorTest.class);
 
-	private DeterministicKey colorKey;
+	private Script outputScript;
 	private BitcoinCoinSelector bitcoinSelector;
 	private AssetCoinSelector assetSelector;
 
@@ -50,7 +50,7 @@ public class CoinSelectorTest extends ColorTest {
 		group.addAndActivateHDChain(colorChain);
 		group.addAndActivateHDChain(chain);
 		wallet = new Wallet(params, group);
-		colorKey = colorChain.getKey(KeyChain.KeyPurpose.RECEIVE_FUNDS);
+		outputScript = colorChain.freshOutputScript(KeyChain.KeyPurpose.RECEIVE_FUNDS);
 		bitcoinSelector = new BitcoinCoinSelector(colorChain);
 		assetSelector = new AssetCoinSelector(colorChain, scanner.getColorProofByHash(def.getHash()));
 		scanner.receiveFromBlock(genesisTx, FakeTxBuilder.createFakeBlock(blockStore, genesisTx).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
@@ -61,14 +61,14 @@ public class CoinSelectorTest extends ColorTest {
 		// Incoming asset
 		Transaction tx2 = new Transaction(params);
 		tx2.addInput(genesisTx.getOutput(0));
-		tx2.addOutput(Utils.makeAssetCoin(8), ScriptBuilder.createOutputScript(colorKey));
+		tx2.addOutput(Utils.makeAssetCoin(8), outputScript);
 		tx2.addOutput(Coin.ZERO, opReturnScript);
 		receiveTransaction(tx2);
 
 		// Partially spend asset
 		Transaction tx3 = new Transaction(params);
 		tx3.addInput(tx2.getOutput(0));
-		tx3.addOutput(Utils.makeAssetCoin(5), ScriptBuilder.createOutputScript(colorKey));
+		tx3.addOutput(Utils.makeAssetCoin(5), outputScript);
 		tx3.addOutput(Utils.makeAssetCoin(3), ScriptBuilder.createOutputScript(new ECKey()));
 		tx3.addOutput(Coin.ZERO, opReturnScript);
 		receiveTransaction(tx3);
@@ -124,7 +124,7 @@ public class CoinSelectorTest extends ColorTest {
 		group.addAndActivateHDChain(colorChain1);
 		group.addAndActivateHDChain(chain);
 		Wallet wallet1 = new Wallet(params, group);
-		DeterministicKey colorKey1 = colorChain1.getKey(KeyChain.KeyPurpose.RECEIVE_FUNDS);
-		assertEquals(colorKey, colorKey1);
+		Script outputScript1 = colorChain1.freshOutputScript(KeyChain.KeyPurpose.RECEIVE_FUNDS);
+		assertEquals(outputScript, outputScript1);
 	}
 }
