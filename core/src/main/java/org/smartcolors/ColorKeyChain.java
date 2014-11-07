@@ -113,9 +113,7 @@ public class ColorKeyChain extends DeterministicKeyChain {
 	@Override
 	public int numBloomFilterEntries() {
 		maybeLookAhead();
-		// Watch both simple receive and p2sh receive
-		// TODO remove watch for simple receive
-		return getLeafKeys().size() * 4;
+		return getLeafKeys().size() * 2;
 	}
 
 	@Override
@@ -125,7 +123,6 @@ public class ColorKeyChain extends DeterministicKeyChain {
 		try {
 			filter = new BloomFilter(size, falsePositiveRate, tweak);
 			for (Map.Entry<ByteString, RedeemData> entry : redeemDataMap.entrySet()) {
-				filter.insert(entry.getValue().getFullKey());
 				filter.insert(entry.getKey().toByteArray());
 				filter.insert(entry.getValue().redeemScript.getProgram());
 			}
