@@ -139,7 +139,12 @@ public class SmartwalletExtension implements WalletExtension {
 					} catch (IOException e) {
 						throw Throwables.propagate(e);
 					}
-					proof = new ColorProof(def);
+					try {
+						scanner.addDefinition(def);
+					} catch (ColorScanner.ColorDefinitionException e) {
+						Throwables.propagate(e);
+					}
+					proof = scanner.getColorProofByDefinition(def);
 				} else {
 					log.warn("Could not find color proof {} for deserializing", hash);
 					continue;
