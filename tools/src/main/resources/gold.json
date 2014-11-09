@@ -1,0 +1,13 @@
+{
+  "definition": "000000000000000000000000000000000000000000000000000000000000000000000000000000000101e7edaa8b1ea509dd4e41f55dd975bbb1d355dab78b9fe6e8d55f031ef8d43d2700000000",
+  "name" : "Gold",
+  "issuer": "Goldcorp, Inc.",
+  "Unit Name": "Ounces",
+  "unit": "oz",
+  "total_unit": "75000",
+  "divisibility": 2,
+  "Asset Type": "Commodity",
+  "Settlement": "Physical Delivery",
+  "Signature": "TBD",
+  "Asset Information": "https://goldcorp.com/issues/suu3834"
+}

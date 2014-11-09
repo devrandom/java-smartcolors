@@ -1,5 +1,7 @@
 package org.smartcolors.tools;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -29,6 +31,7 @@ import org.bitcoinj.utils.BriefLogFormatter;
 import org.bitcoinj.utils.Threading;
 import org.bitcoinj.wallet.DeterministicKeyChain;
 import org.bitcoinj.wallet.DeterministicSeed;
+import org.bitcoinj.wallet.KeyChainGroup;
 import org.bitcoinj.wallet.WalletTransaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,12 +40,15 @@ import org.smartcolors.ColorKeyChain;
 import org.smartcolors.ColorKeyChainFactory;
 import org.smartcolors.ColorScanner;
 import org.smartcolors.GenesisPoint;
+import org.smartcolors.SmartColors;
+import org.smartcolors.SmartwalletExtension;
 import org.smartcolors.TxOutGenesisPoint;
 
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.text.ParseException;
@@ -78,12 +84,15 @@ public class ColorTool {
 	private static ColorScanner scanner;
 	private static File checkpointFile;
 	private static ColorKeyChain colorChain;
+	private static OptionSpec<String> mnemonicSpec;
+	private static SmartwalletExtension extension;
 
 	public static void main(String[] args) throws IOException {
 		parser = new OptionParser();
 		parser.accepts("prod", "use prodnet (default is testnet)");
 		parser.accepts("regtest", "use regtest mode (default is testnet)");
 		parser.accepts("debug");
+		mnemonicSpec = parser.accepts("mnemonic", "mnemonic phrase").withRequiredArg();
 		OptionSpec<String> walletFileName = parser.accepts("wallet").withRequiredArg();
 		parser.nonOptions("COMMAND: one of - help, scan\n");
 
@@ -126,35 +135,7 @@ public class ColorTool {
 			createWallet(options, params, walletFile);
 		}
 
-		BufferedInputStream walletInputStream = null;
-		try {
-			WalletProtobufSerializer loader = new WalletProtobufSerializer();
-			loader.setKeyChainFactory(new ColorKeyChainFactory(new ColorKeyChainFactory.Callback() {
-				@Override
-				public void onRestore(ColorKeyChain chain) {
-					colorChain = chain;
-				}
-			}));
-			checkNotNull(colorChain);
-			if (options.has("ignore-mandatory-extensions"))
-				loader.setRequireMandatoryExtensions(false);
-			walletInputStream = new BufferedInputStream(new FileInputStream(walletFile));
-			wallet = loader.readWallet(walletInputStream);
-			if (!wallet.getParams().equals(params)) {
-				System.err.println("Wallet does not match requested network parameters: " +
-						wallet.getParams().getId() + " vs " + params.getId());
-				return;
-			}
-			wallet.clearTransactions(0);
-		} catch (Exception e) {
-			System.err.println("Failed to load wallet '" + walletFile + "': " + e.getMessage());
-			e.printStackTrace();
-			return;
-		} finally {
-			if (walletInputStream != null) {
-				walletInputStream.close();
-			}
-		}
+		if (readWallet()) return;
 
 		wallet.addEventListener(new AbstractWalletEventListener() {
 			@Override
@@ -182,6 +163,57 @@ public class ColorTool {
 		} else {
 			usage();
 		}
+	}
+
+	private static boolean readWallet() throws IOException {
+		BufferedInputStream walletInputStream = null;
+		try {
+			makeScanner();
+			colorChain = null;
+			WalletProtobufSerializer loader = new WalletProtobufSerializer(new WalletProtobufSerializer.WalletFactory() {
+				@Override
+				public Wallet create(NetworkParameters params, KeyChainGroup keyChainGroup) {
+					Wallet wallet = new Wallet(params, keyChainGroup);
+					SmartwalletExtension extension = (SmartwalletExtension) wallet.addOrGetExistingExtension(new SmartwalletExtension());
+					extension.setScanner(scanner);
+					if (colorChain != null) {
+						extension.setColorKeyChain(colorChain);
+					}
+					return wallet;
+				}
+			});
+			loader.setKeyChainFactory(new ColorKeyChainFactory(new ColorKeyChainFactory.Callback() {
+				@Override
+				public void onRestore(ColorKeyChain chain) {
+					colorChain = chain;
+				}
+			}));
+			if (options.has("ignore-mandatory-extensions"))
+				loader.setRequireMandatoryExtensions(false);
+			walletInputStream = new BufferedInputStream(new FileInputStream(walletFile));
+			wallet = loader.readWallet(walletInputStream);
+			checkNotNull(colorChain);
+			if (!wallet.getParams().equals(params)) {
+				System.err.println("Wallet does not match requested network parameters: " +
+						wallet.getParams().getId() + " vs " + params.getId());
+				return true;
+			}
+			scanner.addAllPending(wallet.getPendingTransactions());
+			if (wallet.getExtensions().get(SmartwalletExtension.IDENTIFIER) == null)
+				throw new UnreadableWalletException("missing smartcolors extension");
+			if (colorChain == null)
+				throw new UnreadableWalletException("missing color keychain");
+			wallet.clearTransactions(0);
+		} catch (Exception e) {
+			System.err.println("Failed to load wallet '" + walletFile + "': " + e.getMessage());
+			e.printStackTrace();
+			return true;
+		} finally {
+			if (walletInputStream != null) {
+				walletInputStream.close();
+			}
+		}
+		return false;
 	}
 
 	// Sets up all objects needed for network communication but does not bring up the peers.
@@ -268,34 +300,66 @@ public class ColorTool {
 			System.err.println("Wallet creation requested but " + walletFile + " already exists, use --force");
 			return;
 		}
-		wallet = new Wallet(params);
 		try {
+			String mnemonicCode = "correct battery horse staple bogum";
+			if (options.has("mnemonic"))
+				mnemonicCode = mnemonicSpec.value(options);
+			System.out.println(mnemonicCode);
 			colorChain =
 					ColorKeyChain.builder()
-							.seed(new DeterministicSeed("correct battery horse staple bogum", null, "", getEpoch()))
+							.seed(new DeterministicSeed(mnemonicCode, null, null, SmartColors.getSmartwalletEpoch()))
 							.build();
 			DeterministicKeyChain chain =
 					DeterministicKeyChain.builder()
-							.seed(new DeterministicSeed("correct battery horse staple bogum", null, "", getEpoch()))
+							.seed(new DeterministicSeed(mnemonicCode, null, null, SmartColors.getSmartwalletEpoch()))
 							.build();
-			wallet.addAndActivateHDChain(colorChain);
-			wallet.addAndActivateHDChain(chain);
+			KeyChainGroup group = new KeyChainGroup(params);
+			group.addAndActivateHDChain(colorChain);
+			group.addAndActivateHDChain(chain);
+			group.setLookaheadSize(20);
+			group.setLookaheadThreshold(10);
+			wallet = new Wallet(params, group);
+			extension = new SmartwalletExtension();
+			//extension.setColorKeyChain(colorChain);
+			wallet.addOrGetExistingExtension(extension);
+			makeScanner();
+			addBuiltins();
+			extension.setScanner(scanner);
 		} catch (UnreadableWalletException e) {
 			throw new RuntimeException(e);
 		}
 		wallet.saveToFile(walletFile);
 	}
 
-	private static void scan(List<?> cmdArgs) {
-		ColorDefinition def = makeColorDefinition();
+	private static void makeScanner() {
 		scanner = new ColorScanner();
+	}
+
+	private static void addBuiltins() {
 		try {
+			ColorDefinition def = loadDefinition("gold.json");
 			scanner.addDefinition(def);
-		} catch (ColorScanner.ColorDefinitionException e) {
-			System.out.println("scan: " + e.getMessage());
-			System.exit(0);
+			def = loadDefinition("oil.json");
+			scanner.addDefinition(def);
+		} catch (ColorScanner.ColorDefinitionException colorDefinitionExists) {
+			Throwables.propagate(colorDefinitionExists);
 		}
+	}
+
+	private static ColorDefinition loadDefinition(String path) {
+		ObjectMapper mapper = new ObjectMapper();
+		ClassLoader classloader = Thread.currentThread().getContextClassLoader();
+		InputStream is = classloader.getResourceAsStream(path);
+		try {
+			return mapper.readValue(is, ColorDefinition.TYPE_REFERENCE);
+		} catch (IOException e) {
+			throw Throwables.propagate(e);
+		}
+	}
+
+	private static void scan(List<?> cmdArgs) {
 		syncChain();
+		System.out.println(wallet.isConsistent());
 		if (false) {
 			System.out.println(scanner);
 			System.out.println(wallet);

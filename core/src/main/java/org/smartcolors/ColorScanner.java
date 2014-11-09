@@ -42,7 +42,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.Nullable;
@@ -253,6 +252,16 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	}
 
 	@Override
+	public void beginBloomFilterCalculation() {
+		filterLock.lock();
+	}
+
+	@Override
+	public void endBloomFilterCalculation() {
+		filterLock.unlock();
+	}
+
+	@Override
 	public int getBloomFilterElementCount() {
 		int count = 0;
 		lock.lock();
@@ -285,11 +294,6 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		return true;
 	}
 
-	@Override
-	public Lock getLock() {
-		return filterLock;
-	}
-
 	/**
 	 * Get the net movement of assets caused by the transaction.
 	 *
@@ -297,13 +301,13 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	 * it is, it will be marked as {@link org.smartcolors.ColorDefinition#UNKNOWN}</p>
 	 */
 	public Map<ColorDefinition, Long> getNetAssetChange(Transaction tx, Wallet wallet, ColorKeyChain chain) {
-		wallet.getLock().lock();
+		wallet.beginBloomFilterCalculation();
 		try {
 			Map<ColorDefinition, Long> res = Maps.newHashMap();
 			applyNetAssetChange(tx, wallet, chain, res);
 			return res;
 		} finally {
-   			wallet.getLock().unlock();
+   			wallet.endBloomFilterCalculation();
 		}
 	}
 
@@ -363,7 +367,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	public Map<ColorDefinition, Long> getBalances(Wallet wallet, ColorKeyChain colorKeyChain) {
 		Map<ColorDefinition, Long> res = Maps.newHashMap();
 		res.put(ColorDefinition.BITCOIN, 0L);
-		wallet.getLock().lock();
+		wallet.beginBloomFilterCalculation();
 		lock.lock();
 		try {
 			LinkedList<TransactionOutput> all = wallet.calculateAllSpendCandidates(false);
@@ -375,7 +379,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 			}
 		} finally {
    			lock.unlock();
-			wallet.getLock().unlock();
+			wallet.endBloomFilterCalculation();
 		}
 		return res;
 	}
@@ -388,7 +392,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	 * <p>The caller may have to run this again if we find one asset, but there are other unknown outputs</p>
  	 */
 	public ListenableFuture<Transaction> getTransactionWithKnownAssets(Transaction tx, Wallet wallet, ColorKeyChain chain) {
-		wallet.getLock().lock();
+		wallet.beginBloomFilterCalculation();
 		lock.lock();
 		try {
 			SettableFuture<Transaction> future = SettableFuture.create();
@@ -401,7 +405,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 			return future;
 		} finally {
             lock.unlock();
-			wallet.getLock().unlock();
+			wallet.endBloomFilterCalculation();
 		}
 	}
 
