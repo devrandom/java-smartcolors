@@ -246,7 +246,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 			for (ColorProof proof : proofs) {
 				creationTime = Math.min(creationTime, proof.getCreationTime());
 			}
-			return creationTime;
+			return creationTime + SmartColors.EARLIEST_FUDGE;
 		} finally {
             lock.unlock();
 		}

@@ -17,6 +17,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
 public class SmartColors {
+	public static final int EARLIEST_FUDGE = 86400 * 7; // counteract bitcoinj fudge
 
 	/**
 	 * Remove MSB-Drop nValue padding.
@@ -96,7 +97,7 @@ public class SmartColors {
 	/** Seconds since the epoch when the first smartwallet was created */
 	public static long getSmartwalletEpoch() {
 		try {
-			return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").parse("2014-09-24T00:00:00+0000").getTime() / 1000;
+			return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").parse("2014-10-10T00:00:00+0000").getTime() / 1000;
 		} catch (ParseException e) {
 			throw Throwables.propagate(e);
 		}
