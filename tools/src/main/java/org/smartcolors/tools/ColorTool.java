@@ -131,7 +131,7 @@ public class ColorTool {
 		if (walletName == null)
 			walletName = net + ".wallet";
 		walletFile = new File(walletName);
-		if (!walletFile.exists()) {
+		if (!walletFile.exists() || options.has(mnemonicSpec)) {
 			createWallet(options, params, walletFile);
 		}
 
@@ -302,7 +302,7 @@ public class ColorTool {
 		}
 		try {
 			String mnemonicCode = "correct battery horse staple bogum";
-			if (options.has("mnemonic"))
+			if (options.has(mnemonicSpec))
 				mnemonicCode = mnemonicSpec.value(options);
 			System.out.println(mnemonicCode);
 			DeterministicSeed seed = new DeterministicSeed(mnemonicCode, null, null, SmartColors.getSmartwalletEpoch());
