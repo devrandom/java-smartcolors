@@ -112,7 +112,7 @@ public class ColorKeyChain extends DeterministicKeyChain {
 
 	@Override
 	public int numBloomFilterEntries() {
-		maybeLookAhead();
+		maybeLookAheadScripts();
 		return getLeafKeys().size() * 2;
 	}
 

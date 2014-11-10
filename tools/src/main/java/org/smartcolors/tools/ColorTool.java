@@ -234,7 +234,7 @@ public class ColorTool {
 		}
 		peers.setUserAgent("ColorTool", "1.0");
 		peers.addPeerFilterProvider(scanner);
-		//peers.addWallet(wallet);
+		peers.addWallet(wallet);
 		if (options.has("peers")) {
 			String peersFlag = (String) options.valueOf("peers");
 			String[] peerAddrs = peersFlag.split(",");
@@ -305,13 +305,15 @@ public class ColorTool {
 			if (options.has("mnemonic"))
 				mnemonicCode = mnemonicSpec.value(options);
 			System.out.println(mnemonicCode);
+			DeterministicSeed seed = new DeterministicSeed(mnemonicCode, null, null, SmartColors.getSmartwalletEpoch());
+			System.out.println(Utils.HEX.encode(seed.getSeedBytes()));
 			colorChain =
 					ColorKeyChain.builder()
-							.seed(new DeterministicSeed(mnemonicCode, null, null, SmartColors.getSmartwalletEpoch()))
+							.seed(seed)
 							.build();
 			DeterministicKeyChain chain =
 					DeterministicKeyChain.builder()
-							.seed(new DeterministicSeed(mnemonicCode, null, null, SmartColors.getSmartwalletEpoch()))
+							.seed(seed)
 							.build();
 			KeyChainGroup group = new KeyChainGroup(params);
 			group.addAndActivateHDChain(colorChain);
@@ -360,7 +362,7 @@ public class ColorTool {
 	private static void scan(List<?> cmdArgs) {
 		syncChain();
 		System.out.println(wallet.isConsistent());
-		if (false) {
+		if (true) {
 			System.out.println(scanner);
 			System.out.println(wallet);
 			System.out.println(wallet.currentReceiveAddress());
