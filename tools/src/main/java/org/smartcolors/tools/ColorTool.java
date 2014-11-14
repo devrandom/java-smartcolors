@@ -67,6 +67,7 @@ import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 public class ColorTool {
 	private static final Logger log = LoggerFactory.getLogger(ColorTool.class);
@@ -91,6 +92,7 @@ public class ColorTool {
 		parser = new OptionParser();
 		parser.accepts("prod", "use prodnet (default is testnet)");
 		parser.accepts("regtest", "use regtest mode (default is testnet)");
+		parser.accepts("force", "force creation of wallet from mnemonic");
 		parser.accepts("debug");
 		mnemonicSpec = parser.accepts("mnemonic", "mnemonic phrase").withRequiredArg();
 		OptionSpec<String> walletFileName = parser.accepts("wallet").withRequiredArg();
@@ -298,7 +300,7 @@ public class ColorTool {
 	private static void createWallet(OptionSet options, NetworkParameters params, File walletFile) throws IOException {
 		if (walletFile.exists() && !options.has("force")) {
 			System.err.println("Wallet creation requested but " + walletFile + " already exists, use --force");
-			return;
+			System.exit(1);
 		}
 		try {
 			String mnemonicCode = "correct battery horse staple bogum";
@@ -361,7 +363,7 @@ public class ColorTool {
 
 	private static void scan(List<?> cmdArgs) {
 		syncChain();
-		System.out.println(wallet.isConsistent());
+		checkState(wallet.isConsistent());
 		if (true) {
 			System.out.println(scanner);
 			System.out.println(wallet);

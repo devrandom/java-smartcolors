@@ -151,13 +151,14 @@ public class ColorKeyChain extends DeterministicKeyChain {
 	@Override
 	public void maybeLookAheadScripts() {
 		super.maybeLookAheadScripts();
+
+		maybeLookAhead();
 		int numLeafKeys = getLeafKeys().size();
 
 		checkState(redeemDataMap.size() <= numLeafKeys, "Number of scripts is greater than number of leaf keys");
 		if (redeemDataMap.size() == numLeafKeys)
 			return;
 
-		maybeLookAhead();
 		for (DeterministicKey key : getLeafKeys()) {
 			RedeemData redeemData = getRedeemData(key);
 			Script scriptPubKey = ScriptBuilder.createP2SHOutputScript(redeemData.redeemScript);
