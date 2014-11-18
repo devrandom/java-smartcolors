@@ -2,21 +2,25 @@ package org.smartcolors;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Sets;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.smartcolors.marshal.BytesDeserializer;
 import org.smartcolors.marshal.BytesSerializer;
 import org.smartcolors.marshal.Deserializer;
-import org.smartcolors.marshal.HashSerializer;
-import org.smartcolors.marshal.Serializable;
+import org.smartcolors.marshal.HashableSerializable;
+import org.smartcolors.marshal.MerbinnerTree;
 import org.smartcolors.marshal.Serializer;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 /**
  * Created by devrandom on 2014-Nov-17.
@@ -29,25 +33,15 @@ public class MarshalTest {
 		mapper = new ObjectMapper();
 	}
 
-	static class BoxedVaruint implements Serializable {
+	static class BoxedVaruint extends HashableSerializable {
 		public long value;
-		private byte[] cachedHash;
 
 		public BoxedVaruint(long value) {
 			this.value = value;
 		}
+		@Override
 		public void serialize(Serializer ser) {
 			ser.write(value);
-		}
-
-		@Override
-		public byte[] getHash() {
-			if (cachedHash != null)
-				return cachedHash;
-			HashSerializer serializer = new HashSerializer();
-			serialize(serializer);
-			cachedHash = HashSerializer.calcHash(serializer, getHmacKey());
-			return cachedHash;
 		}
 
 		@Override
@@ -60,7 +54,7 @@ public class MarshalTest {
 		}
 	}
 
-	static class BoxedBytes implements Serializable {
+	static class BoxedBytes extends HashableSerializable {
 		public byte[] bytes;
 		private byte[] cachedHash;
 
@@ -77,16 +71,6 @@ public class MarshalTest {
 		}
 
 		@Override
-		public byte[] getHash() {
-			if (cachedHash != null)
-				return cachedHash;
-			HashSerializer serializer = new HashSerializer();
-			serialize(serializer);
-			cachedHash = HashSerializer.calcHash(serializer, getHmacKey());
-			return cachedHash;
-		}
-
-		@Override
 		public byte[] getHmacKey() {
 			return Utils.HEX.decode("f690a4d282810e868a0d7d59578a6585");
 		}
@@ -99,7 +83,7 @@ public class MarshalTest {
 		}
 	}
 
-	static class BoxedObj implements Serializable {
+	static class BoxedObj extends HashableSerializable {
 		public BoxedBytes buf;
 		public BoxedVaruint i;
 		private byte[] cachedHash;
@@ -122,16 +106,6 @@ public class MarshalTest {
 			obj.buf = BoxedBytes.deserialize(des, null);
 			obj.i = BoxedVaruint.deserialize(des);
 			return obj;
-		}
-
-		@Override
-		public byte[] getHash() {
-			if (cachedHash != null)
-				return cachedHash;
-			HashSerializer serializer = new HashSerializer();
-			serialize(serializer);
-			cachedHash = HashSerializer.calcHash(serializer, getHmacKey());
-			return cachedHash;
 		}
 
 		@Override
@@ -209,6 +183,96 @@ public class MarshalTest {
 			assertArrayEquals(expectedBytes, roundTrip);
 			byte[] hash = boxed.getHash();
 			assertArrayEquals(expectedHash, hash);
+		}
+	}
+
+	static class TestMerbinnerTree extends MerbinnerTree {
+		public static class TestNode extends Node {
+			byte[] key;
+			byte[] value;
+
+			public TestNode(byte[] key, byte[] value) {
+				this.key = key;
+				this.value = value;
+			}
+
+			public TestNode() {
+			}
+
+			@Override
+			public void serializeKey(Serializer ser) {
+				ser.write(key);
+			}
+
+			@Override
+			public void serializeValue(Serializer ser) {
+				ser.write(value);
+			}
+
+			@Override
+			public long getSum() {
+				return 0;
+			}
+
+			@Override
+			public byte[] getKeyHash() {
+				return key;
+			}
+		}
+		@Override
+		protected MerbinnerTree.Node deserializeNode(Deserializer des) {
+			TestNode node = new TestNode();
+			node.key = des.readBytes(4);
+			node.value = des.readBytes(4);
+			return node;
+		}
+
+		@Override
+		public byte[] getHmacKey() {
+			return Utils.HEX.decode("92e8898fcfa8b86b60b32236d6990da0");
+		}
+
+		TestMerbinnerTree(Set<Node> nodes) {
+			super(nodes);
+		}
+	}
+
+	@Test
+	public void testMerbinner() throws IOException {
+		List<List<Object>> items =
+				mapper.readValue(FixtureHelpers.fixture("marshal/merbinnertree_hashes.json"),
+						new TypeReference<List<List<Object>>>() {
+						});
+		for (List<Object> entry : items) {
+			if (entry.size() == 1) continue; // comment
+			Map<String, String> map = (Map<String, String>) entry.get(0);
+			String mode = (String) entry.get(1);
+			String expectedHex = (String) entry.get(2);
+			byte[] expected = Utils.HEX.decode(expectedHex.replaceAll(" ", ""));
+			Set<MerbinnerTree.Node> nodes = Sets.newHashSet();
+			for (String keyString : map.keySet()) {
+				byte[] value = Utils.HEX.decode(map.get(keyString));
+				byte[] key = Utils.HEX.decode(keyString);
+				TestMerbinnerTree.TestNode node = new TestMerbinnerTree.TestNode(key, value);
+				nodes.add(node);
+			}
+			TestMerbinnerTree tree = new TestMerbinnerTree(nodes);
+
+			if (mode.equals("serialize")) {
+				BytesSerializer ser = new BytesSerializer();
+				ser.write(tree);
+				assertArrayEquals(expected, ser.getBytes());
+				BytesDeserializer des = new BytesDeserializer(expected);
+				TestMerbinnerTree tree2 = new TestMerbinnerTree(Sets.<MerbinnerTree.Node>newHashSet());
+				tree2.deserialize(des);
+				BytesSerializer ser1 = new BytesSerializer();
+				tree2.serialize(ser1);
+				assertArrayEquals(expected, ser1.getBytes());
+			} else if (mode.equals("hash")) {
+				assertArrayEquals(expected, tree.getHash());
+			} else {
+				fail(mode);
+			}
 		}
 	}
 }
