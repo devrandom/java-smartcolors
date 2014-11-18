@@ -54,7 +54,7 @@ public class SmartwalletExtension implements WalletExtension {
 
 	static Protos.ColorScanner serializeScanner(ColorScanner scanner) {
 		Protos.ColorScanner.Builder scannerBuilder = Protos.ColorScanner.newBuilder();
-		for (ColorProof proof : scanner.getColorProofs()) {
+		for (ColorTrack proof : scanner.getColorProofs()) {
 			scannerBuilder.addProofs(serializeProof(proof));
 		}
 		for (Map.Entry<Sha256Hash, SortedTransaction> entry : scanner.getMapBlockTx().entries()) {
@@ -70,7 +70,7 @@ public class SmartwalletExtension implements WalletExtension {
 		return scannerBuilder.build();
 	}
 
-	static Protos.ColorProof serializeProof(ColorProof proof) {
+	static Protos.ColorProof serializeProof(ColorTrack proof) {
 		Protos.ColorProof.Builder proofBuilder = Protos.ColorProof.newBuilder();
 		for (Map.Entry<TransactionOutPoint, Long> entry : proof.getOutputs().entrySet()) {
 			proofBuilder.addOutputs(Protos.OutPointValue.newBuilder()
@@ -129,7 +129,7 @@ public class SmartwalletExtension implements WalletExtension {
 
 		for (Protos.ColorProof proofp : proto.getProofsList()) {
 			Sha256Hash hash = getHash(proofp.getColorDefinition().getHash());
-			ColorProof proof = scanner.getColorProofByHash(hash);
+			ColorTrack proof = scanner.getColorProofByHash(hash);
 			if (proof == null) {
 				String json = proofp.getColorDefinition().getJson();
 				if (json != null) {
@@ -154,7 +154,7 @@ public class SmartwalletExtension implements WalletExtension {
 		}
 	}
 
-	static void deserializeProof(NetworkParameters params, Protos.ColorProof proofp, ColorProof proof) {
+	static void deserializeProof(NetworkParameters params, Protos.ColorProof proofp, ColorTrack proof) {
 		Map<TransactionOutPoint, Long> outputs = Maps.newHashMap();
 		Map<TransactionOutPoint, Long> unspentOutputs = Maps.newHashMap();
 		TreeSet<SortedTransaction> txs = Sets.newTreeSet();

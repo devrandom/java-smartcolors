@@ -69,7 +69,7 @@ public class SmartColors {
 	public static Script makeOpReturnScript() {
 		ScriptBuilder ret = new ScriptBuilder();
 		ret.op(ScriptOpCodes.OP_RETURN);
-		ret.data(ColorProof.SMART_ASSET_MARKER.getBytes());
+		ret.data(ColorTrack.SMART_ASSET_MARKER.getBytes());
 		return ret.build();
 	}
 

@@ -60,7 +60,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	private static final Logger log = LoggerFactory.getLogger(ColorScanner.class);
 
 	private final AbstractPeerEventListener peerEventListener;
-	Set<ColorProof> proofs = Sets.newHashSet();
+	Set<ColorTrack> proofs = Sets.newHashSet();
 	// General lock.  Wallet lock is internally obtained first for any wallet related work.
 	protected final ReentrantLock lock = Threading.lock("colorScanner");
 	// Lock for bloom filter recalc.  General lock is obtained internally after FilterMerger obtains
@@ -113,7 +113,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 
 		lock.lock();
 		try {
-			proofs.add(new ColorProof(definition));
+			proofs.add(new ColorTrack(definition));
 		} finally {
    			lock.unlock();
 		}
@@ -148,7 +148,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	private void doReorganize(List<StoredBlock> oldBlocks, List<StoredBlock> newBlocks) {
 		log.info("reorganize {} -> {}", newBlocks.size(), oldBlocks.size());
 		// Remove transactions from old blocks
-		for (ColorProof proof : proofs) {
+		for (ColorTrack proof : proofs) {
 			blocks:
 			for (StoredBlock block : oldBlocks) {
 				for (SortedTransaction tx : mapBlockTx.get(block.getHeader().getHash())) {
@@ -163,7 +163,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		}
 
 		// Add transactions from new blocks
-		for (ColorProof proof : proofs) {
+		for (ColorTrack proof : proofs) {
 			for (StoredBlock block : newBlocks) {
 				for (SortedTransaction tx : mapBlockTx.get(block.getHeader().getHash())) {
 					if (proof.isTransactionRelevant(tx.tx)) {
@@ -194,7 +194,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 				return false;
 			mapBlockTx.put(block.getHeader().getHash(), new SortedTransaction(tx, relativityOffset));
 			if (blockType == AbstractBlockChain.NewBlockType.BEST_CHAIN) {
-				for (ColorProof proof : proofs) {
+				for (ColorTrack proof : proofs) {
 					if (proof.isTransactionRelevant(tx)) {
 						proof.add(tx);
 					}
@@ -217,7 +217,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		for (TransactionOutput output: tx.getOutputs()) {
 			Script script = output.getScriptPubKey();
 			List<ScriptChunk> chunks = script.getChunks();
-			if (chunks.size() == 2 && chunks.get(0).opcode == ScriptOpCodes.OP_RETURN && Arrays.equals(chunks.get(1).data, ColorProof.SMART_ASSET_MARKER.getBytes())) {
+			if (chunks.size() == 2 && chunks.get(0).opcode == ScriptOpCodes.OP_RETURN && Arrays.equals(chunks.get(1).data, ColorTrack.SMART_ASSET_MARKER.getBytes())) {
 				return true;
 			}
 		}
@@ -242,7 +242,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		lock.lock();
 		try {
 			long creationTime = Long.MAX_VALUE;
-			for (ColorProof proof : proofs) {
+			for (ColorTrack proof : proofs) {
 				creationTime = Math.min(creationTime, proof.getCreationTime());
 			}
 			return creationTime + SmartColors.EARLIEST_FUDGE;
@@ -266,7 +266,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		int count = 0;
 		lock.lock();
 		try {
-			for (ColorProof proof : proofs) {
+			for (ColorTrack proof : proofs) {
 				count += proof.getBloomFilterElementCount();
 			}
 		} finally {
@@ -280,7 +280,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		BloomFilter filter = new BloomFilter(size, falsePositiveRate, nTweak);
 		lock.lock();
 		try {
-			for (ColorProof proof : proofs) {
+			for (ColorTrack proof : proofs) {
 				proof.updateBloomFilter(filter);
 			}
 		} finally {
@@ -321,7 +321,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 			}
 			inps: for (TransactionInput inp: tx.getInputs()) {
 				if (isInputMine(inp, wallet)) {
-					for (ColorProof proof : proofs) {
+					for (ColorTrack proof : proofs) {
 						Long value = proof.getOutputs().get(inp.getOutpoint());
 						if (value != null) {
 							Long existing = res.get(proof.getDefinition());
@@ -339,7 +339,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	}
 
 	private boolean applyOutputValue(TransactionOutput out, Map<ColorDefinition, Long> res) {
-		for (ColorProof proof: proofs) {
+		for (ColorTrack proof: proofs) {
 			Long value = proof.getOutputs().get(out.getOutPointFor());
 			if (value == null) {
 				// We don't know about this output yet, try applying the color kernel to figure
@@ -455,7 +455,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		return mapBlockTx;
 	}
 
-	public Set<ColorProof> getColorProofs() {
+	public Set<ColorTrack> getColorProofs() {
 		return proofs;
 	}
 
@@ -485,7 +485,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		try {
 			Set<ColorDefinition> colors = Sets.newHashSet();
 			colors.add(ColorDefinition.BITCOIN);
-			for (ColorProof proof: proofs) {
+			for (ColorTrack proof: proofs) {
 				colors.add(proof.getDefinition());
 			}
 			colors.add(ColorDefinition.UNKNOWN);
@@ -499,14 +499,14 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("[ColorScanner\n");
-		Ordering<ColorProof> ordering = Ordering.natural().onResultOf(new Function<ColorProof, Comparable>() {
+		Ordering<ColorTrack> ordering = Ordering.natural().onResultOf(new Function<ColorTrack, Comparable>() {
 			@Nullable
 			@Override
-			public Comparable apply(@Nullable ColorProof input) {
+			public Comparable apply(@Nullable ColorTrack input) {
 				return input.getDefinition().getHash();
 			}
 		});
-		for (ColorProof proof: ordering.immutableSortedCopy(proofs)) {
+		for (ColorTrack proof: ordering.immutableSortedCopy(proofs)) {
 			builder.append(proof.toString());
 		}
 		builder.append("\n]");
@@ -521,16 +521,16 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		return null;
 	}
 
-	public ColorProof getColorProofByHash(Sha256Hash hash) {
-		for (ColorProof proof: proofs) {
+	public ColorTrack getColorProofByHash(Sha256Hash hash) {
+		for (ColorTrack proof: proofs) {
 			if (proof.getDefinition().getHash().equals(hash))
 				return proof;
 		}
 		return null;
 	}
 
-	public ColorProof getColorProofByDefinition(ColorDefinition def) {
-		for (ColorProof proof: proofs) {
+	public ColorTrack getColorProofByDefinition(ColorDefinition def) {
+		for (ColorTrack proof: proofs) {
 			if (proof.getDefinition().equals(def))
 				return proof;
 		}
@@ -539,7 +539,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 
 	public boolean removeColorDefinition(ColorDefinition def) throws Exception {
 		Sha256Hash hash = def.getHash();
-		ColorProof proof = getColorProofByHash(hash);
+		ColorTrack proof = getColorProofByHash(hash);
 		return proofs.remove(proof);
 	}
 
@@ -547,7 +547,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	public void reset() {
 		lock.lock();
 		try {
-			for (ColorProof proof: proofs) {
+			for (ColorTrack proof: proofs) {
 				proof.reset();
 			}
 			unknownTransactionFutures.clear();

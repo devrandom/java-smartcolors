@@ -27,10 +27,10 @@ import static com.google.common.base.Preconditions.checkArgument;
 public class AssetCoinSelector extends DefaultCoinSelector {
 	private static final Logger log = LoggerFactory.getLogger(AssetCoinSelector.class);
 	protected final ColorKeyChain colorKeyChain;
-	protected final ColorProof proof;
+	protected final ColorTrack proof;
 	private final BitcoinCoinSelector bitcoinSelector;
 
-	public AssetCoinSelector(ColorKeyChain colorKeyChain, ColorProof proof) {
+	public AssetCoinSelector(ColorKeyChain colorKeyChain, ColorTrack proof) {
 		this.colorKeyChain = colorKeyChain;
 		this.proof = proof;
 		this.bitcoinSelector = new BitcoinCoinSelector(colorKeyChain);

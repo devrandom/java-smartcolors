@@ -25,14 +25,14 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
 /**
- * Proof that one or more outpoints are a certain color
+ * Track colored outputs for one definition
  *
  * <p>Tracks transactions required to prove all relevant color moves back
  * to the genesis points. Also manages updates to the proof as
  * blocks/transactions are added/removed.
  * <p>Also used to update bloom filters for SPV scanning
  */
-public class ColorProof {
+public class ColorTrack {
 	public static final String SMART_ASSET_MARKER = "SMARTASS";
 	private final ColorDefinition definition;
 	private Map<TransactionOutPoint, Long> outputs;
@@ -47,7 +47,7 @@ public class ColorProof {
 				}
 			});
 
-	public ColorProof(ColorDefinition definition) {
+	public ColorTrack(ColorDefinition definition) {
 		this.definition = definition;
 		outputs = Maps.newHashMap();
 		unspentOutputs = Maps.newHashMap();

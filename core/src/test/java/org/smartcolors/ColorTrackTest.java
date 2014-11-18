@@ -23,7 +23,7 @@ import javax.annotation.Nullable;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class ColorProofTest {
+public class ColorTrackTest {
 	public static final Script EMPTY_SCRIPT = new Script(new byte[0]);
 	public static final Coin ASSET_COIN_ONE = Coin.valueOf(SmartColors.addMsbdropValuePadding(1, 0));
 	private NetworkParameters params;
@@ -42,7 +42,7 @@ public class ColorProofTest {
 		SortedSet<GenesisPoint> points = Sets.newTreeSet();
 		points.add(genesis);
 		ColorDefinition def = new ColorDefinition(points);
-		ColorProof proof = new ColorProof(def);
+		ColorTrack proof = new ColorTrack(def);
 		assertTrue(proof.getOutputs().isEmpty());
 		assertTrue(proof.getUnspentOutputs().isEmpty());
 
@@ -110,7 +110,7 @@ public class ColorProofTest {
 		SortedSet<GenesisPoint> points = Sets.newTreeSet();
 		points.add(genesis);
 		ColorDefinition def = new ColorDefinition(points);
-		ColorProof proof = new ColorProof(def);
+		ColorTrack proof = new ColorTrack(def);
 
 		proof.add(genesisTx);
 
@@ -133,7 +133,7 @@ public class ColorProofTest {
 		proof.add(tx4);
 
 		Protos.ColorProof proofProto = SmartwalletExtension.serializeProof(proof);
-		ColorProof proof1 = new ColorProof(def);
+		ColorTrack proof1 = new ColorTrack(def);
 		final Map<Sha256Hash, Transaction> txs = Maps.newHashMap();
 		txs.put(genesisTx.getHash(), genesisTx);
 		txs.put(tx2.getHash(), tx2);
@@ -150,7 +150,7 @@ public class ColorProofTest {
 		assertEquals(proof.getStateHash(), proof1.getStateHash());
 		proof.undoLast();
 		Protos.ColorProof proofProto2 = SmartwalletExtension.serializeProof(proof);
-		ColorProof proof2 = new ColorProof(def);
+		ColorTrack proof2 = new ColorTrack(def);
 		SmartwalletExtension.deserializeProof(params, proofProto2, proof2);
 		assertEquals(proof.getStateHash(), proof2.getStateHash());
 	}
