@@ -17,6 +17,7 @@ import org.bitcoinj.testing.FakeTxBuilder;
 import org.bitcoinj.wallet.KeyChainGroup;
 import org.junit.Before;
 import org.junit.Test;
+import org.smartcolors.core.ColorDefinition;
 import org.smartcolors.protos.Protos;
 
 import java.security.SecureRandom;

@@ -34,6 +34,8 @@ import org.bitcoinj.utils.Threading;
 import org.bitcoinj.wallet.WalletTransaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.smartcolors.core.ColorDefinition;
+import org.smartcolors.core.SmartColors;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -298,7 +300,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	 * Get the net movement of assets caused by the transaction.
 	 *
 	 * <p>If we notice an output that is marked as carrying color, but we don't know what asset
-	 * it is, it will be marked as {@link org.smartcolors.ColorDefinition#UNKNOWN}</p>
+	 * it is, it will be marked as {@link org.smartcolors.core.ColorDefinition#UNKNOWN}</p>
 	 */
 	public Map<ColorDefinition, Long> getNetAssetChange(Transaction tx, Wallet wallet, ColorKeyChain chain) {
 		wallet.beginBloomFilterCalculation();

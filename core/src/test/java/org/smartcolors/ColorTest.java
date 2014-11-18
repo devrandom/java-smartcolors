@@ -17,6 +17,10 @@ import org.bitcoinj.script.Script;
 import org.bitcoinj.store.MemoryBlockStore;
 import org.bitcoinj.testing.FakeTxBuilder;
 import org.junit.Before;
+import org.smartcolors.core.ColorDefinition;
+import org.smartcolors.core.GenesisPoint;
+import org.smartcolors.core.SmartColors;
+import org.smartcolors.core.TxOutGenesisPoint;
 
 import java.math.BigInteger;
 import java.util.Map;

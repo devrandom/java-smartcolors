@@ -9,6 +9,7 @@ import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
 import org.junit.Before;
 import org.junit.Test;
+import org.smartcolors.core.SmartColors;
 
 import java.io.IOException;
 import java.util.List;

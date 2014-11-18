@@ -1,4 +1,4 @@
-package org.smartcolors;
+package org.smartcolors.core;
 
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.ProtocolException;

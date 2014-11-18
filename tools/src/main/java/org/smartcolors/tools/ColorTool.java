@@ -35,14 +35,14 @@ import org.bitcoinj.wallet.KeyChainGroup;
 import org.bitcoinj.wallet.WalletTransaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.smartcolors.ColorDefinition;
 import org.smartcolors.ColorKeyChain;
 import org.smartcolors.ColorKeyChainFactory;
 import org.smartcolors.ColorScanner;
-import org.smartcolors.GenesisPoint;
-import org.smartcolors.SmartColors;
 import org.smartcolors.SmartwalletExtension;
-import org.smartcolors.TxOutGenesisPoint;
+import org.smartcolors.core.ColorDefinition;
+import org.smartcolors.core.GenesisPoint;
+import org.smartcolors.core.SmartColors;
+import org.smartcolors.core.TxOutGenesisPoint;
 
 import java.io.BufferedInputStream;
 import java.io.File;

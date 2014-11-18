@@ -12,6 +12,10 @@ import org.bitcoinj.core.Wallet;
 import org.bitcoinj.script.Script;
 import org.junit.Before;
 import org.junit.Test;
+import org.smartcolors.core.ColorDefinition;
+import org.smartcolors.core.GenesisPoint;
+import org.smartcolors.core.SmartColors;
+import org.smartcolors.core.TxOutGenesisPoint;
 import org.smartcolors.protos.Protos;
 
 import java.util.HashMap;

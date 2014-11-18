@@ -7,6 +7,9 @@ import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.Utils;
 import org.bitcoinj.script.Script;
 import org.junit.Test;
+import org.smartcolors.core.GenesisPoint;
+import org.smartcolors.core.ScriptPubkeyGenesisPoint;
+import org.smartcolors.core.TxOutGenesisPoint;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

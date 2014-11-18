@@ -1,6 +1,7 @@
 package org.smartcolors;
 
 import org.bitcoinj.core.Coin;
+import org.smartcolors.core.SmartColors;
 
 import java.math.BigInteger;
 

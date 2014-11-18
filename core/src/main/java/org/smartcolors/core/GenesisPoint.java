@@ -1,4 +1,4 @@
-package org.smartcolors;
+package org.smartcolors.core;
 
 import com.google.common.collect.Maps;
 

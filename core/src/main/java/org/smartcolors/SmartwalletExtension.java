@@ -17,6 +17,7 @@ import org.bitcoinj.core.Wallet;
 import org.bitcoinj.core.WalletExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.smartcolors.core.ColorDefinition;
 import org.smartcolors.protos.Protos;
 
 import java.io.IOException;

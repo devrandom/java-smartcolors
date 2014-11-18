@@ -13,6 +13,9 @@ import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.Utils;
 import org.bitcoinj.core.VarInt;
+import org.smartcolors.core.ColorDefinition;
+import org.smartcolors.core.SmartColors;
+import org.smartcolors.core.TxOutGenesisPoint;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

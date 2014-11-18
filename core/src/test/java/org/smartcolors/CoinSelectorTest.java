@@ -21,6 +21,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.smartcolors.core.ColorDefinition;
+import org.smartcolors.core.SmartColors;
 
 import java.security.SecureRandom;
 import java.util.Map;

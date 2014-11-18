@@ -1,4 +1,4 @@
-package org.smartcolors;
+package org.smartcolors.core;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;

@@ -1,4 +1,4 @@
-package org.smartcolors;
+package org.smartcolors.core;
 
 import com.google.common.base.Throwables;
 
@@ -9,6 +9,7 @@ import org.bitcoinj.params.TestNet3Params;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.script.ScriptOpCodes;
+import org.smartcolors.ColorTrack;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;

@@ -12,6 +12,8 @@ import org.bitcoinj.wallet.CoinSelection;
 import org.bitcoinj.wallet.KeyChain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.smartcolors.core.ColorDefinition;
+import org.smartcolors.core.SmartColors;
 
 import java.util.ArrayList;
 import java.util.Collection;
