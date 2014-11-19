@@ -1,16 +1,17 @@
 package org.smartcolors.marshal;
 
 import com.google.common.base.Throwables;
+import com.google.common.hash.HashCode;
 
 /**
  * Created by devrandom on 2014-Nov-17.
  */
 public abstract class HashableSerializable implements Serializable {
-	private byte[] cachedHash;
+	private HashCode cachedHash;
 
 	public abstract void serialize(Serializer ser) throws SerializationException;
 
-	public byte[] getHash() {
+	public HashCode getHash() {
 		if (cachedHash != null)
 			return cachedHash;
 		HashSerializer serializer = new HashSerializer();

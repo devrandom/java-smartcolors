@@ -1,6 +1,7 @@
 package org.smartcolors.marshal;
 
 import com.google.common.base.Throwables;
+import com.google.common.hash.HashCode;
 
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -14,10 +15,15 @@ import javax.crypto.spec.SecretKeySpec;
 public class HashSerializer extends BytesSerializer {
 	@Override
 	public void write(Serializable obj) throws SerializationException {
-		write(obj.getHash());
+		write(obj.getHash().asBytes());
 	}
 
-	public static byte[] calcHash(BytesSerializer serializer, byte[] hmacKey) {
+	@Override
+	public void write(Object obj, SerializerHelper helper) throws SerializationException {
+		write(helper.getHash(obj).asBytes());
+	}
+
+	public static HashCode calcHash(BytesSerializer serializer, byte[] hmacKey) {
 		Mac hmac = null;
 		try {
 			hmac = Mac.getInstance("HmacSHA256");
@@ -30,10 +36,10 @@ public class HashSerializer extends BytesSerializer {
 		} catch (InvalidKeyException e) {
 			Throwables.propagate(e);
 		}
-		return hmac.doFinal(serializer.getBytes());
+		return HashCode.fromBytes(hmac.doFinal(serializer.getBytes()));
 	}
 
-	public static byte[] calcHash(byte[] content, byte[] hmacKey) {
+	public static HashCode calcHash(byte[] content, byte[] hmacKey) {
 		Mac hmac = null;
 		try {
 			hmac = Mac.getInstance("HmacSHA256");
@@ -46,6 +52,6 @@ public class HashSerializer extends BytesSerializer {
 		} catch (InvalidKeyException e) {
 			Throwables.propagate(e);
 		}
-		return hmac.doFinal(content);
+		return HashCode.fromBytes(hmac.doFinal(content));
 	}
 }

@@ -2,6 +2,7 @@ package org.smartcolors;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.io.Resources;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.NetworkParameters;
@@ -20,6 +21,7 @@ import org.smartcolors.marshal.BytesDeserializer;
 import org.smartcolors.marshal.SerializationException;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
@@ -68,16 +70,15 @@ public class ColorDefinitionTest {
 		long value = def.getOutPointGenesisPoints().get(new TransactionOutPoint(params, 0, new Sha256Hash("4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b")));
 		assertEquals(5000000000L, value);
 
-		assertEquals("989d170a0f0c3dfb8d5266d4e9d355583a6a3e100c0d08ff6dee81f43c33c150", Utils.HEX.encode(def.getHash()));
+		assertEquals("989d170a0f0c3dfb8d5266d4e9d355583a6a3e100c0d08ff6dee81f43c33c150", Utils.HEX.encode(def.getHash().asBytes()));
 	}
 
-//	@Test
-//	public void scdef() throws IOException, SerializationException {
-//		byte[] scdef = Resources.toByteArray(Resources.getResource("gold.scdef"));
-//		BytesDeserializer des = new BytesDeserializer(scdef);
-//		ColorDefinition def = ColorDefinition.deserialize(params, des);
-//		System.out.println(def.toStringFull());
-//	}
+	@Test
+	public void scdef() throws IOException, SerializationException {
+		InputStream is = Resources.getResource("gold.scdef").openStream();
+		ColorDefinition def = ColorDefinition.deserializeFromFile(params, is);
+		assertEquals("812d469f6aa2c320767c7444610df2b7bcb048d1a5f11630e4a9c0d1051c0bd3", def.getHash().toString());
+	}
 
 	@Test
 	public void json() throws IOException {

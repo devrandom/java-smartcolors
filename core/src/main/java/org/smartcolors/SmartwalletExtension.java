@@ -7,6 +7,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultimap;
+import com.google.common.hash.HashCode;
 import com.google.protobuf.ByteString;
 
 import org.bitcoinj.core.NetworkParameters;
@@ -92,13 +93,17 @@ public class SmartwalletExtension implements WalletExtension {
 		}
 		try {
 			proofBuilder.setColorDefinition(Protos.ColorDefinition.newBuilder()
-					.setHash(getHash(proof.getDefinition().getSha256Hash()))
+					.setHash(getHash(proof.getDefinition().getHash()))
 					.setJson(mapper.writeValueAsString(proof.getDefinition()))
 			);
 		} catch (JsonProcessingException e) {
 			Throwables.propagate(e);
 		}
 		return proofBuilder.build();
+	}
+
+	private static ByteString getHash(HashCode hash) {
+		return ByteString.copyFrom(hash.asBytes());
 	}
 
 	private static ByteString getHash(Sha256Hash hash) {
@@ -117,7 +122,7 @@ public class SmartwalletExtension implements WalletExtension {
 			Transaction transaction = new Transaction(params, bstxp.getTransaction().getTransaction().toByteArray());
 			SortedTransaction stx =
 					new SortedTransaction(transaction, bstxp.getTransaction().getIndex());
-			mapBlockTx.put(getHash(bstxp.getBlockHash()), stx);
+			mapBlockTx.put(getSha256Hash(bstxp.getBlockHash()), stx);
 		}
 		scanner.setMapBlockTx(mapBlockTx);
 
@@ -129,7 +134,7 @@ public class SmartwalletExtension implements WalletExtension {
 		scanner.setPending(pending);
 
 		for (Protos.ColorProof proofp : proto.getProofsList()) {
-			Sha256Hash hash = getHash(proofp.getColorDefinition().getHash());
+			HashCode hash = getHash(proofp.getColorDefinition().getHash());
 			ColorTrack proof = scanner.getColorProofByHash(hash);
 			if (proof == null) {
 				String json = proofp.getColorDefinition().getJson();
@@ -160,11 +165,11 @@ public class SmartwalletExtension implements WalletExtension {
 		Map<TransactionOutPoint, Long> unspentOutputs = Maps.newHashMap();
 		TreeSet<SortedTransaction> txs = Sets.newTreeSet();
 		for (Protos.OutPointValue outp : proofp.getOutputsList()) {
-			TransactionOutPoint out = new TransactionOutPoint(params, outp.getIndex(), getHash(outp.getHash()));
+			TransactionOutPoint out = new TransactionOutPoint(params, outp.getIndex(), getSha256Hash(outp.getHash()));
 			outputs.put(out, outp.getValue());
 		}
 		for (Protos.OutPointValue outp : proofp.getUnspentOutputsList()) {
-			TransactionOutPoint out = new TransactionOutPoint(params, outp.getIndex(), getHash(outp.getHash()));
+			TransactionOutPoint out = new TransactionOutPoint(params, outp.getIndex(), getSha256Hash(outp.getHash()));
 			unspentOutputs.put(out, outp.getValue());
 		}
 		for (Protos.SortedTransaction stxp : proofp.getTxsList()) {
@@ -177,8 +182,12 @@ public class SmartwalletExtension implements WalletExtension {
 		proof.setTxs(txs);
 	}
 
-	static private Sha256Hash getHash(ByteString hash) {
+	static private Sha256Hash getSha256Hash(ByteString hash) {
 		return new Sha256Hash(hash.toByteArray());
+	}
+
+	static private HashCode getHash(ByteString hash) {
+		return HashCode.fromBytes(hash.toByteArray());
 	}
 
 	public void setScanner(ColorScanner scanner) {

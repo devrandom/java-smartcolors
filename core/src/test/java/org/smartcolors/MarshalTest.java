@@ -3,6 +3,7 @@ package org.smartcolors;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Maps;
+import com.google.common.hash.HashCode;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -181,7 +182,7 @@ public class MarshalTest {
 			serializer.write(actual);
 			byte[] roundTrip = serializer.getBytes();
 			assertArrayEquals(expectedBytes, roundTrip);
-			byte[] hash = boxed.getHash();
+			byte[] hash = boxed.getHash().asBytes();
 			assertArrayEquals(expectedHash, hash);
 		}
 	}
@@ -203,8 +204,8 @@ public class MarshalTest {
 		}
 
 		@Override
-		public byte[] getKeyHash(byte[] key) {
-			return key;
+		public com.google.common.hash.HashCode getKeyHash(byte[] key) {
+			return HashCode.fromBytes(key);
 		}
 
 		@Override
@@ -255,7 +256,7 @@ public class MarshalTest {
 				tree2.serialize(ser1);
 				assertArrayEquals(expected, ser1.getBytes());
 			} else if (mode.equals("hash")) {
-				assertArrayEquals(expected, tree.getHash());
+				assertArrayEquals(expected, tree.getHash().asBytes());
 			} else {
 				fail(mode);
 			}

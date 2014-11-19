@@ -53,4 +53,9 @@ public class StreamSerializer implements Serializer {
 	public void write(Serializable obj) throws SerializationException {
 		obj.serialize(this);
 	}
+
+	@Override
+	public void write(Object obj, SerializerHelper helper) throws SerializationException {
+		helper.serialize(this, obj);
+	}
 }

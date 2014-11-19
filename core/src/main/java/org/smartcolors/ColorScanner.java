@@ -9,6 +9,7 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultimap;
+import com.google.common.hash.HashCode;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
@@ -513,7 +514,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 			@Nullable
 			@Override
 			public Comparable apply(@Nullable ColorTrack input) {
-				return input.getDefinition().getSha256Hash();
+				return input.getDefinition().getHash().toString();
 			}
 		});
 		for (ColorTrack proof: ordering.immutableSortedCopy(proofs)) {
@@ -531,7 +532,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		return null;
 	}
 
-	public ColorTrack getColorProofByHash(Sha256Hash hash) {
+	public ColorTrack getColorProofByHash(HashCode hash) {
 		for (ColorTrack proof: proofs) {
 			if (proof.getDefinition().getHash().equals(hash))
 				return proof;
@@ -548,7 +549,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	}
 
 	public boolean removeColorDefinition(ColorDefinition def) throws Exception {
-		Sha256Hash hash = def.getSha256Hash();
+		HashCode hash = def.getHash();
 		ColorTrack proof = getColorProofByHash(hash);
 		return proofs.remove(proof);
 	}

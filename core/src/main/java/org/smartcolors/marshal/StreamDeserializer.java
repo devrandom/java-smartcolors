@@ -49,12 +49,16 @@ public class StreamDeserializer implements Deserializer {
 		long length = readVaruint();
 		if (length > MAX_BYTES || length < 0)
 			throw new RuntimeException("bytes longer than max");
-		byte[] buf = new byte[(int)length];
+		byte[] buf = new byte[(int) length];
 		try {
 			is.read(buf);
 		} catch (IOException e) {
 			throw new SerializationException(e);
 		}
 		return buf;
+	}
+
+	public <T> T readObject(ObjectReader<T> reader) throws SerializationException {
+		return reader.readObject(this);
 	}
 }

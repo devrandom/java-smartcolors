@@ -1,6 +1,7 @@
 package org.smartcolors.marshal;
 
 import com.google.common.collect.Sets;
+import com.google.common.hash.HashCode;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -30,7 +31,7 @@ public abstract class MerbinnerTree<K,V> extends HashableSerializable {
 
 	public abstract long getSum(V value);
 
-	public abstract byte[] getKeyHash(K key);
+	public abstract com.google.common.hash.HashCode getKeyHash(K key);
 
 	public Set<K> keySet() {
 		return entries.keySet();
@@ -61,7 +62,7 @@ public abstract class MerbinnerTree<K,V> extends HashableSerializable {
 			Set<K> left = Sets.newHashSet();
 			Set<K> right = Sets.newHashSet();
 			for (K key : keys) {
-				byte[] keyHash = getKeyHash(key);
+				byte[] keyHash = getKeyHash(key).asBytes();
 				boolean side = ((keyHash[depth / 8] >> (7 - (depth % 8))) & 1) == 1;
 				if (side)
 					left.add(key);
@@ -78,8 +79,8 @@ public abstract class MerbinnerTree<K,V> extends HashableSerializable {
 		if (ser instanceof HashSerializer) {
 			HashSerializer ser1 = new HashSerializer();
 			long sum = serialize(ser1, keys, depth);
-			byte[] hash = HashSerializer.calcHash(ser1, getHmacKey());
-			ser.write(hash);
+			HashCode hash = HashSerializer.calcHash(ser1, getHmacKey());
+			ser.write(hash.asBytes());
 			serializeSum(ser, sum);
 			return sum;
 		} else {

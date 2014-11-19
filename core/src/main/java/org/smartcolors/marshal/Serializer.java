@@ -10,4 +10,5 @@ public interface Serializer {
 	void writeWithLength(byte[] bytes) throws SerializationException;
 
 	void write(Serializable obj) throws SerializationException;
+	void write(Object obj, SerializerHelper helper) throws SerializationException;
 }

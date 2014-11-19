@@ -9,7 +9,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
 import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutPoint;
@@ -18,10 +17,13 @@ import org.bitcoinj.core.Utils;
 import org.bitcoinj.script.Script;
 import org.smartcolors.marshal.BytesSerializer;
 import org.smartcolors.marshal.Deserializer;
+import org.smartcolors.marshal.FileSerializer;
 import org.smartcolors.marshal.HashableSerializable;
+import org.smartcolors.marshal.MemoizedDeserializer;
 import org.smartcolors.marshal.SerializationException;
 import org.smartcolors.marshal.Serializer;
 
+import java.io.InputStream;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -69,7 +71,6 @@ public class ColorDefinition extends HashableSerializable {
 	private final Map<String, String> metadata;
 	private final long blockheight;
 	private long creationTime;
-	private Sha256Hash hash;
 	private byte[] stegkey;
 
 	/*
@@ -122,10 +123,22 @@ public class ColorDefinition extends HashableSerializable {
 			throw new SerializationException("unknown version " + version);
 		long blockheight = des.readVaruint();
 		byte[] stegkey = des.readBytes(16);
-		GenesisOutPointsMerbinnerTree outTree = new GenesisOutPointsMerbinnerTree(params);
-		GenesisScriptPubkeysMerbinnerTree scriptTree = new GenesisScriptPubkeysMerbinnerTree();
-		outTree.deserialize(des);
-		scriptTree.deserialize(des);
+		final GenesisOutPointsMerbinnerTree outTree = new GenesisOutPointsMerbinnerTree(params);
+		final GenesisScriptPubkeysMerbinnerTree scriptTree = new GenesisScriptPubkeysMerbinnerTree();
+		des.readObject(new Deserializer.ObjectReader<GenesisOutPointsMerbinnerTree>() {
+			@Override
+			public GenesisOutPointsMerbinnerTree readObject(Deserializer des) throws SerializationException {
+				outTree.deserialize(des);
+				return outTree;
+			}
+		});
+		des.readObject(new Deserializer.ObjectReader<GenesisScriptPubkeysMerbinnerTree>() {
+			@Override
+			public GenesisScriptPubkeysMerbinnerTree readObject(Deserializer des) throws SerializationException {
+				scriptTree.deserialize(des);
+				return scriptTree;
+			}
+		});
 		return new ColorDefinition(params, outTree, scriptTree, Maps.<String, String>newHashMap(), blockheight, stegkey);
 	}
 
@@ -255,14 +268,6 @@ public class ColorDefinition extends HashableSerializable {
 		return builder.toString();
 	}
 
-	@JsonIgnore
-	public Sha256Hash getSha256Hash() {
-		if (hash != null)
-			return hash;
-		hash = new Sha256Hash(getHash());
-		return hash;
-	}
-
 	@Override
 	public byte[] getHmacKey() {
 		return Utils.HEX.decode("1d8801c1323b4cc5d1b48b289d35aad0");
@@ -292,5 +297,32 @@ public class ColorDefinition extends HashableSerializable {
 
 	public long getBlockheight() {
 		return blockheight;
+	}
+
+	//public static final byte[] FILE_MAGIC = Utils.HEX.decode("00536d617274636f6c6f727300f8acdc00436f6c6f7270726f6f6600cb93f2c5");
+	public static final byte[] FILE_MAGIC = Utils.HEX.decode("00536d617274636f6c6f727300fcbe8800436f6c6f7264656600a8edddf21401");
+
+	public static ColorDefinition deserializeFromFile(final NetworkParameters params, InputStream is) throws SerializationException {
+		MemoizedDeserializer des = new MemoizedDeserializer(is);
+
+		FileSerializer fser = new FileSerializer() {
+			@Override
+			protected byte[] getMagic() {
+				return FILE_MAGIC;
+			}
+		};
+		fser.readHeader(des);
+		ColorDefinition me = des.readObject(new Deserializer.ObjectReader<ColorDefinition>() {
+			@Override
+			public ColorDefinition readObject(Deserializer des) throws SerializationException {
+				return deserialize(params, des);
+			}
+		});
+		fser.verifyHash(des, me);
+		return me;
+	}
+
+	public byte[] getStegkey() {
+		return stegkey;
 	}
 }

@@ -1,6 +1,7 @@
 package org.smartcolors.core;
 
 import com.google.common.collect.Maps;
+import com.google.common.hash.HashCode;
 
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.TransactionOutPoint;
@@ -10,6 +11,7 @@ import org.smartcolors.marshal.HashSerializer;
 import org.smartcolors.marshal.MerbinnerTree;
 import org.smartcolors.marshal.SerializationException;
 import org.smartcolors.marshal.Serializer;
+import org.smartcolors.marshal.SerializerHelper;
 
 import java.util.Map;
 
@@ -21,10 +23,17 @@ public class GenesisOutPointsMerbinnerTree extends MerbinnerTree<TransactionOutP
 
 	@Override
 	public void serializeKey(Serializer ser, TransactionOutPoint key) throws SerializationException {
-		if (ser instanceof HashSerializer)
-			ser.write(getKeyHash(key));
-		else
-			ser.write(key.bitcoinSerialize());
+		ser.write(key, new SerializerHelper<TransactionOutPoint>() {
+			@Override
+			public void serialize(Serializer ser, TransactionOutPoint obj) throws SerializationException {
+				ser.write(obj.bitcoinSerialize());
+			}
+
+			@Override
+			public HashCode getHash(TransactionOutPoint obj) {
+				return calcHash(obj);
+			}
+		});
 	}
 
 	@Override
@@ -38,13 +47,22 @@ public class GenesisOutPointsMerbinnerTree extends MerbinnerTree<TransactionOutP
 	}
 
 	@Override
-	public byte[] getKeyHash(TransactionOutPoint key) {
+	public HashCode getKeyHash(TransactionOutPoint key) {
+		return calcHash(key);
+	}
+
+	private static HashCode calcHash(TransactionOutPoint key) {
 		return HashSerializer.calcHash(key.bitcoinSerialize(), Utils.HEX.decode("eac9aef052700336a94accea6a883e59"));
 	}
 
 	@Override
 	protected void deserializeNode(Deserializer des) throws SerializationException {
-		TransactionOutPoint key = new TransactionOutPoint(params, des.readBytes(36), 0);
+		TransactionOutPoint key = des.readObject(new Deserializer.ObjectReader<TransactionOutPoint>() {
+			@Override
+			public TransactionOutPoint readObject(Deserializer des) throws SerializationException {
+				return new TransactionOutPoint(params, des.readBytes(36), 0);
+			}
+		});
 		long value = des.readVaruint();
 		entries.put(key, value);
 	}

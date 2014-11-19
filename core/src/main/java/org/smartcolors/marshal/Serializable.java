@@ -1,12 +1,14 @@
 package org.smartcolors.marshal;
 
+import com.google.common.hash.HashCode;
+
 /**
  * Created by devrandom on 2014-Nov-17.
  */
 public interface Serializable {
 	public void serialize(Serializer serializer) throws SerializationException;
 
-	byte[] getHash();
+	HashCode getHash();
 
 	byte[] getHmacKey();
 }

@@ -8,4 +8,10 @@ public interface Deserializer {
 	byte[] readBytes() throws SerializationException;
 
 	byte[] readBytes(int expectedLength) throws SerializationException;
+
+	public static interface ObjectReader<T> {
+		T readObject(Deserializer des) throws SerializationException;
+	}
+
+	public <T> T readObject(ObjectReader<T> reader) throws SerializationException;
 }
