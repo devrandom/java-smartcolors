@@ -24,9 +24,9 @@ public abstract class MerbinnerTree<K,V> extends HashableSerializable {
 		return entries.get(key);
 	}
 
-	public abstract void serializeKey(Serializer ser, K key);
+	public abstract void serializeKey(Serializer ser, K key) throws SerializationException;
 
-	public abstract void serializeValue(Serializer ser, V value);
+	public abstract void serializeValue(Serializer ser, V value) throws SerializationException;
 
 	public abstract long getSum(V value);
 
@@ -41,11 +41,11 @@ public abstract class MerbinnerTree<K,V> extends HashableSerializable {
 	}
 
 	@Override
-	public void serialize(final Serializer ser) {
+	public void serialize(final Serializer ser) throws SerializationException {
 		serialize(ser, entries.keySet(), 0);
 	}
 
-	private long serialize(Serializer ser, Collection<K> keys, int depth) {
+	private long serialize(Serializer ser, Collection<K> keys, int depth) throws SerializationException {
 		Iterator<K> iter = keys.iterator();
 		if (keys.isEmpty()) {
 			ser.write(0);
@@ -74,7 +74,7 @@ public abstract class MerbinnerTree<K,V> extends HashableSerializable {
 		}
 	}
 
-	private long subSerialize(Serializer ser, Set<K> keys, int depth) {
+	private long subSerialize(Serializer ser, Set<K> keys, int depth) throws SerializationException {
 		if (ser instanceof HashSerializer) {
 			HashSerializer ser1 = new HashSerializer();
 			long sum = serialize(ser1, keys, depth);
@@ -87,10 +87,10 @@ public abstract class MerbinnerTree<K,V> extends HashableSerializable {
 		}
 	}
 
-	protected void serializeSum(Serializer ser, long sum) {
+	protected void serializeSum(Serializer ser, long sum) throws SerializationException {
 	}
 
-	public void deserialize(Deserializer des) {
+	public void deserialize(Deserializer des) throws SerializationException {
 		long type = des.readVaruint();
 		if (type == 0)
 			; // nothing
@@ -104,7 +104,7 @@ public abstract class MerbinnerTree<K,V> extends HashableSerializable {
 		}
 	}
 
-	protected abstract void deserializeNode(Deserializer des);
+	protected abstract void deserializeNode(Deserializer des) throws SerializationException;
 
 	private long doSum(long leftSum, long rightSum) {
 		return leftSum + rightSum;

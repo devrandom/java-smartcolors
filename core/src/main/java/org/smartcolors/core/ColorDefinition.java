@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
@@ -104,7 +105,7 @@ public class ColorDefinition extends HashableSerializable {
 
 
 	@Override
-	public void serialize(Serializer ser) {
+	public void serialize(Serializer ser) throws SerializationException {
 		ser.write(VERSION);
 		ser.write(blockheight);
 		ser.write(stegkey);
@@ -275,7 +276,11 @@ public class ColorDefinition extends HashableSerializable {
 	@JsonAnyGetter
 	Map<String, String> anyGetter() {
 		BytesSerializer ser = new BytesSerializer();
-		serialize(ser);
+		try {
+			serialize(ser);
+		} catch (SerializationException e) {
+			Throwables.propagate(e);
+		}
 		byte[] bytes = ser.getBytes();
 		return ImmutableMap.<String, String>builder().putAll(metadata).put("definition", Utils.HEX.encode(bytes)).build();
 	}

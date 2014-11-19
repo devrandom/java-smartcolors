@@ -13,7 +13,7 @@ import javax.crypto.spec.SecretKeySpec;
  */
 public class HashSerializer extends BytesSerializer {
 	@Override
-	public void write(Serializable obj) {
+	public void write(Serializable obj) throws SerializationException {
 		write(obj.getHash());
 	}
 

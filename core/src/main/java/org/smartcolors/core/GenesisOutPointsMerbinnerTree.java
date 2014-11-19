@@ -8,6 +8,7 @@ import org.bitcoinj.core.Utils;
 import org.smartcolors.marshal.Deserializer;
 import org.smartcolors.marshal.HashSerializer;
 import org.smartcolors.marshal.MerbinnerTree;
+import org.smartcolors.marshal.SerializationException;
 import org.smartcolors.marshal.Serializer;
 
 import java.util.Map;
@@ -19,7 +20,7 @@ public class GenesisOutPointsMerbinnerTree extends MerbinnerTree<TransactionOutP
 	private NetworkParameters params;
 
 	@Override
-	public void serializeKey(Serializer ser, TransactionOutPoint key) {
+	public void serializeKey(Serializer ser, TransactionOutPoint key) throws SerializationException {
 		if (ser instanceof HashSerializer)
 			ser.write(getKeyHash(key));
 		else
@@ -27,7 +28,7 @@ public class GenesisOutPointsMerbinnerTree extends MerbinnerTree<TransactionOutP
 	}
 
 	@Override
-	public void serializeValue(Serializer ser, Long value) {
+	public void serializeValue(Serializer ser, Long value) throws SerializationException {
 		ser.write(value);
 	}
 
@@ -42,14 +43,14 @@ public class GenesisOutPointsMerbinnerTree extends MerbinnerTree<TransactionOutP
 	}
 
 	@Override
-	protected void deserializeNode(Deserializer des) {
+	protected void deserializeNode(Deserializer des) throws SerializationException {
 		TransactionOutPoint key = new TransactionOutPoint(params, des.readBytes(36), 0);
 		long value = des.readVaruint();
 		entries.put(key, value);
 	}
 
 	@Override
-	protected void serializeSum(Serializer ser, long sum) {
+	protected void serializeSum(Serializer ser, long sum) throws SerializationException {
 		ser.write(sum);
 	}
 

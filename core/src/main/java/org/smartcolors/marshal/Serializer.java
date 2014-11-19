@@ -4,10 +4,10 @@ package org.smartcolors.marshal;
  * Created by devrandom on 2014-Nov-17.
  */
 public interface Serializer {
-	void write(long value);
+	void write(long value) throws SerializationException;
 
-	void write(byte[] bytes);
-	void writeWithLength(byte[] bytes);
+	void write(byte[] bytes) throws SerializationException;
+	void writeWithLength(byte[] bytes) throws SerializationException;
 
-	void write(Serializable obj);
+	void write(Serializable obj) throws SerializationException;
 }

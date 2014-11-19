@@ -7,6 +7,7 @@ import org.bitcoinj.script.Script;
 import org.smartcolors.marshal.Deserializer;
 import org.smartcolors.marshal.HashSerializer;
 import org.smartcolors.marshal.MerbinnerTree;
+import org.smartcolors.marshal.SerializationException;
 import org.smartcolors.marshal.Serializer;
 
 import java.util.Map;
@@ -16,7 +17,7 @@ import java.util.Map;
  */
 public class GenesisScriptPubkeysMerbinnerTree extends MerbinnerTree<Script, Void> {
 	@Override
-	public void serializeKey(Serializer ser, Script key) {
+	public void serializeKey(Serializer ser, Script key) throws SerializationException {
 		ser.write(key.getProgram());
 	}
 
@@ -35,13 +36,13 @@ public class GenesisScriptPubkeysMerbinnerTree extends MerbinnerTree<Script, Voi
 	}
 
 	@Override
-	protected void deserializeNode(Deserializer des) {
+	protected void deserializeNode(Deserializer des) throws SerializationException {
 		Script key = new Script(des.readBytes());
 		entries.put(key, null);
 	}
 
 	@Override
-	protected void serializeSum(Serializer ser, long sum) {
+	protected void serializeSum(Serializer ser, long sum) throws SerializationException {
 		ser.write(sum);
 	}
 

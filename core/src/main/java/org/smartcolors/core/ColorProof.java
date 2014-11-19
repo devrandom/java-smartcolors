@@ -3,6 +3,7 @@ package org.smartcolors.core;
 import org.bitcoinj.core.Utils;
 import org.smartcolors.marshal.HashSerializer;
 import org.smartcolors.marshal.HashableSerializable;
+import org.smartcolors.marshal.SerializationException;
 import org.smartcolors.marshal.Serializer;
 
 /**
@@ -14,7 +15,7 @@ public abstract class ColorProof extends HashableSerializable {
 	protected long quantity;
 
 	@Override
-	public void serialize(Serializer ser) {
+	public void serialize(Serializer ser) throws SerializationException {
 		ser.write(getType());
 		ser.write(VERSION);
 		ser.write(def);

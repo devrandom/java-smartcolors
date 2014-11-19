@@ -11,6 +11,7 @@ import org.smartcolors.marshal.BytesSerializer;
 import org.smartcolors.marshal.Deserializer;
 import org.smartcolors.marshal.HashableSerializable;
 import org.smartcolors.marshal.MerbinnerTree;
+import org.smartcolors.marshal.SerializationException;
 import org.smartcolors.marshal.Serializer;
 
 import java.io.IOException;
@@ -39,7 +40,7 @@ public class MarshalTest {
 			this.value = value;
 		}
 		@Override
-		public void serialize(Serializer ser) {
+		public void serialize(Serializer ser) throws SerializationException {
 			ser.write(value);
 		}
 
@@ -48,7 +49,7 @@ public class MarshalTest {
 			return Utils.HEX.decode("dd2617248e435da6db7c119c17cc19cd");
 		}
 
-		public static BoxedVaruint deserialize(Deserializer ser) {
+		public static BoxedVaruint deserialize(Deserializer ser) throws SerializationException {
 			return new BoxedVaruint(ser.readVaruint());
 		}
 	}
@@ -61,11 +62,11 @@ public class MarshalTest {
 			this.bytes = bytes;
 		}
 
-		public void serialize(Serializer serializer) {
+		public void serialize(Serializer serializer) throws SerializationException {
 			serializer.writeWithLength(bytes);
 		}
 
-		public void serializeFixed(Serializer ser) {
+		public void serializeFixed(Serializer ser) throws SerializationException {
 			ser.write(bytes);
 		}
 
@@ -74,7 +75,7 @@ public class MarshalTest {
 			return Utils.HEX.decode("f690a4d282810e868a0d7d59578a6585");
 		}
 
-		public static BoxedBytes deserialize(Deserializer ser, Integer expectedLength) {
+		public static BoxedBytes deserialize(Deserializer ser, Integer expectedLength) throws SerializationException {
 			if (expectedLength != null)
 				return new BoxedBytes(ser.readBytes(expectedLength));
 			else
@@ -95,12 +96,12 @@ public class MarshalTest {
 		public BoxedObj() {
 		}
 
-		public void serialize(Serializer ser) {
+		public void serialize(Serializer ser) throws SerializationException {
 			ser.write(buf);
 			ser.write(i);
 		}
 
-		public static BoxedObj deserialize(Deserializer des) {
+		public static BoxedObj deserialize(Deserializer des) throws SerializationException {
 			BoxedObj obj = new BoxedObj();
 			obj.buf = BoxedBytes.deserialize(des, null);
 			obj.i = BoxedVaruint.deserialize(des);
@@ -114,7 +115,7 @@ public class MarshalTest {
 	}
 
 	@Test
-	public void testVaruint() throws IOException {
+	public void testVaruint() throws IOException, SerializationException {
 		List<List<String>> items =
 				mapper.readValue(FixtureHelpers.fixture("marshal/valid_varuints.json"),
 						new TypeReference<List<List<String>>>(){});
@@ -133,7 +134,7 @@ public class MarshalTest {
 	}
 
 	@Test
-	public void testBytes() throws IOException {
+	public void testBytes() throws IOException, SerializationException {
 		List<List<String>> items =
 				mapper.readValue(FixtureHelpers.fixture("marshal/valid_bytes.json"),
 						new TypeReference<List<List<String>>>(){});
@@ -157,7 +158,7 @@ public class MarshalTest {
 	}
 
 	@Test
-	public void testObjs() throws IOException {
+	public void testObjs() throws IOException, SerializationException {
 		List<List<String>> items =
 				mapper.readValue(FixtureHelpers.fixture("marshal/valid_boxed_objs.json"),
 						new TypeReference<List<List<String>>>(){});
@@ -187,12 +188,12 @@ public class MarshalTest {
 
 	static class TestMerbinnerTree extends MerbinnerTree<byte[], byte[]> {
 		@Override
-		public void serializeKey(Serializer ser, byte[] key) {
+		public void serializeKey(Serializer ser, byte[] key) throws SerializationException {
 			ser.write(key);
 		}
 
 		@Override
-		public void serializeValue(Serializer ser, byte[] value) {
+		public void serializeValue(Serializer ser, byte[] value) throws SerializationException {
 			ser.write(value);
 		}
 
@@ -207,7 +208,7 @@ public class MarshalTest {
 		}
 
 		@Override
-		protected void deserializeNode(Deserializer des) {
+		protected void deserializeNode(Deserializer des) throws SerializationException {
 			byte[] key = des.readBytes(4);
 			byte[] value = des.readBytes(4);
 			entries.put(key, value);
@@ -224,7 +225,7 @@ public class MarshalTest {
 	}
 
 	@Test
-	public void testMerbinner() throws IOException {
+	public void testMerbinner() throws IOException, SerializationException {
 		List<List<Object>> items =
 				mapper.readValue(FixtureHelpers.fixture("marshal/merbinnertree_hashes.json"),
 						new TypeReference<List<List<Object>>>() {

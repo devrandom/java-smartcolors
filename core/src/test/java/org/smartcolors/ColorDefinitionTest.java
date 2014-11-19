@@ -71,6 +71,14 @@ public class ColorDefinitionTest {
 		assertEquals("989d170a0f0c3dfb8d5266d4e9d355583a6a3e100c0d08ff6dee81f43c33c150", Utils.HEX.encode(def.getHash()));
 	}
 
+//	@Test
+//	public void scdef() throws IOException, SerializationException {
+//		byte[] scdef = Resources.toByteArray(Resources.getResource("gold.scdef"));
+//		BytesDeserializer des = new BytesDeserializer(scdef);
+//		ColorDefinition def = ColorDefinition.deserialize(params, des);
+//		System.out.println(def.toStringFull());
+//	}
+
 	@Test
 	public void json() throws IOException {
 		ColorDefinition oil = mapper.readValue(FixtureHelpers.fixture("oil.json"), ColorDefinition.TYPE_REFERENCE);
