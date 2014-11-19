@@ -64,7 +64,7 @@ public class ColorTrack {
 	public Sha256Hash getStateHash() {
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
 		try {
-			bos.write(definition.getHash().getBytes());
+			//bos.write(definition.getHash().getBytes());
 			for (TransactionOutPoint point : outputOrdering.immutableSortedCopy(outputs.keySet())) {
 				bos.write(point.bitcoinSerialize());
 				Utils.uint32ToByteStreamLE(outputs.get(point), bos);
@@ -102,7 +102,7 @@ public class ColorTrack {
 		// Add genesis outpoints to the output maps
 		for (int i = 0; i < numOutputs; i++) {
 			TxOutGenesisPoint genesis = new TxOutGenesisPoint(tx.getParams(), tx.getOutput(i).getOutPointFor());
-			if (definition.contains(genesis)) {
+			if (definition.contains(tx.getOutput(i).getOutPointFor())) {
 				long qty = SmartColors.removeMsbdropValuePadding(tx.getOutput(i).getValue().value);
 				outputs.put(genesis.getOutPoint(), qty);
 				unspentOutputs.put(genesis.getOutPoint(), qty);
@@ -198,7 +198,7 @@ public class ColorTrack {
 		// Contains a genesis point?
 		for (int i = 0; i < numOutputs; i++) {
 			TxOutGenesisPoint genesis = new TxOutGenesisPoint(tx.getParams(), tx.getOutput(i).getOutPointFor());
-			if (definition.contains(genesis)) {
+			if (definition.contains(tx.getOutput(i).getOutPointFor())) {
 				return true;
 			}
 		}

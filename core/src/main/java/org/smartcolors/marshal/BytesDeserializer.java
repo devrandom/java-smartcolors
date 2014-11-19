@@ -21,7 +21,7 @@ public class BytesDeserializer implements Deserializer {
 		long value = 0;
 		int shift = 0;
 		while (true) {
-			int b = is.read();
+			long b = is.read();
 			value |= (b & 0x7f) << shift;
 			if ((b & 0x80) == 0)
 				break;

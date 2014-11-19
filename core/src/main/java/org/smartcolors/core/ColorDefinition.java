@@ -3,28 +3,25 @@ package org.smartcolors.core;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.ProtocolException;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
+import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.Utils;
-import org.bitcoinj.core.VarInt;
+import org.bitcoinj.script.Script;
+import org.smartcolors.marshal.BytesSerializer;
+import org.smartcolors.marshal.Deserializer;
+import org.smartcolors.marshal.HashableSerializable;
+import org.smartcolors.marshal.SerializationException;
+import org.smartcolors.marshal.Serializer;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.Arrays;
 import java.util.Map;
-import java.util.SortedSet;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -35,13 +32,11 @@ import static com.google.common.base.Preconditions.checkState;
  * lets even very large color definitions be used efficiently by SPV clients.
  */
 // TODO serialization
-public class ColorDefinition {
+public class ColorDefinition extends HashableSerializable {
 	public static final TypeReference<ColorDefinition> TYPE_REFERENCE = new TypeReference<ColorDefinition>() {};
-	protected byte[] payload;
+	private final NetworkParameters params;
 	public static final int MAX_COLOR_OUTPUTS = 32;
-	public static final int VERSION = 0;
-	public static final ColorDefinition UNKNOWN = makeUnknown();
-	public static final ColorDefinition BITCOIN = makeBitcoin();
+	public static final int VERSION = 1;
 
 	public static final String METADATA_NAME = "name";
 	public static final String METADATA_EXTRAHASH = "extrahash";
@@ -53,89 +48,84 @@ public class ColorDefinition {
 	public static final String METADATA_GENESIS_TXID = "genesis_txid";
 	public static final String METADATA_COLORDEF_URL = "url";
 
-	private static ColorDefinition makeUnknown() {
+	public static ColorDefinition makeUnknown(NetworkParameters params) {
 		Map<String, String> metadata = Maps.newHashMap();
 		metadata.put(METADATA_NAME, "UNKNOWN");
 		metadata.put(METADATA_EXTRAHASH, "UNKNOWN");
-		return new ColorDefinition(Sets.<GenesisPoint>newTreeSet(), metadata);
+		return new ColorDefinition(params, new GenesisOutPointsMerbinnerTree(params), new GenesisScriptPubkeysMerbinnerTree(), metadata);
 	}
 
-	private static ColorDefinition makeBitcoin() {
+	public static ColorDefinition makeBitcoin(NetworkParameters params) {
 		Map<String, String> metadata = Maps.newHashMap();
 		metadata.put(METADATA_NAME, "Bitcoin");
 		metadata.put(METADATA_EXTRAHASH, "Bitcoin");
 		// FIXME protect the extra hash field from being input by untrusted parties
-		return new ColorDefinition(Sets.<GenesisPoint>newTreeSet(), metadata);
+		return new ColorDefinition(params, new GenesisOutPointsMerbinnerTree(params), new GenesisScriptPubkeysMerbinnerTree(), metadata);
 	}
 
-	private final ImmutableSortedSet<GenesisPoint> genesisPoints;
+	private final GenesisOutPointsMerbinnerTree outPointGenesisPoints;
+	private final GenesisScriptPubkeysMerbinnerTree scriptGenesisPoints;
 	private final Map<String, String> metadata;
 	private final long blockheight;
-	private final Sha256Hash prevdefHash;
 	private long creationTime;
 	private Sha256Hash hash;
+	private byte[] stegkey;
 
+	/*
 	// For JSON deserialization
 	ColorDefinition(@JsonProperty("definition")String defHex) {
+		this.params = NetworkParameters.fromID(NetworkParameters.ID_UNITTESTNET);
 		this.creationTime = SmartColors.getSmartwalletEpoch();
 		this.metadata = Maps.newHashMap();
-		ColorDefinition def = ColorDefinition.fromPayload(SmartColors.ASSET_PARAMETERS, Utils.parseAsHexOrBase58(defHex), metadata);
-		this.genesisPoints = def.genesisPoints;
+		this.outPointGenesisPoints = def.outPointGenesisPoints;
+		this.scriptGenesisPoints = def.scriptGenesisPoints;
 		this.blockheight = def.blockheight;
-		this.prevdefHash = def.prevdefHash;
+	}
+	*/
+
+	public ColorDefinition(NetworkParameters params, GenesisOutPointsMerbinnerTree outPointGenesisPoints, GenesisScriptPubkeysMerbinnerTree scriptGenesisPoints, Map<String, String> metadata) {
+		this(params, outPointGenesisPoints, scriptGenesisPoints, metadata, 0, new byte[16]);
 	}
 
-	public ColorDefinition(SortedSet<GenesisPoint> points, Map<String, String> metadata) {
-		this(points, metadata, 0, new byte[32]);
-	}
-
-	public ColorDefinition(SortedSet<GenesisPoint> points, Map<String, String> metadata, long blockheight, byte[] prevdefHash) {
-		this.genesisPoints = ImmutableSortedSet.copyOf(points);
+	public ColorDefinition(NetworkParameters params, GenesisOutPointsMerbinnerTree outPointGenesisPoints, GenesisScriptPubkeysMerbinnerTree scriptGenesisPoints, Map<String, String> metadata, long blockheight, byte[] stegkey) {
+		this.params = params;
+		this.outPointGenesisPoints = outPointGenesisPoints;
+		this.scriptGenesisPoints = scriptGenesisPoints;
 		this.creationTime = SmartColors.getSmartwalletEpoch();
 		this.metadata = metadata;
 		this.blockheight = blockheight;
-		this.prevdefHash = new Sha256Hash(prevdefHash);
+		this.stegkey = stegkey;
 		// TODO creationTime
 	}
 
-	public ColorDefinition(SortedSet<GenesisPoint> points) {
-		this(points, Maps.<String, String>newHashMap());
+	public ColorDefinition(NetworkParameters params, GenesisOutPointsMerbinnerTree outPointGenesisPoints, GenesisScriptPubkeysMerbinnerTree scriptGenesisPoints) {
+		this(params, outPointGenesisPoints, scriptGenesisPoints, Maps.<String, String>newHashMap());
 	}
 
 
-	public static ColorDefinition fromPayload(NetworkParameters params, byte[] payload) throws ProtocolException {
-		return fromPayload(params, payload, Maps.<String, String>newHashMap());
+	@Override
+	public void serialize(Serializer ser) {
+		ser.write(VERSION);
+		ser.write(blockheight);
+		ser.write(stegkey);
+		ser.write(outPointGenesisPoints);
+		ser.write(scriptGenesisPoints);
+		if (metadata.containsKey(METADATA_EXTRAHASH)) {
+			ser.write(metadata.get(METADATA_EXTRAHASH).getBytes());
+		}
 	}
 
-	public static ColorDefinition fromPayload(NetworkParameters params, byte[] payload, Map<String, String> metadata) throws ProtocolException {
-		int cursor = 0;
-		long version = Utils.readUint32(payload, cursor);
-		cursor += 4;
+	public static ColorDefinition deserialize(NetworkParameters params, Deserializer des) throws SerializationException {
+		long version = des.readVaruint();
 		if (version != VERSION)
-			throw new ProtocolException("unexpected version " + version);
-		long blockheight = Utils.readUint32(payload, cursor); // TODO convert to timestamp
-		cursor += 4;
-		byte[] prevdefHash = Arrays.copyOfRange(payload, cursor, cursor+32);
-		cursor += 32; // TODO prevdef hash
-		VarInt numPoints = new VarInt(payload, cursor);
-		cursor += numPoints.getOriginalSizeInBytes();
-		SortedSet<GenesisPoint> points = Sets.newTreeSet();
-		for (int i = 0; i < numPoints.value; i++) {
-			GenesisPoint point = GenesisPoint.fromPayload(params, payload, cursor);
-			points.add(point);
-		}
-		return new ColorDefinition(points, metadata, blockheight, prevdefHash);
-	}
-
-	public void bitcoinSerialize(ByteArrayOutputStream bos) throws IOException {
-		Utils.uint32ToByteStreamLE(VERSION, bos);
-		Utils.uint32ToByteStreamLE(blockheight, bos);
-		bos.write(prevdefHash.getBytes());
-		VarInt numPoints = new VarInt(genesisPoints.size());
-		bos.write(numPoints.encode());
-		for (GenesisPoint point: genesisPoints) {
-			point.bitcoinSerializeToStream(bos);
-		}
+			throw new SerializationException("unknown version " + version);
+		long blockheight = des.readVaruint();
+		byte[] stegkey = des.readBytes(16);
+		GenesisOutPointsMerbinnerTree outTree = new GenesisOutPointsMerbinnerTree(params);
+		GenesisScriptPubkeysMerbinnerTree scriptTree = new GenesisScriptPubkeysMerbinnerTree();
+		outTree.deserialize(des);
+		scriptTree.deserialize(des);
+		return new ColorDefinition(params, outTree, scriptTree, Maps.<String, String>newHashMap(), blockheight, stegkey);
 	}
 
 	@JsonIgnore
@@ -143,8 +133,12 @@ public class ColorDefinition {
 		return metadata.get(METADATA_NAME);
 	}
 
-	public boolean contains(GenesisPoint point) {
-		return genesisPoints.contains(point);
+	public boolean contains(TransactionOutPoint point) {
+		return outPointGenesisPoints.constainsKey(point);
+	}
+
+	public boolean contains(Script script) {
+		return scriptGenesisPoints.constainsKey(script);
 	}
 
 	/**
@@ -223,8 +217,13 @@ public class ColorDefinition {
 	}
 
 	@JsonIgnore
-	public ImmutableSortedSet<GenesisPoint> getGenesisPoints() {
-		return genesisPoints;
+	public GenesisOutPointsMerbinnerTree getOutPointGenesisPoints() {
+		return outPointGenesisPoints;
+	}
+
+	@JsonIgnore
+	public GenesisScriptPubkeysMerbinnerTree getScriptGenesisPoints() {
+		return scriptGenesisPoints;
 	}
 
 	@Override
@@ -235,9 +234,20 @@ public class ColorDefinition {
 	public String toStringFull() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("[ColorDefinition:\n");
-		for (GenesisPoint point: genesisPoints) {
+		builder.append("  stegkey: ");
+		builder.append(Utils.HEX.encode(stegkey));
+		builder.append("\n  blockheight: " + blockheight);
+		builder.append("\n");
+		for (TransactionOutPoint point: outPointGenesisPoints.keySet()) {
 			builder.append("  ");
 			builder.append(point.toString());
+			builder.append(" : ");
+			builder.append(outPointGenesisPoints.get(point));
+			builder.append("\n");
+		}
+		for (Script script: scriptGenesisPoints.keySet()) {
+			builder.append("  ");
+			builder.append(script.getToAddress(params));
 			builder.append("\n");
 		}
 		builder.append("]");
@@ -245,12 +255,16 @@ public class ColorDefinition {
 	}
 
 	@JsonIgnore
-	public Sha256Hash getHash() {
+	public Sha256Hash getSha256Hash() {
 		if (hash != null)
 			return hash;
-		byte[] bytes = getDefinition();
-		hash = Sha256Hash.createDouble(bytes);
+		hash = new Sha256Hash(getHash());
 		return hash;
+	}
+
+	@Override
+	public byte[] getHmacKey() {
+		return Utils.HEX.decode("1d8801c1323b4cc5d1b48b289d35aad0");
 	}
 
 	@JsonIgnore
@@ -260,27 +274,18 @@ public class ColorDefinition {
 
 	@JsonAnyGetter
 	Map<String, String> anyGetter() {
-		byte[] bytes = getDefinition();
+		BytesSerializer ser = new BytesSerializer();
+		serialize(ser);
+		byte[] bytes = ser.getBytes();
 		return ImmutableMap.<String, String>builder().putAll(metadata).put("definition", Utils.HEX.encode(bytes)).build();
-	}
-
-	/** Bitcoin serialized definition */
-	@JsonIgnore
-	public byte[] getDefinition() {
-		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		try {
-			bitcoinSerialize(bos);
-			if (metadata.containsKey(METADATA_EXTRAHASH)) {
-				bos.write(metadata.get(METADATA_EXTRAHASH).getBytes());
-			}
-		} catch (IOException e) {
-			Throwables.propagate(e);
-		}
-		return bos.toByteArray();
 	}
 
 	@JsonAnySetter
 	void anySetter(String key, String value) {
 		metadata.put(key, value);
+	}
+
+	public long getBlockheight() {
+		return blockheight;
 	}
 }

@@ -13,14 +13,15 @@ import org.bitcoinj.script.Script;
 import org.junit.Before;
 import org.junit.Test;
 import org.smartcolors.core.ColorDefinition;
-import org.smartcolors.core.GenesisPoint;
+import org.smartcolors.core.GenesisOutPointsMerbinnerTree;
+import org.smartcolors.core.GenesisScriptPubkeysMerbinnerTree;
 import org.smartcolors.core.SmartColors;
-import org.smartcolors.core.TxOutGenesisPoint;
+import org.smartcolors.marshal.MerbinnerTree;
 import org.smartcolors.protos.Protos;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
-import java.util.SortedSet;
 
 import javax.annotation.Nullable;
 
@@ -42,10 +43,8 @@ public class ColorTrackTest {
 		Transaction genesisTx = new Transaction(params);
 		genesisTx.addOutput(ASSET_COIN_ONE, new Script(new byte[0]));
 		TransactionOutPoint genesisOutPoint = new TransactionOutPoint(params, 0, genesisTx);
-		TxOutGenesisPoint genesis = new TxOutGenesisPoint(params, genesisOutPoint);
-		SortedSet<GenesisPoint> points = Sets.newTreeSet();
-		points.add(genesis);
-		ColorDefinition def = new ColorDefinition(points);
+		GenesisOutPointsMerbinnerTree outPoints = makeTree(genesisOutPoint);
+		ColorDefinition def = new ColorDefinition(params, outPoints, new GenesisScriptPubkeysMerbinnerTree());
 		ColorTrack proof = new ColorTrack(def);
 		assertTrue(proof.getOutputs().isEmpty());
 		assertTrue(proof.getUnspentOutputs().isEmpty());
@@ -105,15 +104,19 @@ public class ColorTrackTest {
 		assertTrue(proof.getUnspentOutputs().isEmpty());
 	}
 
+	private GenesisOutPointsMerbinnerTree makeTree(TransactionOutPoint genesisOutPoint) {
+		HashSet<MerbinnerTree.Node<TransactionOutPoint, Long>> nodes =
+				Sets.<MerbinnerTree.Node<TransactionOutPoint, Long>>newHashSet(new GenesisOutPointsMerbinnerTree.MyNode(genesisOutPoint, 0));
+		return new GenesisOutPointsMerbinnerTree(params, nodes);
+	}
+
 	@Test
 	public void serialize() {
 		Transaction genesisTx = new Transaction(params);
 		genesisTx.addOutput(ASSET_COIN_ONE, new Script(new byte[0]));
 		TransactionOutPoint genesisOutPoint = new TransactionOutPoint(params, 0, genesisTx);
-		TxOutGenesisPoint genesis = new TxOutGenesisPoint(params, genesisOutPoint);
-		SortedSet<GenesisPoint> points = Sets.newTreeSet();
-		points.add(genesis);
-		ColorDefinition def = new ColorDefinition(points);
+		GenesisOutPointsMerbinnerTree outPoints = makeTree(genesisOutPoint);
+		ColorDefinition def = new ColorDefinition(params, outPoints, new GenesisScriptPubkeysMerbinnerTree());
 		ColorTrack proof = new ColorTrack(def);
 
 		proof.add(genesisTx);

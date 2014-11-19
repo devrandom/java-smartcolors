@@ -32,4 +32,20 @@ public class HashSerializer extends BytesSerializer {
 		}
 		return hmac.doFinal(serializer.getBytes());
 	}
+
+	public static byte[] calcHash(byte[] content, byte[] hmacKey) {
+		Mac hmac = null;
+		try {
+			hmac = Mac.getInstance("HmacSHA256");
+		} catch (NoSuchAlgorithmException e) {
+			Throwables.propagate(e);
+		}
+		SecretKeySpec macKey = new SecretKeySpec(hmacKey, "RAW");
+		try {
+			hmac.init(macKey);
+		} catch (InvalidKeyException e) {
+			Throwables.propagate(e);
+		}
+		return hmac.doFinal(content);
+	}
 }

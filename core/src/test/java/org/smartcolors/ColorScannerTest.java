@@ -54,8 +54,8 @@ public class ColorScannerTest extends ColorTest {
 	public void testGetColors() {
 		Set<ColorDefinition> colors = scanner.getColorDefinitions();
 		assertEquals(3, colors.size());
-		assertTrue(colors.contains(ColorDefinition.BITCOIN));
-		assertTrue(colors.contains(ColorDefinition.UNKNOWN));
+		assertTrue(colors.contains(scanner.getBitcoinDefinition()));
+		assertTrue(colors.contains(scanner.getUnknownDefinition()));
 		assertTrue(colors.contains(def));
 	}
 
@@ -85,7 +85,7 @@ public class ColorScannerTest extends ColorTest {
 		tx2.addOutput(Coin.ZERO, opReturnScript);
 		Map<ColorDefinition, Long> res = scanner.getNetAssetChange(tx2, wallet, colorChain);
 		Map<ColorDefinition, Long> expected = Maps.newHashMap();
-		expected.put(ColorDefinition.UNKNOWN, 5L);
+		expected.put(scanner.getUnknownDefinition(), 5L);
 		assertEquals(expected, res);
 	}
 
@@ -136,7 +136,7 @@ public class ColorScannerTest extends ColorTest {
 		txs.put(tx2.getHash(), tx2);
 		txs.put(tx3.getHash(), tx3);
 
-		ColorScanner scanner1 = new ColorScanner();
+		ColorScanner scanner1 = new ColorScanner(params);
 		scanner1.addDefinition(def);
 		Protos.ColorScanner proto = SmartwalletExtension.serializeScanner(scanner);
 		SmartwalletExtension.deserializeScanner(params, proto, scanner1);
@@ -213,7 +213,7 @@ public class ColorScannerTest extends ColorTest {
 		tx2.addOutput(Coin.ZERO, opReturnScript);
 		scanner.addPending(tx2);
 		Protos.ColorScanner scannerProto = SmartwalletExtension.serializeScanner(scanner);
-		ColorScanner scanner1 = new ColorScanner();
+		ColorScanner scanner1 = new ColorScanner(params);
 		SmartwalletExtension.deserializeScanner(params, scannerProto, scanner1);
 		assertEquals(tx2.getHash(), scanner1.getPending().keySet().iterator().next());
 	}

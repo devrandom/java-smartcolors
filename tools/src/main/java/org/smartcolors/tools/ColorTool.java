@@ -336,7 +336,7 @@ public class ColorTool {
 	}
 
 	private static void makeScanner() {
-		scanner = new ColorScanner();
+		scanner = new ColorScanner(params);
 	}
 
 	private static void addBuiltins() {
@@ -389,7 +389,7 @@ public class ColorTool {
 		}
 		HashMap<String, String> metadata = Maps.newHashMap();
 		metadata.put("name", "widgets");
-		ColorDefinition def = ColorDefinition.fromPayload(params, Utils.HEX.decode(ser), metadata);
+		ColorDefinition def = null; //ColorDefinition.fromPayload(params, Utils.HEX.decode(ser), metadata);
 		System.out.println(def);
 		return def;
 	}
@@ -403,7 +403,7 @@ public class ColorTool {
 		}
 		HashMap<String, String> metadata = Maps.newHashMap();
 		metadata.put("name", "widgets");
-		return new ColorDefinition(genesisPoints, metadata);
+		return null; //new ColorDefinition(params, genesisPoints, metadata, metadata);
 	}
 
 	private static void usage() throws IOException {

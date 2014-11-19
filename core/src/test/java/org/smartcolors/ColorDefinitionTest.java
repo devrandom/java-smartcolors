@@ -2,20 +2,23 @@ package org.smartcolors;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Sets;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
+import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.script.Script;
 import org.junit.Before;
 import org.junit.Test;
 import org.smartcolors.core.ColorDefinition;
-import org.smartcolors.core.GenesisPoint;
+import org.smartcolors.core.GenesisOutPointsMerbinnerTree;
+import org.smartcolors.core.GenesisScriptPubkeysMerbinnerTree;
 import org.smartcolors.core.SmartColors;
+import org.smartcolors.marshal.BytesDeserializer;
+import org.smartcolors.marshal.SerializationException;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +42,7 @@ public class ColorDefinitionTest {
 
 	@Before
 	public void setUp() {
-		def = new ColorDefinition(Sets.<GenesisPoint>newTreeSet());
+		def = new ColorDefinition(params, new GenesisOutPointsMerbinnerTree(params), new GenesisScriptPubkeysMerbinnerTree());
 		mapper = new ObjectMapper();
 		params = NetworkParameters.fromID(NetworkParameters.ID_TESTNET);
 	}
@@ -56,13 +59,16 @@ public class ColorDefinitionTest {
 	}
 
 	@Test
-	public void deserialize() throws IOException {
-		byte[] defBytes = Utils.HEX.decode("00000000000000000000000000000000000000000000000000000000000000000000000000000000010174b16bf3ce53c26c3bc7a42f06328b4776a616182478b7011fba181db0539fc500000000");
-		ColorDefinition def = ColorDefinition.fromPayload(params, defBytes);
-		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		def.bitcoinSerialize(bos);
-		assertArrayEquals(defBytes, bos.toByteArray());
-		assertEquals("0a20faec7138b5f312ed58fb86cb181fc3719c28f2a167f02064f2cd5a90ec3a", Utils.HEX.encode(def.getHash().getBytes()));
+	public void deserialize() throws IOException, SerializationException {
+		byte[] defBytes = Utils.HEX.decode("0100ec746756751d8ac6e9345f9050e1565f013ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a0000000080e497d01200");
+		BytesDeserializer des = new BytesDeserializer(defBytes);
+		ColorDefinition def = ColorDefinition.deserialize(params, des);
+		System.out.println(def.toStringFull());
+		assertEquals(0, def.getBlockheight());
+		long value = def.getOutPointGenesisPoints().get(new TransactionOutPoint(params, 0, new Sha256Hash("4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b")));
+		assertEquals(5000000000L, value);
+
+		assertEquals("989d170a0f0c3dfb8d5266d4e9d355583a6a3e100c0d08ff6dee81f43c33c150", Utils.HEX.encode(def.getHash()));
 	}
 
 	@Test

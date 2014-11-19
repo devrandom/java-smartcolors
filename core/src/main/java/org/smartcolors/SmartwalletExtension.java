@@ -92,7 +92,7 @@ public class SmartwalletExtension implements WalletExtension {
 		}
 		try {
 			proofBuilder.setColorDefinition(Protos.ColorDefinition.newBuilder()
-					.setHash(getHash(proof.getDefinition().getHash()))
+					.setHash(getHash(proof.getDefinition().getSha256Hash()))
 					.setJson(mapper.writeValueAsString(proof.getDefinition()))
 			);
 		} catch (JsonProcessingException e) {

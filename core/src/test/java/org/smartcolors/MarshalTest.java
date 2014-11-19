@@ -186,11 +186,8 @@ public class MarshalTest {
 		}
 	}
 
-	static class TestMerbinnerTree extends MerbinnerTree {
-		public static class TestNode extends Node {
-			byte[] key;
-			byte[] value;
-
+	static class TestMerbinnerTree extends MerbinnerTree<byte[], byte[]> {
+		public static class TestNode extends Node<byte[], byte[]> {
 			public TestNode(byte[] key, byte[] value) {
 				this.key = key;
 				this.value = value;
@@ -219,11 +216,12 @@ public class MarshalTest {
 				return key;
 			}
 		}
+
 		@Override
 		protected MerbinnerTree.Node deserializeNode(Deserializer des) {
-			TestNode node = new TestNode();
-			node.key = des.readBytes(4);
-			node.value = des.readBytes(4);
+			byte[] key = des.readBytes(4);
+			byte[] value = des.readBytes(4);
+			TestNode node = new TestNode(key, value);
 			return node;
 		}
 
@@ -232,7 +230,7 @@ public class MarshalTest {
 			return Utils.HEX.decode("92e8898fcfa8b86b60b32236d6990da0");
 		}
 
-		TestMerbinnerTree(Set<Node> nodes) {
+		TestMerbinnerTree(Set<Node<byte[], byte[]>> nodes) {
 			super(nodes);
 		}
 	}
@@ -249,7 +247,7 @@ public class MarshalTest {
 			String mode = (String) entry.get(1);
 			String expectedHex = (String) entry.get(2);
 			byte[] expected = Utils.HEX.decode(expectedHex.replaceAll(" ", ""));
-			Set<MerbinnerTree.Node> nodes = Sets.newHashSet();
+			Set<MerbinnerTree.Node<byte[], byte[]>> nodes = Sets.newHashSet();
 			for (String keyString : map.keySet()) {
 				byte[] value = Utils.HEX.decode(map.get(keyString));
 				byte[] key = Utils.HEX.decode(keyString);
@@ -263,7 +261,7 @@ public class MarshalTest {
 				ser.write(tree);
 				assertArrayEquals(expected, ser.getBytes());
 				BytesDeserializer des = new BytesDeserializer(expected);
-				TestMerbinnerTree tree2 = new TestMerbinnerTree(Sets.<MerbinnerTree.Node>newHashSet());
+				TestMerbinnerTree tree2 = new TestMerbinnerTree(Sets.<MerbinnerTree.Node<byte[], byte[]>>newHashSet());
 				tree2.deserialize(des);
 				BytesSerializer ser1 = new BytesSerializer();
 				tree2.serialize(ser1);

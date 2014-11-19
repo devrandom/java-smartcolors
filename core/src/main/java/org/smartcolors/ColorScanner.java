@@ -16,6 +16,7 @@ import org.bitcoinj.core.AbstractBlockChain;
 import org.bitcoinj.core.AbstractPeerEventListener;
 import org.bitcoinj.core.BlockChainListener;
 import org.bitcoinj.core.BloomFilter;
+import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Peer;
 import org.bitcoinj.core.PeerFilterProvider;
 import org.bitcoinj.core.ScriptException;
@@ -62,6 +63,10 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	private static final Logger log = LoggerFactory.getLogger(ColorScanner.class);
 
 	private final AbstractPeerEventListener peerEventListener;
+	private final NetworkParameters params;
+	private final ColorDefinition unknownDefinition;
+	private final ColorDefinition bitcoinDefinition;
+	
 	Set<ColorTrack> proofs = Sets.newHashSet();
 	// General lock.  Wallet lock is internally obtained first for any wallet related work.
 	protected final ReentrantLock lock = Threading.lock("colorScanner");
@@ -75,7 +80,10 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	@GuardedBy("lock")
 	private Multimap<Transaction, SettableFuture<Transaction>> unknownTransactionFutures = ArrayListMultimap.create();
 
-	public ColorScanner() {
+	public ColorScanner(NetworkParameters params) {
+		this.params = params;
+		this.unknownDefinition = ColorDefinition.makeUnknown(params);
+		this.bitcoinDefinition = ColorDefinition.makeBitcoin(params);
 		peerEventListener = new AbstractPeerEventListener() {
 			@Override
 			public void onTransaction(Peer peer, Transaction t) {
@@ -300,7 +308,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	 * Get the net movement of assets caused by the transaction.
 	 *
 	 * <p>If we notice an output that is marked as carrying color, but we don't know what asset
-	 * it is, it will be marked as {@link org.smartcolors.core.ColorDefinition#UNKNOWN}</p>
+	 * it is, it will be marked as UNKNOWN</p>
 	 */
 	public Map<ColorDefinition, Long> getNetAssetChange(Transaction tx, Wallet wallet, ColorKeyChain chain) {
 		wallet.beginBloomFilterCalculation();
@@ -359,16 +367,16 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		}
 		// Unknown asset on this output
 		Long value = SmartColors.removeMsbdropValuePadding(out.getValue().getValue());
-		Long existing = res.get(ColorDefinition.UNKNOWN);
+		Long existing = res.get(unknownDefinition);
 		if (existing != null)
 			value = value + existing;
-		res.put(ColorDefinition.UNKNOWN, value);
+		res.put(unknownDefinition, value);
 		return false;
 	}
 
 	public Map<ColorDefinition, Long> getBalances(Wallet wallet, ColorKeyChain colorKeyChain) {
 		Map<ColorDefinition, Long> res = Maps.newHashMap();
-		res.put(ColorDefinition.BITCOIN, 0L);
+		res.put(bitcoinDefinition, 0L);
 		wallet.beginBloomFilterCalculation();
 		lock.lock();
 		try {
@@ -377,7 +385,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 				if (colorKeyChain.isOutputToMe(output))
 					applyOutputValue(output, res);
 				else
-					res.put(ColorDefinition.BITCOIN, res.get(ColorDefinition.BITCOIN) + output.getValue().getValue());
+					res.put(bitcoinDefinition, res.get(bitcoinDefinition) + output.getValue().getValue());
 			}
 		} finally {
    			lock.unlock();
@@ -391,14 +399,14 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	 * transaction outputs, or throw {@link org.smartcolors.ColorScanner.ScanningException}
 	 * if we were unable to ascertain some of the outputs.
 	 *
-	 * <p>The caller may have to run this again if we find one asset, but there are other unknown outputs</p>
+	 * <p>The caller may have to run this again if we find one asset, but there are other unknownDefinition outputs</p>
  	 */
 	public ListenableFuture<Transaction> getTransactionWithKnownAssets(Transaction tx, Wallet wallet, ColorKeyChain chain) {
 		wallet.beginBloomFilterCalculation();
 		lock.lock();
 		try {
 			SettableFuture<Transaction> future = SettableFuture.create();
-			if (getNetAssetChange(tx, wallet, chain).containsKey(ColorDefinition.UNKNOWN)) {
+			if (getNetAssetChange(tx, wallet, chain).containsKey(unknownDefinition)) {
 				// FIXME need to fail here right away if we are past the block where this tx appears and we are bloom filtering
 				unknownTransactionFutures.put(tx, future);
 			} else {
@@ -486,11 +494,11 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		lock.lock();
 		try {
 			Set<ColorDefinition> colors = Sets.newHashSet();
-			colors.add(ColorDefinition.BITCOIN);
+			colors.add(bitcoinDefinition);
 			for (ColorTrack proof: proofs) {
 				colors.add(proof.getDefinition());
 			}
-			colors.add(ColorDefinition.UNKNOWN);
+			colors.add(unknownDefinition);
 			return colors;
 		} finally {
    			lock.unlock();
@@ -505,7 +513,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 			@Nullable
 			@Override
 			public Comparable apply(@Nullable ColorTrack input) {
-				return input.getDefinition().getHash();
+				return input.getDefinition().getSha256Hash();
 			}
 		});
 		for (ColorTrack proof: ordering.immutableSortedCopy(proofs)) {
@@ -540,7 +548,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	}
 
 	public boolean removeColorDefinition(ColorDefinition def) throws Exception {
-		Sha256Hash hash = def.getHash();
+		Sha256Hash hash = def.getSha256Hash();
 		ColorTrack proof = getColorProofByHash(hash);
 		return proofs.remove(proof);
 	}
@@ -576,5 +584,13 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		public ColorDefinitionExists() {
 			super("Trying to replace an existing definition.");
 		}
+	}
+
+	public ColorDefinition getBitcoinDefinition() {
+		return bitcoinDefinition;
+	}
+
+	public ColorDefinition getUnknownDefinition() {
+		return unknownDefinition;
 	}
 }
