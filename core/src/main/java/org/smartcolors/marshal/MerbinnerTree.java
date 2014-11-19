@@ -1,6 +1,5 @@
 package org.smartcolors.marshal;
 
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import java.util.Collection;
@@ -12,78 +11,62 @@ import java.util.Set;
  * Created by devrandom on 2014-Nov-17.
  */
 public abstract class MerbinnerTree<K,V> extends HashableSerializable {
-	Map<K, Node<K,V>> nodeMap;
+	protected Map<K, V> entries;
 
-	public MerbinnerTree(Set<Node<K,V>> nodeMap) {
-		this.nodeMap = Maps.newHashMap();
-		for (Node<K, V> node : nodeMap) {
-			this.nodeMap.put(node.getKey(), node);
-		}
+	public MerbinnerTree(Map<K, V> entries) {
+		this.entries = entries;
 	}
 
 	public MerbinnerTree() {
 	}
 
 	public V get(K key) {
-		return nodeMap.get(key).getValue();
+		return entries.get(key);
 	}
 
-	public static abstract class Node<K,V> {
-		protected K key;
-		protected V value;
+	public abstract void serializeKey(Serializer ser, K key);
 
-		public abstract void serializeKey(Serializer ser);
+	public abstract void serializeValue(Serializer ser, V value);
 
-		public abstract void serializeValue(Serializer ser);
+	public abstract long getSum(V value);
 
-		public abstract long getSum();
-
-		public abstract byte[] getKeyHash();
-
-		public K getKey() {
-			return key;
-		}
-
-		public V getValue() {
-			return value;
-		}
-	}
+	public abstract byte[] getKeyHash(K key);
 
 	public Set<K> keySet() {
-		return nodeMap.keySet();
+		return entries.keySet();
 	}
 
 	public boolean constainsKey(K key) {
-		return nodeMap.containsKey(key);
+		return entries.containsKey(key);
 	}
 
 	@Override
 	public void serialize(final Serializer ser) {
-		serialize(ser, nodeMap.values(), 0);
+		serialize(ser, entries.keySet(), 0);
 	}
 
-	private long serialize(Serializer ser, Collection<Node<K,V>> nodes, int depth) {
-		Iterator<Node<K,V>> iter = nodes.iterator();
-		if (nodes.isEmpty()) {
+	private long serialize(Serializer ser, Collection<K> keys, int depth) {
+		Iterator<K> iter = keys.iterator();
+		if (keys.isEmpty()) {
 			ser.write(0);
 			return 0;
-		} else if (nodes.size() == 1) {
+		} else if (keys.size() == 1) {
 			ser.write(1);
-			Node node = iter.next();
-			node.serializeKey(ser);
-			node.serializeValue(ser);
-			return node.getSum();
+			K key = iter.next();
+			serializeKey(ser, key);
+			serializeValue(ser, entries.get(key));
+			return getSum(entries.get(key));
 		} else {
 			ser.write(2);
-			Set<Node<K,V>> left = Sets.newHashSet();
-			Set<Node<K,V>> right = Sets.newHashSet();
-			for (Node node : nodes) {
-				byte[] keyHash = node.getKeyHash();
+			Set<K> left = Sets.newHashSet();
+			Set<K> right = Sets.newHashSet();
+			for (K key : keys) {
+				byte[] keyHash = getKeyHash(key);
 				boolean side = ((keyHash[depth / 8] >> (7 - (depth % 8))) & 1) == 1;
 				if (side)
-					left.add(node);
+					left.add(key);
 				else
-					right.add(node);
+					right.add(key);
 			}
 			long leftSum = subSerialize(ser, left, depth + 1);
 			long rightSum = subSerialize(ser, right, depth + 1);
@@ -91,16 +74,16 @@ public abstract class MerbinnerTree<K,V> extends HashableSerializable {
 		}
 	}
 
-	private long subSerialize(Serializer ser, Set<Node<K,V>> nodes, int depth) {
+	private long subSerialize(Serializer ser, Set<K> keys, int depth) {
 		if (ser instanceof HashSerializer) {
 			HashSerializer ser1 = new HashSerializer();
-			long sum = serialize(ser1, nodes, depth);
+			long sum = serialize(ser1, keys, depth);
 			byte[] hash = HashSerializer.calcHash(ser1, getHmacKey());
 			ser.write(hash);
 			serializeSum(ser, sum);
 			return sum;
 		} else {
-			return serialize(ser, nodes, depth);
+			return serialize(ser, keys, depth);
 		}
 	}
 
@@ -112,8 +95,7 @@ public abstract class MerbinnerTree<K,V> extends HashableSerializable {
 		if (type == 0)
 			; // nothing
 		else if (type == 1) {
-			Node<K, V> node = deserializeNode(des);
-			nodeMap.put(node.getKey(), node);
+			deserializeNode(des);
 		} else if (type == 2) {
 			deserialize(des); // left
 			deserialize(des); // right
@@ -122,7 +104,7 @@ public abstract class MerbinnerTree<K,V> extends HashableSerializable {
 		}
 	}
 
-	protected abstract Node<K, V> deserializeNode(Deserializer des);
+	protected abstract void deserializeNode(Deserializer des);
 
 	private long doSum(long leftSum, long rightSum) {
 		return leftSum + rightSum;

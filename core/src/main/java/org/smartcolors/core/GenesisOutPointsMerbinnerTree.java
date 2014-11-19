@@ -1,6 +1,6 @@
 package org.smartcolors.core;
 
-import com.google.common.collect.Sets;
+import com.google.common.collect.Maps;
 
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.TransactionOutPoint;
@@ -10,7 +10,7 @@ import org.smartcolors.marshal.HashSerializer;
 import org.smartcolors.marshal.MerbinnerTree;
 import org.smartcolors.marshal.Serializer;
 
-import java.util.Set;
+import java.util.Map;
 
 /**
  * Created by devrandom on 2014-Nov-18.
@@ -18,44 +18,34 @@ import java.util.Set;
 public class GenesisOutPointsMerbinnerTree extends MerbinnerTree<TransactionOutPoint, Long> {
 	private NetworkParameters params;
 
-	public static class MyNode extends Node<TransactionOutPoint, Long> {
-		public MyNode(TransactionOutPoint key, long value) {
-			this.key = key;
-			this.value = value;
-		}
-
-		public MyNode() {
-		}
-
-		@Override
-		public void serializeKey(Serializer ser) {
-			if (ser instanceof HashSerializer)
-				ser.write(getKeyHash());
-			else
-				ser.write(key.bitcoinSerialize());
-		}
-
-		@Override
-		public void serializeValue(Serializer ser) {
-			ser.write(value);
-		}
-
-		@Override
-		public long getSum() {
-			return value;
-		}
-
-		@Override
-		public byte[] getKeyHash() {
-			return HashSerializer.calcHash(key.bitcoinSerialize(), Utils.HEX.decode("eac9aef052700336a94accea6a883e59"));
-		}
+	@Override
+	public void serializeKey(Serializer ser, TransactionOutPoint key) {
+		if (ser instanceof HashSerializer)
+			ser.write(getKeyHash(key));
+		else
+			ser.write(key.bitcoinSerialize());
 	}
 
 	@Override
-	protected MerbinnerTree.Node deserializeNode(Deserializer des) {
+	public void serializeValue(Serializer ser, Long value) {
+		ser.write(value);
+	}
+
+	@Override
+	public long getSum(Long value) {
+		return value;
+	}
+
+	@Override
+	public byte[] getKeyHash(TransactionOutPoint key) {
+		return HashSerializer.calcHash(key.bitcoinSerialize(), Utils.HEX.decode("eac9aef052700336a94accea6a883e59"));
+	}
+
+	@Override
+	protected void deserializeNode(Deserializer des) {
 		TransactionOutPoint key = new TransactionOutPoint(params, des.readBytes(36), 0);
 		long value = des.readVaruint();
-		return new MyNode(key, value);
+		entries.put(key, value);
 	}
 
 	@Override
@@ -68,13 +58,13 @@ public class GenesisOutPointsMerbinnerTree extends MerbinnerTree<TransactionOutP
 		return Utils.HEX.decode("d8497e1258c3f8e747341cb361676cee");
 	}
 
-	public GenesisOutPointsMerbinnerTree(NetworkParameters params, Set<Node<TransactionOutPoint, Long>> nodes) {
+	public GenesisOutPointsMerbinnerTree(NetworkParameters params, Map<TransactionOutPoint, Long> nodes) {
 		super(nodes);
 		this.params = params;
 	}
 
 	public GenesisOutPointsMerbinnerTree(NetworkParameters params) {
-		super(Sets.<Node<TransactionOutPoint, Long>>newHashSet());
+		super(Maps.<TransactionOutPoint, Long>newHashMap());
 		this.params = params;
 	}
 }

@@ -1,7 +1,6 @@
 package org.smartcolors;
 
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.NetworkParameters;
@@ -16,11 +15,9 @@ import org.smartcolors.core.ColorDefinition;
 import org.smartcolors.core.GenesisOutPointsMerbinnerTree;
 import org.smartcolors.core.GenesisScriptPubkeysMerbinnerTree;
 import org.smartcolors.core.SmartColors;
-import org.smartcolors.marshal.MerbinnerTree;
 import org.smartcolors.protos.Protos;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -105,8 +102,8 @@ public class ColorTrackTest {
 	}
 
 	private GenesisOutPointsMerbinnerTree makeTree(TransactionOutPoint genesisOutPoint) {
-		HashSet<MerbinnerTree.Node<TransactionOutPoint, Long>> nodes =
-				Sets.<MerbinnerTree.Node<TransactionOutPoint, Long>>newHashSet(new GenesisOutPointsMerbinnerTree.MyNode(genesisOutPoint, 0));
+		Map<TransactionOutPoint, Long> nodes = Maps.newHashMap();
+		nodes.put(genesisOutPoint, 0L);
 		return new GenesisOutPointsMerbinnerTree(params, nodes);
 	}
 

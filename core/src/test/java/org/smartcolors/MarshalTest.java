@@ -2,7 +2,7 @@ package org.smartcolors;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Sets;
+import com.google.common.collect.Maps;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -16,7 +16,6 @@ import org.smartcolors.marshal.Serializer;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -187,42 +186,31 @@ public class MarshalTest {
 	}
 
 	static class TestMerbinnerTree extends MerbinnerTree<byte[], byte[]> {
-		public static class TestNode extends Node<byte[], byte[]> {
-			public TestNode(byte[] key, byte[] value) {
-				this.key = key;
-				this.value = value;
-			}
-
-			public TestNode() {
-			}
-
-			@Override
-			public void serializeKey(Serializer ser) {
-				ser.write(key);
-			}
-
-			@Override
-			public void serializeValue(Serializer ser) {
-				ser.write(value);
-			}
-
-			@Override
-			public long getSum() {
-				return 0;
-			}
-
-			@Override
-			public byte[] getKeyHash() {
-				return key;
-			}
+		@Override
+		public void serializeKey(Serializer ser, byte[] key) {
+			ser.write(key);
 		}
 
 		@Override
-		protected MerbinnerTree.Node deserializeNode(Deserializer des) {
+		public void serializeValue(Serializer ser, byte[] value) {
+			ser.write(value);
+		}
+
+		@Override
+		public long getSum(byte[] value) {
+			return 0;
+		}
+
+		@Override
+		public byte[] getKeyHash(byte[] key) {
+			return key;
+		}
+
+		@Override
+		protected void deserializeNode(Deserializer des) {
 			byte[] key = des.readBytes(4);
 			byte[] value = des.readBytes(4);
-			TestNode node = new TestNode(key, value);
-			return node;
+			entries.put(key, value);
 		}
 
 		@Override
@@ -230,7 +218,7 @@ public class MarshalTest {
 			return Utils.HEX.decode("92e8898fcfa8b86b60b32236d6990da0");
 		}
 
-		TestMerbinnerTree(Set<Node<byte[], byte[]>> nodes) {
+		TestMerbinnerTree(Map<byte[], byte[]> nodes) {
 			super(nodes);
 		}
 	}
@@ -247,12 +235,11 @@ public class MarshalTest {
 			String mode = (String) entry.get(1);
 			String expectedHex = (String) entry.get(2);
 			byte[] expected = Utils.HEX.decode(expectedHex.replaceAll(" ", ""));
-			Set<MerbinnerTree.Node<byte[], byte[]>> nodes = Sets.newHashSet();
+			Map<byte[], byte[]> nodes = Maps.newHashMap();
 			for (String keyString : map.keySet()) {
 				byte[] value = Utils.HEX.decode(map.get(keyString));
 				byte[] key = Utils.HEX.decode(keyString);
-				TestMerbinnerTree.TestNode node = new TestMerbinnerTree.TestNode(key, value);
-				nodes.add(node);
+				nodes.put(key, value);
 			}
 			TestMerbinnerTree tree = new TestMerbinnerTree(nodes);
 
@@ -261,7 +248,7 @@ public class MarshalTest {
 				ser.write(tree);
 				assertArrayEquals(expected, ser.getBytes());
 				BytesDeserializer des = new BytesDeserializer(expected);
-				TestMerbinnerTree tree2 = new TestMerbinnerTree(Sets.<MerbinnerTree.Node<byte[], byte[]>>newHashSet());
+				TestMerbinnerTree tree2 = new TestMerbinnerTree(Maps.<byte[], byte[]>newHashMap());
 				tree2.deserialize(des);
 				BytesSerializer ser1 = new BytesSerializer();
 				tree2.serialize(ser1);

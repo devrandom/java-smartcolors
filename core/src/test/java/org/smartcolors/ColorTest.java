@@ -23,10 +23,8 @@ import org.smartcolors.core.GenesisPoint;
 import org.smartcolors.core.GenesisScriptPubkeysMerbinnerTree;
 import org.smartcolors.core.SmartColors;
 import org.smartcolors.core.TxOutGenesisPoint;
-import org.smartcolors.marshal.MerbinnerTree;
 
 import java.math.BigInteger;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.SortedSet;
 
@@ -62,8 +60,8 @@ public class ColorTest {
 		genesisTx.addOutput(Coin.ZERO, opReturnScript);
 		genesisBlock = FakeTxBuilder.createFakeBlock(blockStore, genesisTx).storedBlock;
 		genesisOutPoint = new TransactionOutPoint(params, 0, genesisTx);
-		HashSet<MerbinnerTree.Node<TransactionOutPoint, Long>> nodes =
-				Sets.<MerbinnerTree.Node<TransactionOutPoint, Long>>newHashSet(new GenesisOutPointsMerbinnerTree.MyNode(genesisOutPoint, 0));
+		Map<TransactionOutPoint, Long> nodes = Maps.newHashMap();
+		nodes.put(genesisOutPoint, 0L);
 		GenesisOutPointsMerbinnerTree outPoints = new GenesisOutPointsMerbinnerTree(params, nodes);
 		TxOutGenesisPoint genesis = new TxOutGenesisPoint(params, genesisOutPoint);
 		SortedSet<GenesisPoint> points = Sets.newTreeSet();
