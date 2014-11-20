@@ -1,5 +1,6 @@
 package org.smartcolors.core;
 
+import com.google.common.base.Throwables;
 import com.google.common.hash.HashCode;
 
 import org.bitcoinj.core.TransactionOutPoint;
@@ -7,6 +8,8 @@ import org.smartcolors.marshal.Deserializer;
 import org.smartcolors.marshal.SerializationException;
 import org.smartcolors.marshal.Serializer;
 import org.smartcolors.marshal.SerializerHelper;
+
+import java.util.List;
 
 /**
  * Created by devrandom on 2014-Nov-19.
@@ -22,7 +25,12 @@ public class GenesisOutPointColorProof extends ColorProof {
 	public GenesisOutPointColorProof(ColorDefinition def, TransactionOutPoint outpoint) {
 		this.def = def;
 		this.outpoint = outpoint;
-		this.quantity = calcQuantity();
+		quantity = calcQuantity();
+		try {
+			validate();
+		} catch (ValidationException e) {
+			Throwables.propagate(e);
+		}
 	}
 
 	private Long calcQuantity() {
@@ -38,6 +46,7 @@ public class GenesisOutPointColorProof extends ColorProof {
 			}
 		});
 		this.quantity = calcQuantity();
+		validate();
 	}
 
 	@Override
@@ -59,5 +68,11 @@ public class GenesisOutPointColorProof extends ColorProof {
 	@Override
 	int getType() {
 		return PROOF_TYPE;
+	}
+
+	@Override
+	void doValidate(List<ColorProof> queue) throws ValidationException {
+		if (!def.getOutPointGenesisPoints().containsKey(outpoint))
+			throw new ValidationException("outpoint not in def " + outpoint);
 	}
 }

@@ -25,6 +25,8 @@ public abstract class MerbinnerTree<K,V> extends HashableSerializable {
 		return entries.get(key);
 	}
 
+	public boolean containsKey(K key) { return entries.containsKey(key); }
+
 	public abstract void serializeKey(Serializer ser, K key) throws SerializationException;
 
 	public abstract void serializeValue(Serializer ser, V value) throws SerializationException;
@@ -37,10 +39,10 @@ public abstract class MerbinnerTree<K,V> extends HashableSerializable {
 		return entries.keySet();
 	}
 
-	public boolean constainsKey(K key) {
-		return entries.containsKey(key);
-	}
 
+	public Collection<V> values() {
+		return entries.values();
+	}
 	@Override
 	public void serialize(final Serializer ser) throws SerializationException {
 		serialize(ser, entries.keySet(), 0);

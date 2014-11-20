@@ -29,7 +29,7 @@ import java.util.Map;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.smartcolors.Utils.parseBinary;
+import static org.smartcolors.Utils.parseHex;
 
 public class ColorDefinitionTest {
 	private ColorDefinition def;
@@ -98,7 +98,7 @@ public class ColorDefinitionTest {
 		Transaction tx = new Transaction(params);
 		for (String nseq : item.nseqs) {
 			TransactionInput input = new TransactionInput(params, tx, new byte[0]);
-			input.setSequenceNumber(parseBinary(nseq));
+			input.setSequenceNumber(parseHex(nseq));
 			tx.addInput(input);
 		}
 

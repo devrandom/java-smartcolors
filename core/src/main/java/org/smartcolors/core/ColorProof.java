@@ -1,6 +1,7 @@
 package org.smartcolors.core;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import org.bitcoinj.core.NetworkParameters;
@@ -14,6 +15,7 @@ import org.smartcolors.marshal.SerializationException;
 import org.smartcolors.marshal.Serializer;
 
 import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -101,5 +103,20 @@ public abstract class ColorProof extends HashableSerializable {
 		});
 		fser.verifyHash(des, me);
 		return me;
+	}
+
+	public void validate() throws ValidationException {
+		List<ColorProof> queue = Lists.newArrayList();
+		while (!queue.isEmpty()) {
+			doValidate(queue);
+		}
+	}
+
+	abstract void doValidate(List<ColorProof> queue) throws ValidationException;
+
+	public static class ValidationException extends SerializationException {
+		public ValidationException(String m) {
+			super(m);
+		}
 	}
 }

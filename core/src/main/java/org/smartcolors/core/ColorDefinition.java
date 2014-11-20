@@ -151,11 +151,11 @@ public class ColorDefinition extends HashableSerializable {
 	}
 
 	public boolean contains(TransactionOutPoint point) {
-		return outPointGenesisPoints.constainsKey(point);
+		return outPointGenesisPoints.containsKey(point);
 	}
 
 	public boolean contains(Script script) {
-		return scriptGenesisPoints.constainsKey(script);
+		return scriptGenesisPoints.containsKey(script);
 	}
 
 	/**

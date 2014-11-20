@@ -1,5 +1,6 @@
 package org.smartcolors.core;
 
+import com.google.common.base.Throwables;
 import com.google.common.hash.HashCode;
 
 import org.bitcoinj.core.Transaction;
@@ -9,6 +10,7 @@ import org.smartcolors.marshal.SerializationException;
 import org.smartcolors.marshal.Serializer;
 import org.smartcolors.marshal.SerializerHelper;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -30,6 +32,11 @@ public class TransferColorProof extends ColorProof {
 		this.index = index;
 		this.prevouts = new PrevoutProofsMerbinnerTree(params, nodes);
 		quantity = calcQuantity();
+		try {
+			validate();
+		} catch (ValidationException e) {
+			Throwables.propagate(e);
+		}
 	}
 
 	@Override
@@ -50,6 +57,7 @@ public class TransferColorProof extends ColorProof {
 			}
 		});
 		quantity = calcQuantity();
+		validate();
 	}
 
 	@Override
@@ -89,5 +97,12 @@ public class TransferColorProof extends ColorProof {
 	@Override
 	int getType() {
 		return PROOF_TYPE;
+	}
+
+	@Override
+	void doValidate(List<ColorProof> queue) throws ValidationException {
+		for (ColorProof colorProof : prevouts.values()) {
+			queue.add(colorProof);
+		}
 	}
 }
