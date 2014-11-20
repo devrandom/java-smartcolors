@@ -44,4 +44,11 @@ public class ColorProofTest {
 		ColorProof proof = ColorProof.deserializeFromFile(params, is);
 		assertEquals("bafedb7c365d58eac2cb83513c4a084235826f092913022699d208d4d972b3d6", proof.getHash().toString());
 	}
+
+	@Test
+	public void genesisScript() throws Exception {
+		InputStream is = Resources.getResource("proofs/scriptPubKey/340c79e8369c539c3100b4f49ec869a0499d81d9f8db9feaf4694272bf5b432e:0.scproof").openStream();
+		ColorProof proof = ColorProof.deserializeFromFile(params, is);
+		assertEquals("15f7ab204611c7eab35a06744652edb71defdfb5ac13879e7cce20a3d3f8ce1b", proof.getHash().toString());
+	}
 }

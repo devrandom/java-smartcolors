@@ -35,6 +35,12 @@ public class Hashes {
 	}
 
 	public static HashCode calcHash(Transaction tx) {
-		return HashSerializer.calcHash(tx.bitcoinSerialize(), TRANSACTION_HMAC_KEY);
+		BytesSerializer ser = new BytesSerializer();
+		try {
+			ser.writeWithLength(tx.bitcoinSerialize());
+		} catch (SerializationException e) {
+			Throwables.propagate(e);
+		}
+		return HashSerializer.calcHash(ser.getBytes(), TRANSACTION_HMAC_KEY);
 	}
 }

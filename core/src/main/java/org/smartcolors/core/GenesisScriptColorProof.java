@@ -36,6 +36,7 @@ public class GenesisScriptColorProof extends ColorProof {
 				return new Transaction(params, des.readBytes(), 0);
 			}
 		});
+		quantity = calcQuantity();
 	}
 
 	@Override
@@ -53,7 +54,6 @@ public class GenesisScriptColorProof extends ColorProof {
 				return Hashes.calcHash(obj);
 			}
 		});
-		quantity = calcQuantity();
 	}
 
 	private long calcQuantity() {
