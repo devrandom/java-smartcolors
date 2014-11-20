@@ -16,7 +16,7 @@ public class MemoizedDeserializer extends StreamDeserializer {
 
 	// FIXME use this for reading sub-objects?
 	public <T> T readObject(ObjectReader<T> reader) throws SerializationException {
-		long idx = readVaruint();
+		long idx = readVarulong();
 		if (idx > 0) {
 			if (idx - 1 >= memos.size())
 				throw new SerializationException("invalid index " + idx + " only have " + memos.size());

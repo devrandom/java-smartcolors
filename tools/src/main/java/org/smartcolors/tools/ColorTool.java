@@ -40,7 +40,6 @@ import org.smartcolors.ColorKeyChainFactory;
 import org.smartcolors.ColorScanner;
 import org.smartcolors.SmartwalletExtension;
 import org.smartcolors.core.ColorDefinition;
-import org.smartcolors.core.GenesisPoint;
 import org.smartcolors.core.SmartColors;
 import org.smartcolors.core.TxOutGenesisPoint;
 

@@ -92,7 +92,7 @@ public abstract class MerbinnerTree<K,V> extends HashableSerializable {
 	}
 
 	public void deserialize(Deserializer des) throws SerializationException {
-		long type = des.readVaruint();
+		long type = des.readVarulong();
 		if (type == 0)
 			; // nothing
 		else if (type == 1) {

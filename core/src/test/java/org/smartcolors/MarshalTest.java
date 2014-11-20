@@ -51,7 +51,7 @@ public class MarshalTest {
 		}
 
 		public static BoxedVaruint deserialize(Deserializer ser) throws SerializationException {
-			return new BoxedVaruint(ser.readVaruint());
+			return new BoxedVaruint(ser.readVarulong());
 		}
 	}
 

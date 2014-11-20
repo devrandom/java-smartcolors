@@ -29,7 +29,7 @@ public abstract class FileSerializer {
 		byte[] magic = des.readBytes(expectedMagic.length);
 		if (!Arrays.equals(expectedMagic, magic))
 			throw new SerializationException("wrong magic " + Utils.HEX.encode(magic));
-		long version = des.readVaruint();
+		long version = des.readVarulong();
 		if (version != VERSION)
 			throw new SerializationException("wrong version " + version);
 	}

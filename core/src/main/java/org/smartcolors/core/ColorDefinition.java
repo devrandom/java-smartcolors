@@ -55,7 +55,7 @@ public class ColorDefinition extends HashableSerializable {
 		Map<String, String> metadata = Maps.newHashMap();
 		metadata.put(METADATA_NAME, "UNKNOWN");
 		metadata.put(METADATA_EXTRAHASH, "UNKNOWN");
-		return new ColorDefinition(params, new GenesisOutPointsMerbinnerTree(params), new GenesisScriptPubkeysMerbinnerTree(), metadata);
+		return new ColorDefinition(params, new GenesisOutPointsMerbinnerTree(params), new GenesisScriptMerbinnerTree(), metadata);
 	}
 
 	public static ColorDefinition makeBitcoin(NetworkParameters params) {
@@ -63,11 +63,11 @@ public class ColorDefinition extends HashableSerializable {
 		metadata.put(METADATA_NAME, "Bitcoin");
 		metadata.put(METADATA_EXTRAHASH, "Bitcoin");
 		// FIXME protect the extra hash field from being input by untrusted parties
-		return new ColorDefinition(params, new GenesisOutPointsMerbinnerTree(params), new GenesisScriptPubkeysMerbinnerTree(), metadata);
+		return new ColorDefinition(params, new GenesisOutPointsMerbinnerTree(params), new GenesisScriptMerbinnerTree(), metadata);
 	}
 
 	private final GenesisOutPointsMerbinnerTree outPointGenesisPoints;
-	private final GenesisScriptPubkeysMerbinnerTree scriptGenesisPoints;
+	private final GenesisScriptMerbinnerTree scriptGenesisPoints;
 	private final Map<String, String> metadata;
 	private final long blockheight;
 	private long creationTime;
@@ -85,11 +85,11 @@ public class ColorDefinition extends HashableSerializable {
 	}
 	*/
 
-	public ColorDefinition(NetworkParameters params, GenesisOutPointsMerbinnerTree outPointGenesisPoints, GenesisScriptPubkeysMerbinnerTree scriptGenesisPoints, Map<String, String> metadata) {
+	public ColorDefinition(NetworkParameters params, GenesisOutPointsMerbinnerTree outPointGenesisPoints, GenesisScriptMerbinnerTree scriptGenesisPoints, Map<String, String> metadata) {
 		this(params, outPointGenesisPoints, scriptGenesisPoints, metadata, 0, new byte[16]);
 	}
 
-	public ColorDefinition(NetworkParameters params, GenesisOutPointsMerbinnerTree outPointGenesisPoints, GenesisScriptPubkeysMerbinnerTree scriptGenesisPoints, Map<String, String> metadata, long blockheight, byte[] stegkey) {
+	public ColorDefinition(NetworkParameters params, GenesisOutPointsMerbinnerTree outPointGenesisPoints, GenesisScriptMerbinnerTree scriptGenesisPoints, Map<String, String> metadata, long blockheight, byte[] stegkey) {
 		this.params = params;
 		this.outPointGenesisPoints = outPointGenesisPoints;
 		this.scriptGenesisPoints = scriptGenesisPoints;
@@ -100,7 +100,7 @@ public class ColorDefinition extends HashableSerializable {
 		// TODO creationTime
 	}
 
-	public ColorDefinition(NetworkParameters params, GenesisOutPointsMerbinnerTree outPointGenesisPoints, GenesisScriptPubkeysMerbinnerTree scriptGenesisPoints) {
+	public ColorDefinition(NetworkParameters params, GenesisOutPointsMerbinnerTree outPointGenesisPoints, GenesisScriptMerbinnerTree scriptGenesisPoints) {
 		this(params, outPointGenesisPoints, scriptGenesisPoints, Maps.<String, String>newHashMap());
 	}
 
@@ -118,13 +118,13 @@ public class ColorDefinition extends HashableSerializable {
 	}
 
 	public static ColorDefinition deserialize(NetworkParameters params, Deserializer des) throws SerializationException {
-		long version = des.readVaruint();
+		long version = des.readVarulong();
 		if (version != VERSION)
 			throw new SerializationException("unknown version " + version);
-		long blockheight = des.readVaruint();
+		long blockheight = des.readVarulong();
 		byte[] stegkey = des.readBytes(16);
 		final GenesisOutPointsMerbinnerTree outTree = new GenesisOutPointsMerbinnerTree(params);
-		final GenesisScriptPubkeysMerbinnerTree scriptTree = new GenesisScriptPubkeysMerbinnerTree();
+		final GenesisScriptMerbinnerTree scriptTree = new GenesisScriptMerbinnerTree();
 		des.readObject(new Deserializer.ObjectReader<GenesisOutPointsMerbinnerTree>() {
 			@Override
 			public GenesisOutPointsMerbinnerTree readObject(Deserializer des) throws SerializationException {
@@ -132,9 +132,9 @@ public class ColorDefinition extends HashableSerializable {
 				return outTree;
 			}
 		});
-		des.readObject(new Deserializer.ObjectReader<GenesisScriptPubkeysMerbinnerTree>() {
+		des.readObject(new Deserializer.ObjectReader<GenesisScriptMerbinnerTree>() {
 			@Override
-			public GenesisScriptPubkeysMerbinnerTree readObject(Deserializer des) throws SerializationException {
+			public GenesisScriptMerbinnerTree readObject(Deserializer des) throws SerializationException {
 				scriptTree.deserialize(des);
 				return scriptTree;
 			}
@@ -236,7 +236,7 @@ public class ColorDefinition extends HashableSerializable {
 	}
 
 	@JsonIgnore
-	public GenesisScriptPubkeysMerbinnerTree getScriptGenesisPoints() {
+	public GenesisScriptMerbinnerTree getScriptGenesisPoints() {
 		return scriptGenesisPoints;
 	}
 
@@ -299,7 +299,6 @@ public class ColorDefinition extends HashableSerializable {
 		return blockheight;
 	}
 
-	//public static final byte[] FILE_MAGIC = Utils.HEX.decode("00536d617274636f6c6f727300f8acdc00436f6c6f7270726f6f6600cb93f2c5");
 	public static final byte[] FILE_MAGIC = Utils.HEX.decode("00536d617274636f6c6f727300fcbe8800436f6c6f7264656600a8edddf21401");
 
 	public static ColorDefinition deserializeFromFile(final NetworkParameters params, InputStream is) throws SerializationException {

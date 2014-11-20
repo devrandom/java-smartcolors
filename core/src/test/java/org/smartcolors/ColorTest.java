@@ -1,7 +1,6 @@
 package org.smartcolors;
 
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.DumpedPrivateKey;
@@ -19,14 +18,11 @@ import org.bitcoinj.testing.FakeTxBuilder;
 import org.junit.Before;
 import org.smartcolors.core.ColorDefinition;
 import org.smartcolors.core.GenesisOutPointsMerbinnerTree;
-import org.smartcolors.core.GenesisPoint;
-import org.smartcolors.core.GenesisScriptPubkeysMerbinnerTree;
+import org.smartcolors.core.GenesisScriptMerbinnerTree;
 import org.smartcolors.core.SmartColors;
-import org.smartcolors.core.TxOutGenesisPoint;
 
 import java.math.BigInteger;
 import java.util.Map;
-import java.util.SortedSet;
 
 import static org.bitcoinj.core.Utils.HEX;
 
@@ -63,12 +59,9 @@ public class ColorTest {
 		Map<TransactionOutPoint, Long> nodes = Maps.newHashMap();
 		nodes.put(genesisOutPoint, 0L);
 		GenesisOutPointsMerbinnerTree outPoints = new GenesisOutPointsMerbinnerTree(params, nodes);
-		TxOutGenesisPoint genesis = new TxOutGenesisPoint(params, genesisOutPoint);
-		SortedSet<GenesisPoint> points = Sets.newTreeSet();
-		points.add(genesis);
 		Map<String, String> metadata = Maps.newHashMap();
 		metadata.put("name", "widgets");
-		def = new ColorDefinition(params, outPoints, new GenesisScriptPubkeysMerbinnerTree(), metadata);
+		def = new ColorDefinition(params, outPoints, new GenesisScriptMerbinnerTree(), metadata);
 		scanner = new ColorScanner(params);
 		scanner.addDefinition(def);
 		colorChain = null;

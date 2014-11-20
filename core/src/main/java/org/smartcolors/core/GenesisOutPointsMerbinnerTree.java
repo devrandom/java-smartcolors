@@ -7,7 +7,6 @@ import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.Utils;
 import org.smartcolors.marshal.Deserializer;
-import org.smartcolors.marshal.HashSerializer;
 import org.smartcolors.marshal.MerbinnerTree;
 import org.smartcolors.marshal.SerializationException;
 import org.smartcolors.marshal.Serializer;
@@ -31,7 +30,7 @@ public class GenesisOutPointsMerbinnerTree extends MerbinnerTree<TransactionOutP
 
 			@Override
 			public HashCode getHash(TransactionOutPoint obj) {
-				return calcHash(obj);
+				return Hashes.calcHash(obj);
 			}
 		});
 	}
@@ -48,11 +47,7 @@ public class GenesisOutPointsMerbinnerTree extends MerbinnerTree<TransactionOutP
 
 	@Override
 	public HashCode getKeyHash(TransactionOutPoint key) {
-		return calcHash(key);
-	}
-
-	private static HashCode calcHash(TransactionOutPoint key) {
-		return HashSerializer.calcHash(key.bitcoinSerialize(), Utils.HEX.decode("eac9aef052700336a94accea6a883e59"));
+		return Hashes.calcHash(key);
 	}
 
 	@Override
@@ -63,7 +58,7 @@ public class GenesisOutPointsMerbinnerTree extends MerbinnerTree<TransactionOutP
 				return new TransactionOutPoint(params, des.readBytes(36), 0);
 			}
 		});
-		long value = des.readVaruint();
+		long value = des.readVarulong();
 		entries.put(key, value);
 	}
 

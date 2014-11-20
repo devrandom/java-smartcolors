@@ -15,7 +15,6 @@ import org.bitcoinj.core.Utils;
 import org.bitcoinj.core.VarInt;
 import org.smartcolors.core.ColorDefinition;
 import org.smartcolors.core.SmartColors;
-import org.smartcolors.core.TxOutGenesisPoint;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -101,11 +100,10 @@ public class ColorTrack {
 		}
 		// Add genesis outpoints to the output maps
 		for (int i = 0; i < numOutputs; i++) {
-			TxOutGenesisPoint genesis = new TxOutGenesisPoint(tx.getParams(), tx.getOutput(i).getOutPointFor());
 			if (definition.contains(tx.getOutput(i).getOutPointFor())) {
 				long qty = SmartColors.removeMsbdropValuePadding(tx.getOutput(i).getValue().value);
-				outputs.put(genesis.getOutPoint(), qty);
-				unspentOutputs.put(genesis.getOutPoint(), qty);
+				outputs.put(tx.getOutput(i).getOutPointFor(), qty);
+				unspentOutputs.put(tx.getOutput(i).getOutPointFor(), qty);
 			}
 		}
 
@@ -197,7 +195,6 @@ public class ColorTrack {
 		int numOutputs = tx.getOutputs().size();
 		// Contains a genesis point?
 		for (int i = 0; i < numOutputs; i++) {
-			TxOutGenesisPoint genesis = new TxOutGenesisPoint(tx.getParams(), tx.getOutput(i).getOutPointFor());
 			if (definition.contains(tx.getOutput(i).getOutPointFor())) {
 				return true;
 			}

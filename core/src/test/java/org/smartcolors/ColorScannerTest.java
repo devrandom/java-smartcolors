@@ -16,6 +16,7 @@ import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.testing.FakeTxBuilder;
 import org.bitcoinj.wallet.KeyChainGroup;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.smartcolors.core.ColorDefinition;
 import org.smartcolors.protos.Protos;
@@ -90,6 +91,7 @@ public class ColorScannerTest extends ColorTest {
 	}
 
 	@Test
+	@Ignore
 	public void testGetNetAssetChange() throws ColorScanner.ColorDefinitionException {
 		final ECKey myKey = ECKey.fromPrivate(privkey);
 		final Map<Sha256Hash, Transaction> txs = Maps.newHashMap();
@@ -206,6 +208,7 @@ public class ColorScannerTest extends ColorTest {
 	}
 
 	@Test
+	@Ignore
 	public void testSerializePending() {
 		Transaction tx2 = new Transaction(params);
 		tx2.addInput(genesisTx.getOutput(0));

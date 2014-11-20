@@ -15,7 +15,7 @@ public class StreamDeserializer implements Deserializer {
 	}
 
 	@Override
-	public long readVaruint() throws SerializationException {
+	public long readVarulong() throws SerializationException {
 		long value = 0;
 		int shift = 0;
 		while (true) {
@@ -34,6 +34,14 @@ public class StreamDeserializer implements Deserializer {
 	}
 
 	@Override
+	public int readVaruint() throws SerializationException {
+		long value = readVarulong();
+		if (value > Integer.MAX_VALUE || value < 0)
+			throw new SerializationException("invalid int " + value);
+		return (int)value;
+	}
+
+	@Override
 	public byte[] readBytes(int expectedLength) throws SerializationException {
 		byte[] buf = new byte[expectedLength];
 		try {
@@ -46,7 +54,7 @@ public class StreamDeserializer implements Deserializer {
 
 	@Override
 	public byte[] readBytes() throws SerializationException {
-		long length = readVaruint();
+		long length = readVarulong();
 		if (length > MAX_BYTES || length < 0)
 			throw new RuntimeException("bytes longer than max");
 		byte[] buf = new byte[(int) length];
