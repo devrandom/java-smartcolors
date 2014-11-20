@@ -9,6 +9,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
 import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutPoint;
@@ -23,6 +24,8 @@ import org.smartcolors.marshal.MemoizedDeserializer;
 import org.smartcolors.marshal.SerializationException;
 import org.smartcolors.marshal.Serializer;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 
@@ -340,5 +343,21 @@ public class ColorDefinition extends HashableSerializable {
 
 	public byte[] getStegkey() {
 		return stegkey;
+	}
+
+	public static final byte[] NSEQ_KEY = Utils.HEX.decode("916782d006cd95e3d24b698df0aeb28e");
+
+	public long nsequencePad(TransactionOutPoint outPoint) {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		try {
+			os.write(NSEQ_KEY);
+			os.write(stegkey);
+			os.write(outPoint.bitcoinSerialize());
+			byte[] content = os.toByteArray();
+			Sha256Hash pad = Sha256Hash.createDouble(content);
+			return Utils.readUint32(pad.getBytes(), 0);
+		} catch (IOException e) {
+			throw Throwables.propagate(e);
+		}
 	}
 }

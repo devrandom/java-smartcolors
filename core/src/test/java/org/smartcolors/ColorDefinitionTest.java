@@ -19,6 +19,7 @@ import org.smartcolors.core.GenesisOutPointsMerbinnerTree;
 import org.smartcolors.core.GenesisScriptMerbinnerTree;
 import org.smartcolors.core.SmartColors;
 import org.smartcolors.marshal.BytesDeserializer;
+import org.smartcolors.marshal.Deserializer;
 import org.smartcolors.marshal.SerializationException;
 
 import java.io.IOException;
@@ -107,5 +108,14 @@ public class ColorDefinitionTest {
 
 		Long[] colorOut = def.applyKernel(tx, item.inputs);
 		assertArrayEquals(item.comment, item.expected, colorOut);
+	}
+
+	@Test
+	public void steg() throws SerializationException {
+		Deserializer des = new BytesDeserializer(Utils.HEX.decode("0100586747ecf6e6cecea82f3e1840e411a401aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa000000002a00"));
+		ColorDefinition def = ColorDefinition.deserialize(params, des);
+		TransactionOutPoint outpoint = new TransactionOutPoint(params, 0, new Sha256Hash("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
+		long pad = def.nsequencePad(outpoint);
+		assertEquals(1331075725, pad);
 	}
 }
