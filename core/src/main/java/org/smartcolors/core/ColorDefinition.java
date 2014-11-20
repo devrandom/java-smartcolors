@@ -168,13 +168,30 @@ public class ColorDefinition extends HashableSerializable {
 		int numOutputs = Math.min(tx.getOutputs().size(), MAX_COLOR_OUTPUTS);
 		// Which outputs the color in is being sent to is specified by nSequence.
 
+		long nseq = input.getSequenceNumber();
+		int kernel = (int)(nseq & 0x7F);
+		long decryptedNseq = nseq;
+		if ((nseq & 0x80) == 0x80)
+			throw new UnsupportedOperationException();
+		if (kernel == 0x7F)
+			throw new UnsupportedOperationException();
+		int qtyShift = 0;
+		int colorBitfield = 0;
+		if (kernel == 0x7E) {
+			qtyShift = (int)((decryptedNseq >> 8) & 0xFF);
+			if (qtyShift > 0)
+				throw new UnsupportedOperationException();
+			colorBitfield = (int)((decryptedNseq >> 16) & 0xFFFF);
+		} else {
+			throw new UnsupportedOperationException();
+		}
 		for (int j = 0; j < numOutputs; j++) {
 			TransactionOutput output = tx.getOutput(j);
 			// An output is marked as colored if the corresponding bit
 			// in nSequence is set to one. This is chosen to allow
 			// standard transactions with standard-looking nSquence's to
 			// move color.
-			if (remainingColorIn > 0 && ((input.getSequenceNumber() >> j) & 1) == 1) {
+			if (remainingColorIn > 0 && ((colorBitfield >> j) & 1) == 1) {
 				// Mark the output as being colored if it hasn't been already.
 				if (colorOuts[j] == null)
 					colorOuts[j] = 0L;

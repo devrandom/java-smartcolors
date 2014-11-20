@@ -8,7 +8,9 @@ import org.junit.Test;
 import org.smartcolors.core.ColorProof;
 import org.smartcolors.core.GenesisScriptMerbinnerTree;
 import org.smartcolors.marshal.BytesDeserializer;
+import org.smartcolors.marshal.SerializationException;
 
+import java.io.IOException;
 import java.io.InputStream;
 
 import static junit.framework.TestCase.assertEquals;
@@ -50,5 +52,25 @@ public class ColorProofTest {
 		InputStream is = Resources.getResource("proofs/scriptPubKey/340c79e8369c539c3100b4f49ec869a0499d81d9f8db9feaf4694272bf5b432e:0.scproof").openStream();
 		ColorProof proof = ColorProof.deserializeFromFile(params, is);
 		assertEquals("15f7ab204611c7eab35a06744652edb71defdfb5ac13879e7cce20a3d3f8ce1b", proof.getHash().toString());
+	}
+
+	@Test
+	public void transfer() throws Exception {
+		ColorProof proof = readProof("proofs/transferred/29ac0d5313882c337921dd34fee09efce6bd9fcc2d5c16155e9c22af1b4b9a13:0.scproof");
+		assertEquals("3e5d6880c921a62f756df6cc1768528af56408f2e8f91a8ad6f61443af24c76f", proof.getHash().toString());
+	}
+
+	@Test
+	public void transferAll() throws Exception {
+		readProof("proofs/transferred/ceac36cf041b844c047fbba23fc3cbcac8f6a245c7e687da801a356f96ec2003:1.scproof");
+		for (int i = 0; i <= 15; i++) {
+			String name = "proofs/transferred/57fc75fb1722a6573e0dccfb405ec04652dfd38963035685d8cf50c3f70bc69b:" + i + ".scproof";
+			readProof(name);
+		}
+	}
+
+	private ColorProof readProof(String name) throws IOException, SerializationException {
+		InputStream is = Resources.getResource(name).openStream();
+		return ColorProof.deserializeFromFile(params, is);
 	}
 }

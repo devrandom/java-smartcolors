@@ -34,6 +34,7 @@ public abstract class ColorProof extends HashableSerializable {
 	static {
 		register(GenesisOutPointColorProof.PROOF_TYPE, GenesisOutPointColorProof.class);
 		register(GenesisScriptColorProof.PROOF_TYPE, GenesisScriptColorProof.class);
+		register(TransferColorProof.PROOF_TYPE, TransferColorProof.class);
 	}
 
 	public static ColorProof deserialize(final NetworkParameters params, Deserializer des) throws SerializationException {
