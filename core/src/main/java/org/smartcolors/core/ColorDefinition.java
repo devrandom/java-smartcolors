@@ -377,4 +377,8 @@ public class ColorDefinition extends HashableSerializable {
 			throw Throwables.propagate(e);
 		}
 	}
+
+	public static long makeSequence() {
+		return 0xFFFF007EL;
+	}
 }

@@ -4,6 +4,9 @@ import com.google.common.base.Throwables;
 
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionInput;
+import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.params.MainNetParams;
 import org.bitcoinj.params.TestNet3Params;
 import org.bitcoinj.script.Script;
@@ -107,6 +110,19 @@ public class SmartColors {
 	/** Seconds since the epoch when the first smartwallet was created */
 	public static long getSmartwalletEpoch() {
 		return epoch;
+	}
+
+	public static TransactionInput makeAssetInput(Transaction parent, Transaction from, int index) {
+		TransactionOutput output = from.getOutput(index);
+		TransactionInput input = new TransactionInput(parent.getParams(), parent, new byte[0], output.getOutPointFor());
+		input.setSequenceNumber(ColorDefinition.makeSequence());
+		return input;
+	}
+
+	public static TransactionInput makeAssetInput(Transaction parent, TransactionOutput output) {
+		TransactionInput input = new TransactionInput(parent.getParams(), parent, new byte[0], output.getOutPointFor(), output.getValue());
+		input.setSequenceNumber(ColorDefinition.makeSequence());
+		return input;
 	}
 
 	private static class AssetMainNetParams extends MainNetParams {

@@ -57,7 +57,7 @@ public class ColorTest {
 		genesisBlock = FakeTxBuilder.createFakeBlock(blockStore, genesisTx).storedBlock;
 		genesisOutPoint = new TransactionOutPoint(params, 0, genesisTx);
 		Map<TransactionOutPoint, Long> nodes = Maps.newHashMap();
-		nodes.put(genesisOutPoint, 0L);
+		nodes.put(genesisOutPoint, 5L);
 		GenesisOutPointsMerbinnerTree outPoints = new GenesisOutPointsMerbinnerTree(params, nodes);
 		Map<String, String> metadata = Maps.newHashMap();
 		metadata.put("name", "widgets");

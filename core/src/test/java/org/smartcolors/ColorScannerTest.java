@@ -16,9 +16,9 @@ import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.testing.FakeTxBuilder;
 import org.bitcoinj.wallet.KeyChainGroup;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.smartcolors.core.ColorDefinition;
+import org.smartcolors.core.SmartColors;
 import org.smartcolors.protos.Protos;
 
 import java.security.SecureRandom;
@@ -35,9 +35,12 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class ColorScannerTest extends ColorTest {
+	private SmartwalletExtension ext;
+
 	@Before
 	public void setUp() throws Exception {
 		super.setUp();
+		ext = new SmartwalletExtension(params);
 		colorChain = new ColorKeyChain(new SecureRandom(), 128, "", 0) {
 			// Hack - delegate to the current wallet
 			@Override
@@ -91,7 +94,6 @@ public class ColorScannerTest extends ColorTest {
 	}
 
 	@Test
-	@Ignore
 	public void testGetNetAssetChange() throws ColorScanner.ColorDefinitionException {
 		final ECKey myKey = ECKey.fromPrivate(privkey);
 		final Map<Sha256Hash, Transaction> txs = Maps.newHashMap();
@@ -110,7 +112,7 @@ public class ColorScannerTest extends ColorTest {
 		};
 
 		Transaction tx2 = new Transaction(params);
-		tx2.addInput(genesisTx.getOutput(0));
+		tx2.addInput(SmartColors.makeAssetInput(tx2, genesisTx, 0));
 		tx2.addOutput(Utils.makeAssetCoin(5), ScriptBuilder.createOutputScript(myKey));
 		tx2.addOutput(Coin.ZERO, opReturnScript);
 		scanner.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
@@ -122,7 +124,7 @@ public class ColorScannerTest extends ColorTest {
 
 
 		Transaction tx3 = new Transaction(params);
-		tx3.addInput(tx2.getOutput(0));
+		tx3.addInput(SmartColors.makeAssetInput(tx3, tx2, 0));
 		tx3.addOutput(Utils.makeAssetCoin(2), ScriptBuilder.createOutputScript(myKey));
 		tx3.addOutput(Utils.makeAssetCoin(3), ScriptBuilder.createOutputScript(privkey1));
 		tx3.addOutput(Coin.ZERO, opReturnScript);
@@ -140,10 +142,10 @@ public class ColorScannerTest extends ColorTest {
 
 		ColorScanner scanner1 = new ColorScanner(params);
 		scanner1.addDefinition(def);
-		Protos.ColorScanner proto = SmartwalletExtension.serializeScanner(scanner);
-		SmartwalletExtension.deserializeScanner(params, proto, scanner1);
+		Protos.ColorScanner proto = ext.serializeScanner(scanner);
+		ext.deserializeScanner(params, proto, scanner1);
 		assertEquals(scanner.getMapBlockTx(), scanner1.getMapBlockTx());
-		assertEquals("2469b7459399d9078b96987eb4fbaf2ee6c3df8c80039fef780ca41cc4557d63",
+		assertEquals("9ba0c8df6d37c0dba260ee0510e68cb41d2d0b19396621757522e5cc270dddb8",
 				scanner.getColorProofByDefinition(def).getStateHash().toString());
 	}
 
@@ -159,7 +161,7 @@ public class ColorScannerTest extends ColorTest {
 		};
 
 		Transaction tx2 = new Transaction(params);
-		tx2.addInput(genesisTx.getOutput(0));
+		tx2.addInput(SmartColors.makeAssetInput(tx2, genesisTx, 0));
 		tx2.addOutput(Utils.makeAssetCoin(5), ScriptBuilder.createOutputScript(myKey));
 		tx2.addOutput(Coin.ZERO, opReturnScript);
 		wallet.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
@@ -208,16 +210,15 @@ public class ColorScannerTest extends ColorTest {
 	}
 
 	@Test
-	@Ignore
 	public void testSerializePending() {
 		Transaction tx2 = new Transaction(params);
-		tx2.addInput(genesisTx.getOutput(0));
+		tx2.addInput(SmartColors.makeAssetInput(tx2, genesisTx, 0));
 		tx2.addOutput(Utils.makeAssetCoin(5), ScriptBuilder.createOutputScript(privkey1));
 		tx2.addOutput(Coin.ZERO, opReturnScript);
 		scanner.addPending(tx2);
-		Protos.ColorScanner scannerProto = SmartwalletExtension.serializeScanner(scanner);
+		Protos.ColorScanner scannerProto = ext.serializeScanner(scanner);
 		ColorScanner scanner1 = new ColorScanner(params);
-		SmartwalletExtension.deserializeScanner(params, scannerProto, scanner1);
+		ext.deserializeScanner(params, scannerProto, scanner1);
 		assertEquals(tx2.getHash(), scanner1.getPending().keySet().iterator().next());
 	}
 }

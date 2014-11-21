@@ -10,7 +10,6 @@ import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.Wallet;
 import org.bitcoinj.script.Script;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.smartcolors.core.ColorDefinition;
 import org.smartcolors.core.GenesisOutPointsMerbinnerTree;
@@ -25,6 +24,7 @@ import javax.annotation.Nullable;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.smartcolors.core.SmartColors.makeAssetInput;
 
 public class ColorTrackTest {
 	public static final Script EMPTY_SCRIPT = new Script(new byte[0]);
@@ -56,7 +56,7 @@ public class ColorTrackTest {
 		assertEquals(expectedUnspent, proof.getUnspentOutputs());
 
 		Transaction tx2 = new Transaction(params);
-		tx2.addInput(genesisTx.getOutput(0));
+		tx2.addInput(makeAssetInput(tx2, genesisTx, 0));
 		tx2.addOutput(ASSET_COIN_ONE, EMPTY_SCRIPT);
 		TransactionOutPoint tx2OutPoint = new TransactionOutPoint(params, 0, tx2);
 		expectedAll.put(tx2OutPoint, 1L);
@@ -67,7 +67,7 @@ public class ColorTrackTest {
 		assertEquals(expectedUnspent, proof.getUnspentOutputs());
 
 		Transaction tx3 = new Transaction(params);
-		tx3.addInput(tx2.getOutput(0));
+		tx3.addInput(makeAssetInput(tx3, tx2, 0));
 		tx3.addOutput(ASSET_COIN_ONE, EMPTY_SCRIPT);
 		TransactionOutPoint tx3OutPoint = new TransactionOutPoint(params, 0, tx3);
 		expectedAll.put(tx3OutPoint, 1L);
@@ -78,8 +78,8 @@ public class ColorTrackTest {
 		assertEquals(expectedUnspent, proof.getUnspentOutputs());
 
 		Transaction tx4 = new Transaction(params);
-		tx4.addInput(tx3.getOutput(0));
-		tx4.getInput(0).setSequenceNumber(0); // Destroy color
+		tx4.addInput(makeAssetInput(tx4, tx3, 0));
+		tx4.getInput(0).setSequenceNumber(0x7E); // Destroy color
 		tx4.addOutput(ASSET_COIN_ONE, EMPTY_SCRIPT);
 		expectedUnspent.remove(tx3OutPoint);
 		proof.add(tx4);
@@ -108,7 +108,6 @@ public class ColorTrackTest {
 		return new GenesisOutPointsMerbinnerTree(params, nodes);
 	}
 
-	@Ignore
 	@Test
 	public void serialize() {
 		Transaction genesisTx = new Transaction(params);
@@ -121,24 +120,25 @@ public class ColorTrackTest {
 		proof.add(genesisTx);
 
 		Transaction tx2 = new Transaction(params);
-		tx2.addInput(genesisTx.getOutput(0));
+		tx2.addInput(makeAssetInput(tx2, genesisTx, 0));
 		tx2.addOutput(ASSET_COIN_ONE, EMPTY_SCRIPT);
 		TransactionOutPoint tx2OutPoint = new TransactionOutPoint(params, 0, tx2);
 		proof.add(tx2);
 
 		Transaction tx3 = new Transaction(params);
-		tx3.addInput(tx2.getOutput(0));
+		tx3.addInput(makeAssetInput(tx3, tx2, 0));
 		tx3.addOutput(ASSET_COIN_ONE, EMPTY_SCRIPT);
 		TransactionOutPoint tx3OutPoint = new TransactionOutPoint(params, 0, tx3);
 		proof.add(tx3);
 
 		Transaction tx4 = new Transaction(params);
-		tx4.addInput(tx3.getOutput(0));
-		tx4.getInput(0).setSequenceNumber(0); // Destroy color
+		tx4.addInput(makeAssetInput(tx4, tx3, 0));
+		tx4.getInput(0).setSequenceNumber(0x7E); // Destroy color
 		tx4.addOutput(ASSET_COIN_ONE, EMPTY_SCRIPT);
 		proof.add(tx4);
 
-		Protos.ColorProof proofProto = SmartwalletExtension.serializeProof(proof);
+		SmartwalletExtension ext = new SmartwalletExtension(params);
+		Protos.ColorProof proofProto = ext.serializeProof(proof);
 		ColorTrack proof1 = new ColorTrack(def);
 		final Map<Sha256Hash, Transaction> txs = Maps.newHashMap();
 		txs.put(genesisTx.getHash(), genesisTx);
@@ -155,7 +155,7 @@ public class ColorTrackTest {
 		SmartwalletExtension.deserializeProof(params, proofProto, proof1);
 		assertEquals(proof.getStateHash(), proof1.getStateHash());
 		proof.undoLast();
-		Protos.ColorProof proofProto2 = SmartwalletExtension.serializeProof(proof);
+		Protos.ColorProof proofProto2 = ext.serializeProof(proof);
 		ColorTrack proof2 = new ColorTrack(def);
 		SmartwalletExtension.deserializeProof(params, proofProto2, proof2);
 		assertEquals(proof.getStateHash(), proof2.getStateHash());

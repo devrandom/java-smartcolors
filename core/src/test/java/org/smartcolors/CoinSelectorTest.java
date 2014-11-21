@@ -28,6 +28,7 @@ import java.security.SecureRandom;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.smartcolors.core.SmartColors.makeAssetInput;
 
 public class CoinSelectorTest extends ColorTest {
 	private static final Logger log = LoggerFactory.getLogger(CoinSelectorTest.class);
@@ -63,14 +64,14 @@ public class CoinSelectorTest extends ColorTest {
 	public void testSelection() throws InsufficientMoneyException {
 		// Incoming asset
 		Transaction tx2 = new Transaction(params);
-		tx2.addInput(genesisTx.getOutput(0));
+		tx2.addInput(makeAssetInput(tx2, genesisTx, 0));
 		tx2.addOutput(Utils.makeAssetCoin(8), outputScript);
 		tx2.addOutput(Coin.ZERO, opReturnScript);
 		receiveTransaction(tx2);
 
 		// Partially spend asset
 		Transaction tx3 = new Transaction(params);
-		tx3.addInput(tx2.getOutput(0));
+		tx3.addInput(makeAssetInput(tx3, tx2, 0));
 		tx3.addOutput(Utils.makeAssetCoin(5), outputScript);
 		tx3.addOutput(Utils.makeAssetCoin(3), ScriptBuilder.createOutputScript(new ECKey()));
 		tx3.addOutput(Coin.ZERO, opReturnScript);
@@ -78,7 +79,7 @@ public class CoinSelectorTest extends ColorTest {
 
 		// Incoming bitcoin
 		Transaction tx4 = new Transaction(params);
-		tx4.addInput(genesisTx.getOutput(0));
+		tx4.addInput(makeAssetInput(tx4, genesisTx, 0));
 		tx4.addOutput(Coin.COIN, ScriptBuilder.createOutputScript(wallet.currentReceiveKey()));
 		tx4.addOutput(Coin.ZERO, opReturnScript); // Spurious OP_RETURN marker
 		receiveTransaction(tx4);

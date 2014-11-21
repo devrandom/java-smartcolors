@@ -151,7 +151,7 @@ public class AssetCoinSelector extends DefaultCoinSelector {
 				throw new InsufficientMoneyException(Coin.valueOf((int) missing, 0), message);
 			}
 			for (TransactionOutput output : assetSelection.gathered) {
-				TransactionInput input = req.tx.addInput(output);
+				TransactionInput input = req.tx.addInput(SmartColors.makeAssetInput(req.tx, output));
 				originalInputs.add(input);
 			}
 

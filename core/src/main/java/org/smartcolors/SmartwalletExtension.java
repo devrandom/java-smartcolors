@@ -1,6 +1,7 @@
 package org.smartcolors;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
@@ -33,10 +34,17 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class SmartwalletExtension implements WalletExtension {
 	private static final Logger log = LoggerFactory.getLogger(SmartwalletExtension.class);
 	public static final String IDENTIFIER = "org.smartcolors";
-	private static final ObjectMapper mapper = new ObjectMapper();
+	private final ObjectMapper mapper;
 
 	protected ColorScanner scanner;
 	protected ColorKeyChain colorKeyChain;
+
+	public SmartwalletExtension(NetworkParameters params) {
+		mapper = new ObjectMapper();
+		Map<String, Object> values = Maps.newHashMap();
+		values.put(ColorDefinition.NETWORK_ID_INJECTABLE, params.getId());
+		mapper.setInjectableValues(new InjectableValues.Std(values));
+	}
 
 	@Override
 	public String getWalletExtensionID() {
@@ -54,7 +62,7 @@ public class SmartwalletExtension implements WalletExtension {
 		return scannerProto.toByteArray();
 	}
 
-	static Protos.ColorScanner serializeScanner(ColorScanner scanner) {
+	Protos.ColorScanner serializeScanner(ColorScanner scanner) {
 		Protos.ColorScanner.Builder scannerBuilder = Protos.ColorScanner.newBuilder();
 		for (ColorTrack proof : scanner.getColorProofs()) {
 			scannerBuilder.addProofs(serializeProof(proof));
@@ -72,7 +80,7 @@ public class SmartwalletExtension implements WalletExtension {
 		return scannerBuilder.build();
 	}
 
-	static Protos.ColorProof serializeProof(ColorTrack proof) {
+	Protos.ColorProof serializeProof(ColorTrack proof) {
 		Protos.ColorProof.Builder proofBuilder = Protos.ColorProof.newBuilder();
 		for (Map.Entry<TransactionOutPoint, Long> entry : proof.getOutputs().entrySet()) {
 			proofBuilder.addOutputs(Protos.OutPointValue.newBuilder()
@@ -116,7 +124,7 @@ public class SmartwalletExtension implements WalletExtension {
 		deserializeScanner(wallet.getParams(), proto, scanner);
 	}
 
-	static void deserializeScanner(NetworkParameters params, Protos.ColorScanner proto, ColorScanner scanner) {
+	void deserializeScanner(NetworkParameters params, Protos.ColorScanner proto, ColorScanner scanner) {
 		SetMultimap<Sha256Hash, SortedTransaction> mapBlockTx = TreeMultimap.create();
 		for (Protos.BlockToSortedTransaction bstxp : proto.getBlockToTransactionList()) {
 			Transaction transaction = new Transaction(params, bstxp.getTransaction().getTransaction().toByteArray());

@@ -325,7 +325,7 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 	private void applyNetAssetChange(Transaction tx, Wallet wallet, ColorKeyChain chain, Map<ColorDefinition, Long> res) {
 		lock.lock();
 		try {
-			for (TransactionOutput out : getColoredOutputs(tx)) {
+			for (TransactionOutput out : tx.getOutputs()) {
 				if (chain.isOutputToMe(out)) {
 					applyOutputValue(out, res);
 				}
@@ -439,23 +439,6 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		if (tx == null)
 			return null;
 		return tx.getOutputs().get((int) outpoint.getIndex());
-	}
-
-	private List<TransactionOutput> getColoredOutputs(Transaction tx) {
-		long mask = ~0;
-		for (TransactionInput input: tx.getInputs()) {
-			mask = mask & input.getSequenceNumber();
-		}
-
-		List<TransactionOutput> outputs = Lists.newArrayList();
-		for (TransactionOutput output: tx.getOutputs()) {
-			if ((mask & 1) == 1) {
-				outputs.add(output);
-			}
-			mask = mask >> 1;
-		}
-
-		return outputs;
 	}
 
 	void setMapBlockTx(SetMultimap<Sha256Hash, SortedTransaction> mapBlockTx) {
