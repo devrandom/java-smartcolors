@@ -1,8 +1,10 @@
 package org.smartcolors.core;
 
+import com.fasterxml.jackson.annotation.JacksonInject;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.base.Objects;
 import com.google.common.base.Throwables;
@@ -17,6 +19,7 @@ import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.Utils;
 import org.bitcoinj.script.Script;
+import org.smartcolors.marshal.BytesDeserializer;
 import org.smartcolors.marshal.BytesSerializer;
 import org.smartcolors.marshal.Deserializer;
 import org.smartcolors.marshal.FileSerializer;
@@ -41,6 +44,7 @@ import static com.google.common.base.Preconditions.checkState;
 // TODO serialization
 public class ColorDefinition extends HashableSerializable {
 	public static final TypeReference<ColorDefinition> TYPE_REFERENCE = new TypeReference<ColorDefinition>() {};
+	public static final String NETWORK_ID_INJECTABLE = "networkId";
 	private final NetworkParameters params;
 	public static final int MAX_COLOR_OUTPUTS = 32;
 	public static final int VERSION = 1;
@@ -77,17 +81,23 @@ public class ColorDefinition extends HashableSerializable {
 	private long creationTime;
 	private byte[] stegkey;
 
-	/*
 	// For JSON deserialization
-	ColorDefinition(@JsonProperty("definition")String defHex) {
-		this.params = NetworkParameters.fromID(NetworkParameters.ID_UNITTESTNET);
+	ColorDefinition(@JsonProperty("definition")String defHex, @JacksonInject(NETWORK_ID_INJECTABLE)String networkId) {
+		this.params = NetworkParameters.fromID(networkId);
 		this.creationTime = SmartColors.getSmartwalletEpoch();
 		this.metadata = Maps.newHashMap();
+		Deserializer des = new BytesDeserializer(Utils.HEX.decode(defHex));
+		ColorDefinition def = null;
+		try {
+			def = ColorDefinition.deserialize(this.params, des);
+		} catch (SerializationException e) {
+			Throwables.propagate(e);
+		}
 		this.outPointGenesisPoints = def.outPointGenesisPoints;
 		this.scriptGenesisPoints = def.scriptGenesisPoints;
 		this.blockheight = def.blockheight;
+		this.stegkey = def.stegkey;
 	}
-	*/
 
 	public ColorDefinition(NetworkParameters params, GenesisOutPointsMerbinnerTree outPointGenesisPoints, GenesisScriptMerbinnerTree scriptGenesisPoints, Map<String, String> metadata) {
 		this(params, outPointGenesisPoints, scriptGenesisPoints, metadata, 0, new byte[16]);
@@ -292,6 +302,7 @@ public class ColorDefinition extends HashableSerializable {
 		return builder.toString();
 	}
 
+	@JsonIgnore
 	@Override
 	public byte[] getHmacKey() {
 		return Utils.HEX.decode("1d8801c1323b4cc5d1b48b289d35aad0");
@@ -319,6 +330,7 @@ public class ColorDefinition extends HashableSerializable {
 		metadata.put(key, value);
 	}
 
+	@JsonIgnore
 	public long getBlockheight() {
 		return blockheight;
 	}
@@ -345,6 +357,7 @@ public class ColorDefinition extends HashableSerializable {
 		return me;
 	}
 
+	@JsonIgnore
 	public byte[] getStegkey() {
 		return stegkey;
 	}

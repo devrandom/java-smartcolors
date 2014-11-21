@@ -1,5 +1,6 @@
 package org.smartcolors.marshal;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.base.Throwables;
 import com.google.common.hash.HashCode;
 
@@ -11,6 +12,7 @@ public abstract class HashableSerializable implements Serializable {
 
 	public abstract void serialize(Serializer ser) throws SerializationException;
 
+	@JsonIgnore
 	public HashCode getHash() {
 		if (cachedHash != null)
 			return cachedHash;

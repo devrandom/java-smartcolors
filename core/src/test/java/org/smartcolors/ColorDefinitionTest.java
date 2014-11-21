@@ -1,7 +1,9 @@
 package org.smartcolors;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Maps;
 import com.google.common.io.Resources;
 
 import org.bitcoinj.core.Coin;
@@ -19,6 +21,7 @@ import org.smartcolors.core.GenesisOutPointsMerbinnerTree;
 import org.smartcolors.core.GenesisScriptMerbinnerTree;
 import org.smartcolors.core.SmartColors;
 import org.smartcolors.marshal.BytesDeserializer;
+import org.smartcolors.marshal.BytesSerializer;
 import org.smartcolors.marshal.Deserializer;
 import org.smartcolors.marshal.SerializationException;
 
@@ -32,6 +35,7 @@ import static org.junit.Assert.assertEquals;
 import static org.smartcolors.Utils.parseHex;
 
 public class ColorDefinitionTest {
+	public static final String NEW_GOLD_HASH = "812d469f6aa2c320767c7444610df2b7bcb048d1a5f11630e4a9c0d1051c0bd3";
 	private ColorDefinition def;
 	private ObjectMapper mapper;
 	private NetworkParameters params;
@@ -80,18 +84,23 @@ public class ColorDefinitionTest {
 		InputStream is = Resources.getResource("gold.scdef").openStream();
 		ColorDefinition def = ColorDefinition.deserializeFromFile(params, is);
 		assertEquals("812d469f6aa2c320767c7444610df2b7bcb048d1a5f11630e4a9c0d1051c0bd3", def.getHash().toString());
+		BytesSerializer ser = new BytesSerializer();
+		def.serialize(ser);
+		System.out.println(Utils.HEX.encode(ser.getBytes()));
 	}
 
 	@Test
-	@Ignore
 	public void json() throws IOException {
-		ColorDefinition oil = mapper.readValue(FixtureHelpers.fixture("oil.json"), ColorDefinition.TYPE_REFERENCE);
-		assertEquals("Oil", oil.getName());
-		assertEquals("1357bf3a56cdb0af288805075c132d84510008f34a64043e9341ff9a1783b66b", oil.getHash().toString());
-		String oilJson = mapper.writeValueAsString(oil);
-		Map oilMap = mapper.readValue(FixtureHelpers.fixture("oil.json"), Map.class);
+		Map<String, Object> values = Maps.newHashMap();
+		values.put(ColorDefinition.NETWORK_ID_INJECTABLE, NetworkParameters.ID_TESTNET);
+		mapper.setInjectableValues(new InjectableValues.Std(values));
+		ColorDefinition gold = mapper.readValue(FixtureHelpers.fixture("newgold.json"), ColorDefinition.TYPE_REFERENCE);
+		assertEquals("Gold", gold.getName());
+		assertEquals(NEW_GOLD_HASH, gold.getHash().toString());
+		String oilJson = mapper.writeValueAsString(gold);
+		Map goldMap = mapper.readValue(FixtureHelpers.fixture("newgold.json"), Map.class);
 		Map reconstructedMap = mapper.readValue(oilJson, Map.class);
-		assertEquals(oilMap, reconstructedMap);
+		assertEquals(goldMap, reconstructedMap);
 	}
 
 	private void checkKernel(KernelTestItem item) {
