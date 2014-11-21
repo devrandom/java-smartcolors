@@ -131,6 +131,10 @@ public abstract class ColorProof extends HashableSerializable {
 		public ValidationException(String m) {
 			super(m);
 		}
+
+		public ValidationException(Exception e) {
+			super(e);
+		}
 	}
 
 	@Override

@@ -88,32 +88,38 @@ public class ColorProofTest {
 		for (int i = 0; i < b.length; i++) {
 			byte[] b1 = b.clone();
 			b1[i]++;
-			BytesDeserializer des = new BytesDeserializer(b1);
-			try {
-				ColorProof proof1 = ColorProof.deserialize(params, des);
-				boolean sameDef = proof.getDefinition().getHash().equals(proof1.getDefinition().getHash());
-				boolean sameArgs = true;
-				if (proof instanceof TransferColorProof && proof1 instanceof TransferColorProof) {
-					TransferColorProof tproof = (TransferColorProof) proof;
-					TransferColorProof tproof1 = (TransferColorProof) proof1;
-					sameArgs = sameArgs && tproof.getIndex() == tproof1.getIndex();
-					sameArgs = sameArgs && tproof.getTransaction().getHash().equals(tproof1.getTransaction().getHash());
-				}
-				if (proof instanceof GenesisScriptColorProof && proof1 instanceof GenesisScriptColorProof) {
-					GenesisScriptColorProof gproof = (GenesisScriptColorProof) proof;
-					GenesisScriptColorProof gproof1 = (GenesisScriptColorProof) proof1;
-					sameArgs = sameArgs && gproof.getIndex() == gproof1.getIndex();
-					sameArgs = sameArgs && gproof.getTransaction().getHash().equals(gproof1.getTransaction().getHash());
-				}
-				if (sameDef && sameArgs && proof1.getQuantity() > 0) {
-					System.out.println(proof);
-					System.out.println(proof1);
-					fail();
-				}
-				//fail();
-			} catch (SerializationException e) {
-				// expected
+			checkMutation(proof, b1, i);
+			b1[i] -= 2;
+			checkMutation(proof, b1, i);
+		}
+	}
+
+	private void checkMutation(ColorProof proof, byte[] b1, int idx) {
+		BytesDeserializer des = new BytesDeserializer(b1);
+		try {
+			ColorProof proof1 = ColorProof.deserialize(params, des);
+			boolean sameDef = proof.getDefinition().getHash().equals(proof1.getDefinition().getHash());
+			boolean sameArgs = true;
+			if (proof instanceof TransferColorProof && proof1 instanceof TransferColorProof) {
+				TransferColorProof tproof = (TransferColorProof) proof;
+				TransferColorProof tproof1 = (TransferColorProof) proof1;
+				sameArgs = sameArgs && tproof.getIndex() == tproof1.getIndex();
+				sameArgs = sameArgs && tproof.getTransaction().getHash().equals(tproof1.getTransaction().getHash());
 			}
+			if (proof instanceof GenesisScriptColorProof && proof1 instanceof GenesisScriptColorProof) {
+				GenesisScriptColorProof gproof = (GenesisScriptColorProof) proof;
+				GenesisScriptColorProof gproof1 = (GenesisScriptColorProof) proof1;
+				sameArgs = sameArgs && gproof.getIndex() == gproof1.getIndex();
+				sameArgs = sameArgs && gproof.getTransaction().getHash().equals(gproof1.getTransaction().getHash());
+			}
+			if (sameDef && sameArgs && proof1.getQuantity() > 0) {
+				System.out.println(proof);
+				System.out.println(proof1);
+				fail("failed at mutation index " + idx);
+			}
+			//fail();
+		} catch (SerializationException e) {
+			// expected
 		}
 	}
 

@@ -4,6 +4,7 @@ import com.google.common.base.Throwables;
 import com.google.common.hash.HashCode;
 
 import org.bitcoinj.core.ProtocolException;
+import org.bitcoinj.core.ScriptException;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.script.Script;
@@ -57,7 +58,10 @@ public class GenesisScriptColorProof extends ColorProof {
 			quantity = calcQuantity();
 		} catch (IllegalStateException e) {
 			throw new SerializationException(e);
+		} catch (IndexOutOfBoundsException e) {
+			throw new SerializationException(e);
 		}
+		validate();
 	}
 
 	@Override
@@ -90,7 +94,12 @@ public class GenesisScriptColorProof extends ColorProof {
 	void doValidate(Queue<ColorProof> queue) throws ValidationException {
 		if (index < 0 || index >= tx.getOutputs().size())
 			throw new ValidationException("invalid index " + index);
-		Script scriptPubKey = tx.getOutputs().get((int) index).getScriptPubKey();
+		Script scriptPubKey = null;
+		try {
+			scriptPubKey = tx.getOutputs().get((int) index).getScriptPubKey();
+		} catch (ScriptException e) {
+			throw new ValidationException(e);
+		}
 		if (!def.getScriptGenesisPoints().containsKey(scriptPubKey))
 			throw new ValidationException("non-genesis script " + scriptPubKey);
 	}
