@@ -103,7 +103,7 @@ public abstract class MerbinnerTree<K,V> extends HashableSerializable {
 			deserialize(des); // left
 			deserialize(des); // right
 		} else {
-			throw new RuntimeException("unknown Merbinner node type " + type);
+			throw new SerializationException("unknown Merbinner node type " + type);
 		}
 	}
 
@@ -111,5 +111,10 @@ public abstract class MerbinnerTree<K,V> extends HashableSerializable {
 
 	private long doSum(long leftSum, long rightSum) {
 		return leftSum + rightSum;
+	}
+
+	@Override
+	public String toString() {
+		return getHash().toString();
 	}
 }

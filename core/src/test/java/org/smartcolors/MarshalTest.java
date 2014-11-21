@@ -155,7 +155,6 @@ public class MarshalTest {
 			BytesDeserializer deserializer = new BytesDeserializer(bytes);
 			assertArrayEquals(value, BoxedBytes.deserialize(deserializer, expectedLength).bytes);
 		}
-		System.out.println(items);
 	}
 
 	@Test

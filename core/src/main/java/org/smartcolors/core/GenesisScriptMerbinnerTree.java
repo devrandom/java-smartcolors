@@ -3,6 +3,7 @@ package org.smartcolors.core;
 import com.google.common.collect.Maps;
 import com.google.common.hash.HashCode;
 
+import org.bitcoinj.core.ScriptException;
 import org.bitcoinj.core.Utils;
 import org.bitcoinj.script.Script;
 import org.smartcolors.marshal.Deserializer;
@@ -51,7 +52,11 @@ public class GenesisScriptMerbinnerTree extends MerbinnerTree<Script, Void> {
 		Script key = des.readObject(new Deserializer.ObjectReader<Script>() {
 			@Override
 			public Script readObject(Deserializer des) throws SerializationException {
-				return new Script(des.readBytes());
+				try {
+					return new Script(des.readBytes());
+				} catch (ScriptException e) {
+					throw new SerializationException(e);
+				}
 			}
 		});
 		entries.put(key, null);

@@ -1,10 +1,12 @@
 package org.smartcolors.core;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Throwables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Queues;
 
 import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.Utils;
 import org.smartcolors.marshal.Deserializer;
 import org.smartcolors.marshal.FileSerializer;
@@ -15,8 +17,8 @@ import org.smartcolors.marshal.SerializationException;
 import org.smartcolors.marshal.Serializer;
 
 import java.io.InputStream;
-import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 
 /**
  * Created by devrandom on 2014-Nov-18.
@@ -106,17 +108,39 @@ public abstract class ColorProof extends HashableSerializable {
 	}
 
 	public void validate() throws ValidationException {
-		List<ColorProof> queue = Lists.newArrayList();
+		Queue<ColorProof> queue = Queues.newArrayDeque();
+		queue.add(this);
 		while (!queue.isEmpty()) {
-			doValidate(queue);
+			queue.poll().doValidate(queue);
 		}
 	}
 
-	abstract void doValidate(List<ColorProof> queue) throws ValidationException;
+	abstract void doValidate(Queue<ColorProof> queue) throws ValidationException;
+
+	abstract TransactionOutPoint getOutPoint();
+
+	public ColorDefinition getDefinition() {
+		return def;
+	}
+
+	public long getQuantity() {
+		return quantity;
+	}
 
 	public static class ValidationException extends SerializationException {
 		public ValidationException(String m) {
 			super(m);
 		}
+	}
+
+	@Override
+	public String toString() {
+		return toStringHelper().toString();
+	}
+
+	protected Objects.ToStringHelper toStringHelper() {
+		return Objects.toStringHelper(this)
+				.add("def", def)
+				.add("qty", quantity);
 	}
 }

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -40,8 +39,9 @@ import org.smartcolors.ColorKeyChainFactory;
 import org.smartcolors.ColorScanner;
 import org.smartcolors.SmartwalletExtension;
 import org.smartcolors.core.ColorDefinition;
+import org.smartcolors.core.GenesisOutPointsMerbinnerTree;
+import org.smartcolors.core.GenesisScriptMerbinnerTree;
 import org.smartcolors.core.SmartColors;
-import org.smartcolors.core.TxOutGenesisPoint;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -55,7 +55,6 @@ import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.SortedSet;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 
@@ -394,15 +393,17 @@ public class ColorTool {
 	}
 
 	private static ColorDefinition makeColorDefinition1() {
-		List<String> genesisStrings = Lists.newArrayList("a18ed2595af17c30f5968a1c93de2364ae8d5af9d547f2336aafda8ed529fb2e:0");
-		SortedSet<GenesisPoint> genesisPoints = Sets.newTreeSet();
+		List<String> genesisStrings = Lists.newArrayList("a18ed2595af17c30f5968a1c93de2364ae8d5af9d547f2336aafda8ed529fb2e:0:10000");
+		Map<TransactionOutPoint, Long> points = Maps.newHashMap();
 		for (String str: genesisStrings) {
-			String[] sp = str.split(":", 2);
-			genesisPoints.add(new TxOutGenesisPoint(params, new TransactionOutPoint(params, Long.parseLong(sp[1]), new Sha256Hash(sp[0]))));
+			String[] sp = str.split(":", 3);
+			points.put(new TransactionOutPoint(params, Long.parseLong(sp[1]), new Sha256Hash(sp[0])), Long.parseLong(sp[2]));
 		}
+		GenesisOutPointsMerbinnerTree outPoints = new GenesisOutPointsMerbinnerTree(params, points);
+		GenesisScriptMerbinnerTree scripts = new GenesisScriptMerbinnerTree();
 		HashMap<String, String> metadata = Maps.newHashMap();
 		metadata.put("name", "widgets");
-		return null; //new ColorDefinition(params, genesisPoints, metadata, metadata);
+		return new ColorDefinition(params, outPoints, scripts, metadata);
 	}
 
 	private static void usage() throws IOException {

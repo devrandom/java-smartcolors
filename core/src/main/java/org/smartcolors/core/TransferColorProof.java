@@ -3,6 +3,7 @@ package org.smartcolors.core;
 import com.google.common.base.Throwables;
 import com.google.common.hash.HashCode;
 
+import org.bitcoinj.core.ProtocolException;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutPoint;
 import org.smartcolors.marshal.Deserializer;
@@ -10,8 +11,8 @@ import org.smartcolors.marshal.SerializationException;
 import org.smartcolors.marshal.Serializer;
 import org.smartcolors.marshal.SerializerHelper;
 
-import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 
 /**
  * Created by devrandom on 2014-Nov-19.
@@ -45,7 +46,13 @@ public class TransferColorProof extends ColorProof {
 		tx = des.readObject(new Deserializer.ObjectReader<Transaction>() {
 			@Override
 			public Transaction readObject(Deserializer des) throws SerializationException {
-				return new Transaction(params, des.readBytes(), 0);
+				try {
+					return new Transaction(params, des.readBytes(), 0);
+				} catch (ProtocolException e) {
+					throw new SerializationException(e);
+				} catch (ArrayIndexOutOfBoundsException e) {
+					throw new SerializationException(e);
+				}
 			}
 		});
 		prevouts = des.readObject(new Deserializer.ObjectReader<PrevoutProofsMerbinnerTree>() {
@@ -56,7 +63,13 @@ public class TransferColorProof extends ColorProof {
 				return tree;
 			}
 		});
-		quantity = calcQuantity();
+		try {
+			quantity = calcQuantity();
+		} catch (UnsupportedOperationException e) {
+			throw new SerializationException(e);
+		} catch (IllegalStateException e) {
+			throw new SerializationException(e);
+		}
 		validate();
 	}
 
@@ -100,9 +113,36 @@ public class TransferColorProof extends ColorProof {
 	}
 
 	@Override
-	void doValidate(List<ColorProof> queue) throws ValidationException {
-		for (ColorProof colorProof : prevouts.values()) {
+	void doValidate(Queue<ColorProof> queue) throws ValidationException {
+		for (TransactionOutPoint outPoint : prevouts.keySet()) {
+			ColorProof colorProof = prevouts.get(outPoint);
+			HashCode prevHash = colorProof.getDefinition().getHash();
+			if (!prevHash.equals(def.getHash()))
+				throw new ValidationException("prevout has different definition " + prevHash + " != " + def.getHash());
 			queue.add(colorProof);
+			if (!colorProof.getOutPoint().equals(outPoint))
+				throw new ValidationException("prevout outpoint doesn't match prevout proof");
 		}
+	}
+
+	@Override
+	public String toString() {
+		return super.toStringHelper()
+				.add("tx", tx.getHash())
+				.add("index", index)
+				.add("prevouts", prevouts).toString();
+	}
+
+	public long getIndex() {
+		return index;
+	}
+
+	public Transaction getTransaction() {
+		return tx;
+	}
+
+	@Override
+	TransactionOutPoint getOutPoint() {
+		return new TransactionOutPoint(params, index, tx);
 	}
 }

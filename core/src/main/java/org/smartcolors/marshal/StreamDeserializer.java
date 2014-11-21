@@ -22,6 +22,8 @@ public class StreamDeserializer implements Deserializer {
 			long b = 0;
 			try {
 				b = is.read();
+				if (b < 0)
+					break;
 			} catch (IOException e) {
 				throw new SerializationException(e);
 			}
@@ -59,7 +61,11 @@ public class StreamDeserializer implements Deserializer {
 			throw new RuntimeException("bytes longer than max");
 		byte[] buf = new byte[(int) length];
 		try {
-			is.read(buf);
+			if (length > 0) {
+				int len = is.read(buf);
+				if (len < buf.length)
+					throw new SerializationException("short read");
+			}
 		} catch (IOException e) {
 			throw new SerializationException(e);
 		}

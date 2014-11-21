@@ -9,7 +9,7 @@ import org.smartcolors.marshal.SerializationException;
 import org.smartcolors.marshal.Serializer;
 import org.smartcolors.marshal.SerializerHelper;
 
-import java.util.List;
+import java.util.Queue;
 
 /**
  * Created by devrandom on 2014-Nov-19.
@@ -45,7 +45,10 @@ public class GenesisOutPointColorProof extends ColorProof {
 				return new TransactionOutPoint(params, des.readBytes(36), 0);
 			}
 		});
-		this.quantity = calcQuantity();
+		Long quantity = calcQuantity();
+		if (quantity == null)
+			quantity = 0L; // Checked in validate
+		this.quantity = quantity;
 		validate();
 	}
 
@@ -71,8 +74,13 @@ public class GenesisOutPointColorProof extends ColorProof {
 	}
 
 	@Override
-	void doValidate(List<ColorProof> queue) throws ValidationException {
+	void doValidate(Queue<ColorProof> queue) throws ValidationException {
 		if (!def.getOutPointGenesisPoints().containsKey(outpoint))
 			throw new ValidationException("outpoint not in def " + outpoint);
+	}
+
+	@Override
+	TransactionOutPoint getOutPoint() {
+		return outpoint;
 	}
 }

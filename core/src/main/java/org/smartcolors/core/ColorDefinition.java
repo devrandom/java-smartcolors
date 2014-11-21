@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.base.Objects;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -262,7 +263,10 @@ public class ColorDefinition extends HashableSerializable {
 
 	@Override
 	public String toString() {
-		return getName();
+		return Objects.toStringHelper(this)
+				.add("name", getName())
+				.add("hash", getHash())
+				.toString();
 	}
 
 	public String toStringFull() {
