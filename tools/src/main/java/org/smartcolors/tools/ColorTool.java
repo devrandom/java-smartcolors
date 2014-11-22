@@ -11,10 +11,12 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 import org.bitcoinj.core.AbstractWalletEventListener;
 import org.bitcoinj.core.Address;
+import org.bitcoinj.core.AddressFormatException;
 import org.bitcoinj.core.BlockChain;
 import org.bitcoinj.core.CheckpointManager;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.DownloadListener;
+import org.bitcoinj.core.InsufficientMoneyException;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.PeerAddress;
 import org.bitcoinj.core.PeerGroup;
@@ -23,6 +25,8 @@ import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.Utils;
 import org.bitcoinj.core.Wallet;
+import org.bitcoinj.script.Script;
+import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.store.BlockStore;
 import org.bitcoinj.store.BlockStoreException;
 import org.bitcoinj.store.SPVBlockStore;
@@ -37,6 +41,8 @@ import org.bitcoinj.wallet.KeyChainGroup;
 import org.bitcoinj.wallet.WalletTransaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.smartcolors.AssetCoinSelector;
+import org.smartcolors.BitcoinCoinSelector;
 import org.smartcolors.ColorKeyChain;
 import org.smartcolors.ColorKeyChainFactory;
 import org.smartcolors.ColorScanner;
@@ -51,6 +57,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.text.ParseException;
@@ -58,6 +66,7 @@ import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 
@@ -90,14 +99,18 @@ public class ColorTool {
 	private static SmartwalletExtension extension;
 
 	public static void main(String[] args) throws IOException {
+//		for (int i = 0; i < args.length; i++) {
+//			System.out.println(args[i]);
+//		}
 		parser = new OptionParser();
 		parser.accepts("prod", "use prodnet (default is testnet)");
 		parser.accepts("regtest", "use regtest mode (default is testnet)");
 		parser.accepts("force", "force creation of wallet from mnemonic");
 		parser.accepts("debug");
+		parser.accepts("verbose");
 		mnemonicSpec = parser.accepts("mnemonic", "mnemonic phrase").withRequiredArg();
 		OptionSpec<String> walletFileName = parser.accepts("wallet").withRequiredArg();
-		parser.nonOptions("COMMAND: one of - help, scan\n");
+		parser.nonOptions("COMMAND: one of - help, scan, send\n");
 
 		options = parser.parse(args);
 
@@ -106,7 +119,7 @@ public class ColorTool {
 			log.info("Starting up ...");
 		} else {
 			// Disable logspam unless there is a flag.
-			LogManager.getLogManager().getLogger("").setLevel(Level.INFO);
+			LogManager.getLogManager().getLogger("").setLevel(Level.WARNING);
 		}
 
 		List<?> cmds = options.nonOptionArguments();
@@ -163,6 +176,10 @@ public class ColorTool {
 			usage();
 		} else if (cmd.equals("scan")) {
 			scan(cmdArgs);
+		} else if (cmd.equals("send")) {
+			send(cmdArgs);
+		} else if (cmd.equals("dump")) {
+			dump(cmdArgs);
 		} else {
 			usage();
 		}
@@ -206,7 +223,6 @@ public class ColorTool {
 				throw new UnreadableWalletException("missing smartcolors extension");
 			if (colorChain == null)
 				throw new UnreadableWalletException("missing color keychain");
-			wallet.clearTransactions(0);
 		} catch (Exception e) {
 			System.err.println("Failed to load wallet '" + walletFile + "': " + e.getMessage());
 			e.printStackTrace();
@@ -222,11 +238,12 @@ public class ColorTool {
 	// Sets up all objects needed for network communication but does not bring up the peers.
 	private static void setup() throws BlockStoreException, IOException {
 		if (store != null) return;  // Already done.
-		if (chainFile.exists())
-			chainFile.delete();
-		reset();
+//		if (chainFile.exists())
+//			chainFile.delete();
+//		reset();
+		boolean chainExisted = chainFile.exists();
 		store = new SPVBlockStore(params, chainFile);
-		if (checkpointFile.exists()) {
+		if (checkpointFile.exists() && !chainExisted) {
 			CheckpointManager.checkpoint(params, new FileInputStream(checkpointFile), store, scanner.getEarliestKeyCreationTime());
 		}
 		chain = new MyBlockChain(params, wallet, store);
@@ -290,6 +307,7 @@ public class ColorTool {
 			if (endTransactions > startTransactions) {
 				System.out.println("Synced " + (endTransactions - startTransactions) + " transactions.");
 			}
+			wallet.saveToFile(walletFile);
 		} catch (BlockStoreException e) {
 			System.err.println("Error reading block chain file " + chainFile + ": " + e.getMessage());
 			e.printStackTrace();
@@ -304,6 +322,9 @@ public class ColorTool {
 			System.err.println("Wallet creation requested but " + walletFile + " already exists, use --force");
 			System.exit(1);
 		}
+		if (chainFile.exists())
+			chainFile.delete();
+
 		try {
 			String mnemonicCode = "correct battery horse staple bogum";
 			if (options.has(mnemonicSpec))
@@ -344,7 +365,7 @@ public class ColorTool {
 	private static void addBuiltins() {
 		try {
 			scanner.addDefinition(loadDefinition("gold.json"));
-			//scanner.addDefinition(loadDefinition("oil.json"));
+			scanner.addDefinition(loadDefinition("oil.json"));
 		} catch (ColorScanner.ColorDefinitionException colorDefinitionExists) {
 			Throwables.propagate(colorDefinitionExists);
 		}
@@ -364,24 +385,94 @@ public class ColorTool {
 		}
 	}
 
+	private static void dump(List<?> cmdArgs) {
+		syncChain();
+		dumpState();
+		System.out.println(wallet.currentReceiveAddress());
+		Address assetBitcoinAddress = colorChain.freshOutputScript(KeyChain.KeyPurpose.RECEIVE_FUNDS).getToAddress(params);
+		System.out.println(assetBitcoinAddress);
+		System.out.println(SmartColors.toAssetAddress(assetBitcoinAddress, !isTestNet()));
+		System.exit(0);
+	}
+
+	private static void send(List<?> cmdArgs) {
+		syncChain();
+		String color = (String)cmdArgs.get(0);
+		String dest = (String)cmdArgs.get(1);
+		String amountString = (String)cmdArgs.get(2);
+		ColorDefinition def = null;
+		for (ColorDefinition definition : scanner.getColorDefinitions()) {
+			if (definition.getName().equalsIgnoreCase(color)) {
+				def = definition;
+				break;
+			}
+		}
+		if (def == null) {
+			System.err.println("unknown color");
+			System.exit(1);
+		}
+		AssetCoinSelector assetSelector = new AssetCoinSelector(colorChain, scanner.getColorProofByDefinition(def));
+		String div = def.getMetadata().get("divisibility");
+		int divisibilityDivider = 1;
+		if (div != null) {
+			int divisibility = Integer.parseInt(div);
+			divisibilityDivider = BigInteger.TEN.pow(divisibility).intValue();
+		}
+
+		long amount = new BigDecimal(amountString).multiply(new BigDecimal(divisibilityDivider)).intValue();
+		Wallet.SendRequest req = null;
+		try {
+			req = makeAssetSendRequest(dest, amount);
+			assetSelector.completeTx(wallet, req, amount);
+		} catch (AddressFormatException e) {
+			Throwables.propagate(e);
+		} catch (InsufficientMoneyException e) {
+			Throwables.propagate(e);
+		}
+		wallet.commitTx(req.tx);
+		try {
+			peers.broadcastTransaction(req.tx).get();
+		} catch (InterruptedException e) {
+			Throwables.propagate(e);
+		} catch (ExecutionException e) {
+			Throwables.propagate(e);
+		}
+		System.out.println(req.tx);
+		Utils.sleep(2000);
+		System.exit(0);
+
+	}
+
+	private static Wallet.SendRequest makeAssetSendRequest(String dest, long amount) throws AddressFormatException {
+		Transaction tx = new Transaction(wallet.getParams());
+		Address to = new Address(SmartColors.getAssetParameters(!isTestNet()), dest);
+		Script outputScript = ScriptBuilder.createOutputScript(to);
+		AssetCoinSelector.addAssetOutput(tx, outputScript, amount);
+		Wallet.SendRequest request = Wallet.SendRequest.forTx(tx);
+		request.shuffleOutputs = false;
+		request.coinSelector = new BitcoinCoinSelector(colorChain);
+		return request;
+	}
+
+
 	private static void scan(List<?> cmdArgs) {
 		syncChain();
 		checkState(wallet.isConsistent());
-		if (true) {
-			System.out.println(scanner);
-			System.out.println(wallet);
-			for (Transaction tx: wallet.getTransactionPool(WalletTransaction.Pool.UNSPENT).values()) {
-				Map<ColorDefinition, Long> values = scanner.getNetAssetChange(tx, wallet, colorChain);
-				System.out.println(tx.getHash());
-				System.out.println(values);
-			}
-			System.out.println(wallet.currentReceiveAddress());
-			Address assetBitcoinAddress = colorChain.freshOutputScript(KeyChain.KeyPurpose.RECEIVE_FUNDS).getToAddress(params);
-			System.out.println(assetBitcoinAddress);
-			System.out.println(SmartColors.toAssetAddress(assetBitcoinAddress, isTestNet()));
+		if (options.has("verbose")) {
+			dumpState();
 		}
 		Utils.sleep(1000);
 		System.exit(0);
+	}
+
+	private static void dumpState() {
+		System.out.println(scanner);
+		System.out.println(wallet);
+		for (Transaction tx: wallet.getTransactionPool(WalletTransaction.Pool.UNSPENT).values()) {
+			Map<ColorDefinition, Long> values = scanner.getNetAssetChange(tx, wallet, colorChain);
+			System.out.println(tx.getHash());
+			System.out.println(values);
+		}
 	}
 
 	private static boolean isTestNet() {
@@ -419,7 +510,9 @@ public class ColorTool {
 	}
 
 	private static void usage() throws IOException {
-		System.err.println("Usage: OPTIONS COMMAND ARGS*");
+		System.err.println("Usage: OPTIONS COMMAND ARGS*\n" +
+				"scan\n" +
+				"send COLOR DEST AMOUNT\n");
 		parser.printHelpOn(System.err);
 		System.exit(1);
 	}

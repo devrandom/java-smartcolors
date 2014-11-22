@@ -14,7 +14,6 @@ import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.script.Script;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.smartcolors.core.ColorDefinition;
 import org.smartcolors.core.GenesisOutPointsMerbinnerTree;
@@ -35,7 +34,7 @@ import static org.junit.Assert.assertEquals;
 import static org.smartcolors.Utils.parseHex;
 
 public class ColorDefinitionTest {
-	public static final String NEW_GOLD_HASH = "812d469f6aa2c320767c7444610df2b7bcb048d1a5f11630e4a9c0d1051c0bd3";
+	public static final String NEW_GOLD_HASH = "a4882cfa917048625e78d46846b0e50f6502e2c674eb125ad0d8b5cdf70efa11";
 	private ColorDefinition def;
 	private ObjectMapper mapper;
 	private NetworkParameters params;
