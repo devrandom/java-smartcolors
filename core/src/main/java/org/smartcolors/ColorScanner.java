@@ -230,6 +230,14 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 				return true;
 			}
 		}
+
+		// Try some more while our genesis points don't have OP_RETURN
+		for (ColorTrack proof : proofs) {
+			if (proof.isTransactionRelevant(tx)) {
+				return true;
+			}
+		}
+
 		log.info("not relevant");
 		return false;
 	}
@@ -252,9 +260,9 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		try {
 			long creationTime = Long.MAX_VALUE;
 			for (ColorTrack proof : proofs) {
-				creationTime = Math.min(creationTime, proof.getCreationTime());
+				creationTime = Math.min(creationTime, proof.getCreationTime() + SmartColors.EARLIEST_FUDGE);
 			}
-			return creationTime + SmartColors.EARLIEST_FUDGE;
+			return creationTime;
 		} finally {
             lock.unlock();
 		}

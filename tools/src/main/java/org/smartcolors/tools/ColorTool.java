@@ -1,5 +1,6 @@
 package org.smartcolors.tools;
 
+import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
@@ -250,6 +251,7 @@ public class ColorTool {
 			}
 		} else {
 			peers.addAddress(PeerAddress.localhost(params));
+			//peers.addPeerDiscovery(new DnsDiscovery(params));
 		}
 	}
 
@@ -340,10 +342,9 @@ public class ColorTool {
 	}
 
 	private static void addBuiltins() {
-		if (true) return;
 		try {
 			scanner.addDefinition(loadDefinition("gold.json"));
-			scanner.addDefinition(loadDefinition("oil.json"));
+			//scanner.addDefinition(loadDefinition("oil.json"));
 		} catch (ColorScanner.ColorDefinitionException colorDefinitionExists) {
 			Throwables.propagate(colorDefinitionExists);
 		}
@@ -351,6 +352,9 @@ public class ColorTool {
 
 	private static ColorDefinition loadDefinition(String path) {
 		ObjectMapper mapper = new ObjectMapper();
+		Map<String, Object> values = Maps.newHashMap();
+		values.put(ColorDefinition.NETWORK_ID_INJECTABLE, NetworkParameters.ID_TESTNET);
+		mapper.setInjectableValues(new InjectableValues.Std(values));
 		ClassLoader classloader = Thread.currentThread().getContextClassLoader();
 		InputStream is = classloader.getResourceAsStream(path);
 		try {

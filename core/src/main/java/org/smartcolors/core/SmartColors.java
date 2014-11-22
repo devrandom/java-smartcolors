@@ -101,7 +101,7 @@ public class SmartColors {
 
 	static {
 		try {
-			epoch = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").parse("2014-10-10T00:00:00+0000").getTime() / 1000;
+			epoch = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").parse("2014-11-20T00:00:00+0000").getTime() / 1000;
 		} catch (ParseException e) {
 			throw Throwables.propagate(e);
 		}
