@@ -412,14 +412,9 @@ public class ColorTool {
 			System.exit(1);
 		}
 		AssetCoinSelector assetSelector = new AssetCoinSelector(colorChain, scanner.getColorProofByDefinition(def));
-		String div = def.getMetadata().get("divisibility");
-		int divisibilityDivider = 1;
-		if (div != null) {
-			int divisibility = Integer.parseInt(div);
-			divisibilityDivider = BigInteger.TEN.pow(divisibility).intValue();
-		}
+		BigDecimal divisibilityDivider = getDivider(def);
 
-		long amount = new BigDecimal(amountString).multiply(new BigDecimal(divisibilityDivider)).intValue();
+		long amount = new BigDecimal(amountString).multiply(divisibilityDivider).intValue();
 		Wallet.SendRequest req = null;
 		try {
 			req = makeAssetSendRequest(dest, amount);
@@ -441,6 +436,16 @@ public class ColorTool {
 		Utils.sleep(2000);
 		System.exit(0);
 
+	}
+
+	private static BigDecimal getDivider(ColorDefinition def) {
+		String div = def.getMetadata().get("divisibility");
+		int divisibilityDivider = 1;
+		if (div != null) {
+			int divisibility = Integer.parseInt(div);
+			divisibilityDivider = BigInteger.TEN.pow(divisibility).intValue();
+		}
+		return new BigDecimal(divisibilityDivider);
 	}
 
 	private static Wallet.SendRequest makeAssetSendRequest(String dest, long amount) throws AddressFormatException {
@@ -468,10 +473,18 @@ public class ColorTool {
 	private static void dumpState() {
 		System.out.println(scanner);
 		System.out.println(wallet);
+		System.out.println("************** Transactions:");
 		for (Transaction tx: wallet.getTransactionPool(WalletTransaction.Pool.UNSPENT).values()) {
 			Map<ColorDefinition, Long> values = scanner.getNetAssetChange(tx, wallet, colorChain);
 			System.out.println(tx.getHash());
 			System.out.println(values);
+		}
+		System.out.println("\n************** Balances:");
+		Map<ColorDefinition, Long> balances = scanner.getBalances(wallet, colorChain);
+		for (Map.Entry<ColorDefinition, Long> entry : balances.entrySet()) {
+			BigDecimal divisibilityDivider = getDivider(entry.getKey());
+			long amount = BigDecimal.valueOf(entry.getValue()).divide(divisibilityDivider).intValue();
+			System.out.println(entry.getKey().getName() + " : " + amount);
 		}
 	}
 
