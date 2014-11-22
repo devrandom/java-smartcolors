@@ -201,8 +201,6 @@ public class ColorScanner implements PeerFilterProvider, BlockChainListener {
 		Collection<SettableFuture<Transaction>> futures = null;
 		try {
 			log.info("receive {} {}", tx, relativityOffset);
-			if (!isRelevant(tx))
-				return false;
 			mapBlockTx.put(block.getHeader().getHash(), new SortedTransaction(tx, relativityOffset));
 			if (blockType == AbstractBlockChain.NewBlockType.BEST_CHAIN) {
 				for (ColorTrack proof : proofs) {

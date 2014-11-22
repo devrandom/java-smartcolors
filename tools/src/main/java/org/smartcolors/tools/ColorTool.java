@@ -9,6 +9,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import org.bitcoinj.core.AbstractWalletEventListener;
+import org.bitcoinj.core.Address;
 import org.bitcoinj.core.BlockChain;
 import org.bitcoinj.core.CheckpointManager;
 import org.bitcoinj.core.Coin;
@@ -30,6 +31,7 @@ import org.bitcoinj.utils.BriefLogFormatter;
 import org.bitcoinj.utils.Threading;
 import org.bitcoinj.wallet.DeterministicKeyChain;
 import org.bitcoinj.wallet.DeterministicSeed;
+import org.bitcoinj.wallet.KeyChain;
 import org.bitcoinj.wallet.KeyChainGroup;
 import org.bitcoinj.wallet.WalletTransaction;
 import org.slf4j.Logger;
@@ -174,7 +176,7 @@ public class ColorTool {
 				@Override
 				public Wallet create(NetworkParameters params, KeyChainGroup keyChainGroup) {
 					Wallet wallet = new Wallet(params, keyChainGroup);
-					SmartwalletExtension extension = (SmartwalletExtension) wallet.addOrGetExistingExtension(new SmartwalletExtension());
+					SmartwalletExtension extension = (SmartwalletExtension) wallet.addOrGetExistingExtension(new SmartwalletExtension(params));
 					extension.setScanner(scanner);
 					if (colorChain != null) {
 						extension.setColorKeyChain(colorChain);
@@ -305,7 +307,7 @@ public class ColorTool {
 			if (options.has(mnemonicSpec))
 				mnemonicCode = mnemonicSpec.value(options);
 			System.out.println(mnemonicCode);
-			DeterministicSeed seed = new DeterministicSeed(mnemonicCode, null, null, SmartColors.getSmartwalletEpoch());
+			DeterministicSeed seed = new DeterministicSeed(mnemonicCode, null, "", SmartColors.getSmartwalletEpoch());
 			System.out.println(Utils.HEX.encode(seed.getSeedBytes()));
 			colorChain =
 					ColorKeyChain.builder()
@@ -321,7 +323,7 @@ public class ColorTool {
 			group.setLookaheadSize(20);
 			group.setLookaheadThreshold(10);
 			wallet = new Wallet(params, group);
-			extension = new SmartwalletExtension();
+			extension = new SmartwalletExtension(params);
 			//extension.setColorKeyChain(colorChain);
 			wallet.addOrGetExistingExtension(extension);
 			makeScanner();
@@ -338,11 +340,10 @@ public class ColorTool {
 	}
 
 	private static void addBuiltins() {
+		if (true) return;
 		try {
-			ColorDefinition def = loadDefinition("gold.json");
-			scanner.addDefinition(def);
-			def = loadDefinition("oil.json");
-			scanner.addDefinition(def);
+			scanner.addDefinition(loadDefinition("gold.json"));
+			scanner.addDefinition(loadDefinition("oil.json"));
 		} catch (ColorScanner.ColorDefinitionException colorDefinitionExists) {
 			Throwables.propagate(colorDefinitionExists);
 		}
@@ -365,22 +366,29 @@ public class ColorTool {
 		if (true) {
 			System.out.println(scanner);
 			System.out.println(wallet);
-			System.out.println(wallet.currentReceiveAddress());
 			for (Transaction tx: wallet.getTransactionPool(WalletTransaction.Pool.UNSPENT).values()) {
 				Map<ColorDefinition, Long> values = scanner.getNetAssetChange(tx, wallet, colorChain);
 				System.out.println(tx.getHash());
 				System.out.println(values);
 			}
+			System.out.println(wallet.currentReceiveAddress());
+			Address assetBitcoinAddress = colorChain.freshOutputScript(KeyChain.KeyPurpose.RECEIVE_FUNDS).getToAddress(params);
+			System.out.println(assetBitcoinAddress);
+			System.out.println(SmartColors.toAssetAddress(assetBitcoinAddress, isTestNet()));
 		}
 		Utils.sleep(1000);
 		System.exit(0);
+	}
+
+	private static boolean isTestNet() {
+		return params.getId().equals(NetworkParameters.ID_TESTNET);
 	}
 
 	private static ColorDefinition makeColorDefinition() {
 		String ser;
 		if (params.getId().equals(NetworkParameters.ID_REGTEST)) {
 			ser = "000000005b0000000000000000000000000000000000000000000000000000000000000000000000010174b16bf3ce53c26c3bc7a42f06328b4776a616182478b7011fba181db0539fc500000000";
-		} else if (params.getId().equals(NetworkParameters.ID_TESTNET)) {
+		} else if (isTestNet()) {
 			ser = "000000002e970400000000000000000000000000000000000000000000000000000000000000000001019fe1cdae009a55d0877550aabdc7a1dc187f1dabcea8cf167827d6401f912db100000000";
 		} else {
 			throw new IllegalArgumentException();
