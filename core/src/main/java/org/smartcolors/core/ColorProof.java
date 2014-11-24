@@ -44,7 +44,7 @@ public abstract class ColorProof extends HashableSerializable {
 	public static ColorProof deserialize(final NetworkParameters params, Deserializer des) throws SerializationException {
 		int type = des.readVaruint();
 		if (!registry.containsKey(type))
-			throw new SerializationException("unknown proof type " + type);
+			throw new SerializationException("unknown track type " + type);
 		ColorProof inst;
 		try {
 			inst = registry.get(type).newInstance();

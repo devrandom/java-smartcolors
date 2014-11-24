@@ -121,7 +121,7 @@ public class TransferColorProof extends ColorProof {
 				throw new ValidationException("prevout has different definition " + prevHash + " != " + def.getHash());
 			queue.add(colorProof);
 			if (!colorProof.getOutPoint().equals(outPoint))
-				throw new ValidationException("prevout outpoint doesn't match prevout proof");
+				throw new ValidationException("prevout outpoint doesn't match prevout track");
 		}
 	}
 

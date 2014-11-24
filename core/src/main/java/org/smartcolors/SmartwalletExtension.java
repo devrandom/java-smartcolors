@@ -36,7 +36,7 @@ public class SmartwalletExtension implements WalletExtension {
 	public static final String IDENTIFIER = "org.smartcolors";
 	private final ObjectMapper mapper;
 
-	protected ColorScanner scanner;
+	protected SPVColorScanner scanner;
 	protected ColorKeyChain colorKeyChain;
 
 	public SmartwalletExtension(NetworkParameters params) {
@@ -62,10 +62,10 @@ public class SmartwalletExtension implements WalletExtension {
 		return scannerProto.toByteArray();
 	}
 
-	Protos.ColorScanner serializeScanner(ColorScanner scanner) {
+	Protos.ColorScanner serializeScanner(SPVColorScanner scanner) {
 		Protos.ColorScanner.Builder scannerBuilder = Protos.ColorScanner.newBuilder();
-		for (ColorTrack proof : scanner.getColorProofs()) {
-			scannerBuilder.addProofs(serializeProof(proof));
+		for (ColorTrack proof : scanner.getColorTracks()) {
+			scannerBuilder.addProofs(serializeProof((SPVColorTrack)proof));
 		}
 		for (Map.Entry<Sha256Hash, SortedTransaction> entry : scanner.getMapBlockTx().entries()) {
 			scannerBuilder.addBlockToTransaction(Protos.BlockToSortedTransaction.newBuilder()
@@ -80,7 +80,7 @@ public class SmartwalletExtension implements WalletExtension {
 		return scannerBuilder.build();
 	}
 
-	Protos.ColorProof serializeProof(ColorTrack proof) {
+	Protos.ColorProof serializeProof(SPVColorTrack proof) {
 		Protos.ColorProof.Builder proofBuilder = Protos.ColorProof.newBuilder();
 		for (Map.Entry<TransactionOutPoint, Long> entry : proof.getOutputs().entrySet()) {
 			proofBuilder.addOutputs(Protos.OutPointValue.newBuilder()
@@ -124,7 +124,7 @@ public class SmartwalletExtension implements WalletExtension {
 		deserializeScanner(wallet.getParams(), proto, scanner);
 	}
 
-	void deserializeScanner(NetworkParameters params, Protos.ColorScanner proto, ColorScanner scanner) {
+	void deserializeScanner(NetworkParameters params, Protos.ColorScanner proto, SPVColorScanner scanner) {
 		SetMultimap<Sha256Hash, SortedTransaction> mapBlockTx = TreeMultimap.create();
 		for (Protos.BlockToSortedTransaction bstxp : proto.getBlockToTransactionList()) {
 			Transaction transaction = new Transaction(params, bstxp.getTransaction().getTransaction().toByteArray());
@@ -143,7 +143,7 @@ public class SmartwalletExtension implements WalletExtension {
 
 		for (Protos.ColorProof proofp : proto.getProofsList()) {
 			HashCode hash = getHash(proofp.getColorDefinition().getHash());
-			ColorTrack proof = scanner.getColorProofByHash(hash);
+			ColorTrack proof = scanner.getColorTrackByHash(hash);
 			if (proof == null) {
 				String json = proofp.getColorDefinition().getJson();
 				if (json != null) {
@@ -155,12 +155,12 @@ public class SmartwalletExtension implements WalletExtension {
 					}
 					try {
 						scanner.addDefinition(def);
-					} catch (ColorScanner.ColorDefinitionException e) {
+					} catch (AbstractColorScanner.ColorDefinitionException e) {
 						Throwables.propagate(e);
 					}
-					proof = scanner.getColorProofByDefinition(def);
+					proof = scanner.getColorTrackByDefinition(def);
 				} else {
-					log.warn("Could not find color proof {} for deserializing", hash);
+					log.warn("Could not find color track {} for deserializing", hash);
 					continue;
 				}
 			}
@@ -168,7 +168,7 @@ public class SmartwalletExtension implements WalletExtension {
 		}
 	}
 
-	static void deserializeProof(NetworkParameters params, Protos.ColorProof proofp, ColorTrack proof) {
+	static void deserializeProof(NetworkParameters params, Protos.ColorProof proofp, ColorTrack _proof) {
 		Map<TransactionOutPoint, Long> outputs = Maps.newHashMap();
 		Map<TransactionOutPoint, Long> unspentOutputs = Maps.newHashMap();
 		TreeSet<SortedTransaction> txs = Sets.newTreeSet();
@@ -185,6 +185,7 @@ public class SmartwalletExtension implements WalletExtension {
 			SortedTransaction tx = new SortedTransaction(transaction, stxp.getIndex());
 			txs.add(tx);
 		}
+		SPVColorTrack proof = (SPVColorTrack) _proof;
 		proof.setOutputs(outputs);
 		proof.setUnspentOutputs(unspentOutputs);
 		proof.setTxs(txs);
@@ -198,7 +199,7 @@ public class SmartwalletExtension implements WalletExtension {
 		return HashCode.fromBytes(hash.toByteArray());
 	}
 
-	public void setScanner(ColorScanner scanner) {
+	public void setScanner(SPVColorScanner scanner) {
 		checkNotNull(scanner);
 		this.scanner = scanner;
 	}

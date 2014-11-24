@@ -26,7 +26,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.smartcolors.core.SmartColors.makeAssetInput;
 
-public class ColorTrackTest {
+public class SPVColorTrackTest {
 	public static final Script EMPTY_SCRIPT = new Script(new byte[0]);
 	public static final Coin ASSET_COIN_ONE = Coin.valueOf(SmartColors.addMsbdropValuePadding(1, 0));
 	private NetworkParameters params;
@@ -43,7 +43,7 @@ public class ColorTrackTest {
 		TransactionOutPoint genesisOutPoint = new TransactionOutPoint(params, 0, genesisTx);
 		GenesisOutPointsMerbinnerTree outPoints = makeTree(genesisOutPoint);
 		ColorDefinition def = new ColorDefinition(params, outPoints, new GenesisScriptMerbinnerTree());
-		ColorTrack proof = new ColorTrack(def);
+		SPVColorTrack proof = new SPVColorTrack(def);
 		assertTrue(proof.getOutputs().isEmpty());
 		assertTrue(proof.getUnspentOutputs().isEmpty());
 
@@ -115,7 +115,7 @@ public class ColorTrackTest {
 		TransactionOutPoint genesisOutPoint = new TransactionOutPoint(params, 0, genesisTx);
 		GenesisOutPointsMerbinnerTree outPoints = makeTree(genesisOutPoint);
 		ColorDefinition def = new ColorDefinition(params, outPoints, new GenesisScriptMerbinnerTree());
-		ColorTrack proof = new ColorTrack(def);
+		SPVColorTrack proof = new SPVColorTrack(def);
 
 		proof.add(genesisTx);
 
@@ -139,7 +139,7 @@ public class ColorTrackTest {
 
 		SmartwalletExtension ext = new SmartwalletExtension(params);
 		Protos.ColorProof proofProto = ext.serializeProof(proof);
-		ColorTrack proof1 = new ColorTrack(def);
+		SPVColorTrack proof1 = new SPVColorTrack(def);
 		final Map<Sha256Hash, Transaction> txs = Maps.newHashMap();
 		txs.put(genesisTx.getHash(), genesisTx);
 		txs.put(tx2.getHash(), tx2);
@@ -156,7 +156,7 @@ public class ColorTrackTest {
 		assertEquals(proof.getStateHash(), proof1.getStateHash());
 		proof.undoLast();
 		Protos.ColorProof proofProto2 = ext.serializeProof(proof);
-		ColorTrack proof2 = new ColorTrack(def);
+		SPVColorTrack proof2 = new SPVColorTrack(def);
 		SmartwalletExtension.deserializeProof(params, proofProto2, proof2);
 		assertEquals(proof.getStateHash(), proof2.getStateHash());
 	}

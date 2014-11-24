@@ -34,7 +34,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class ColorScannerTest extends ColorTest {
+public class SPVColorScannerTest extends ColorTest {
 	private SmartwalletExtension ext;
 
 	@Before
@@ -56,7 +56,7 @@ public class ColorScannerTest extends ColorTest {
 
 	@Test
 	public void testGetColors() {
-		Set<ColorDefinition> colors = scanner.getColorDefinitions();
+		Set<ColorDefinition> colors = scanner.getDefinitions();
 		assertEquals(3, colors.size());
 		assertTrue(colors.contains(scanner.getBitcoinDefinition()));
 		assertTrue(colors.contains(scanner.getUnknownDefinition()));
@@ -94,7 +94,7 @@ public class ColorScannerTest extends ColorTest {
 	}
 
 	@Test
-	public void testGetNetAssetChange() throws ColorScanner.ColorDefinitionException {
+	public void testGetNetAssetChange() throws SPVColorScanner.ColorDefinitionException {
 		final ECKey myKey = ECKey.fromPrivate(privkey);
 		final Map<Sha256Hash, Transaction> txs = Maps.newHashMap();
 		scanner.receiveFromBlock(genesisTx, FakeTxBuilder.createFakeBlock(blockStore, genesisTx).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
@@ -140,13 +140,13 @@ public class ColorScannerTest extends ColorTest {
 		txs.put(tx2.getHash(), tx2);
 		txs.put(tx3.getHash(), tx3);
 
-		ColorScanner scanner1 = new ColorScanner(params);
+		SPVColorScanner scanner1 = new SPVColorScanner(params);
 		scanner1.addDefinition(def);
 		Protos.ColorScanner proto = ext.serializeScanner(scanner);
 		ext.deserializeScanner(params, proto, scanner1);
 		assertEquals(scanner.getMapBlockTx(), scanner1.getMapBlockTx());
 		assertEquals("9ba0c8df6d37c0dba260ee0510e68cb41d2d0b19396621757522e5cc270dddb8",
-				scanner.getColorProofByDefinition(def).getStateHash().toString());
+				scanner.getColorTrackByDefinition(def).getStateHash().toString());
 	}
 
 	@Test
@@ -200,7 +200,7 @@ public class ColorScannerTest extends ColorTest {
 			future.get();
 			fail();
 		} catch (ExecutionException ex) {
-			assertEquals(ColorScanner.ScanningException.class, ex.getCause().getClass());
+			assertEquals(SPVColorScanner.ScanningException.class, ex.getCause().getClass());
 		}
 		// FIXME need better test
 	}
@@ -217,7 +217,7 @@ public class ColorScannerTest extends ColorTest {
 		tx2.addOutput(Coin.ZERO, opReturnScript);
 		scanner.addPending(tx2);
 		Protos.ColorScanner scannerProto = ext.serializeScanner(scanner);
-		ColorScanner scanner1 = new ColorScanner(params);
+		SPVColorScanner scanner1 = new SPVColorScanner(params);
 		ext.deserializeScanner(params, scannerProto, scanner1);
 		assertEquals(tx2.getHash(), scanner1.getPending().keySet().iterator().next());
 	}

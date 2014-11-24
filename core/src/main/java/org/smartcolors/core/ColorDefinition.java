@@ -225,7 +225,7 @@ public class ColorDefinition extends HashableSerializable {
 			// Any remaining color that hasn't been sent to an output by the
 			// txin is simply destroyed. This ensures all color transfers
 			// happen explicitly, rather than implicitly, which may be
-			// useful in the future to reduce proof sizes for large
+			// useful in the future to reduce track sizes for large
 			// transactions.
 		}
 	}

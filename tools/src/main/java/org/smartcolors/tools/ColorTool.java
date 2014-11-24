@@ -45,7 +45,7 @@ import org.smartcolors.AssetCoinSelector;
 import org.smartcolors.BitcoinCoinSelector;
 import org.smartcolors.ColorKeyChain;
 import org.smartcolors.ColorKeyChainFactory;
-import org.smartcolors.ColorScanner;
+import org.smartcolors.SPVColorScanner;
 import org.smartcolors.SmartwalletExtension;
 import org.smartcolors.core.ColorDefinition;
 import org.smartcolors.core.GenesisOutPointsMerbinnerTree;
@@ -92,7 +92,7 @@ public class ColorTool {
 	private static Wallet wallet;
 	private static File chainFile;
 	private static File walletFile;
-	private static ColorScanner scanner;
+	private static SPVColorScanner scanner;
 	private static File checkpointFile;
 	private static ColorKeyChain colorChain;
 	private static OptionSpec<String> mnemonicSpec;
@@ -359,14 +359,14 @@ public class ColorTool {
 	}
 
 	private static void makeScanner() {
-		scanner = new ColorScanner(params);
+		scanner = new SPVColorScanner(params);
 	}
 
 	private static void addBuiltins() {
 		try {
 			scanner.addDefinition(loadDefinition("gold.json"));
 			scanner.addDefinition(loadDefinition("oil.json"));
-		} catch (ColorScanner.ColorDefinitionException colorDefinitionExists) {
+		} catch (SPVColorScanner.ColorDefinitionException colorDefinitionExists) {
 			Throwables.propagate(colorDefinitionExists);
 		}
 	}
@@ -401,7 +401,7 @@ public class ColorTool {
 		String dest = (String)cmdArgs.get(1);
 		String amountString = (String)cmdArgs.get(2);
 		ColorDefinition def = null;
-		for (ColorDefinition definition : scanner.getColorDefinitions()) {
+		for (ColorDefinition definition : scanner.getDefinitions()) {
 			if (definition.getName().equalsIgnoreCase(color)) {
 				def = definition;
 				break;
@@ -411,7 +411,7 @@ public class ColorTool {
 			System.err.println("unknown color");
 			System.exit(1);
 		}
-		AssetCoinSelector assetSelector = new AssetCoinSelector(colorChain, scanner.getColorProofByDefinition(def));
+		AssetCoinSelector assetSelector = new AssetCoinSelector(colorChain, scanner.getColorTrackByDefinition(def));
 		BigDecimal divisibilityDivider = getDivider(def);
 
 		long amount = new BigDecimal(amountString).multiply(divisibilityDivider).intValue();

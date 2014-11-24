@@ -12,7 +12,7 @@ import org.bitcoinj.params.TestNet3Params;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.script.ScriptOpCodes;
-import org.smartcolors.ColorTrack;
+import org.smartcolors.SPVColorTrack;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -74,7 +74,7 @@ public class SmartColors {
 	public static Script makeOpReturnScript() {
 		ScriptBuilder ret = new ScriptBuilder();
 		ret.op(ScriptOpCodes.OP_RETURN);
-		ret.data(ColorTrack.SMART_ASSET_MARKER.getBytes());
+		ret.data(SPVColorTrack.SMART_ASSET_MARKER.getBytes());
 		return ret.build();
 	}
 

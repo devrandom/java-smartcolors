@@ -29,12 +29,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 public class AssetCoinSelector extends DefaultCoinSelector {
 	private static final Logger log = LoggerFactory.getLogger(AssetCoinSelector.class);
 	protected final ColorKeyChain colorKeyChain;
-	protected final ColorTrack proof;
+	protected final ColorTrack track;
 	private final BitcoinCoinSelector bitcoinSelector;
 
-	public AssetCoinSelector(ColorKeyChain colorKeyChain, ColorTrack proof) {
+	public AssetCoinSelector(ColorKeyChain colorKeyChain, ColorTrack track) {
 		this.colorKeyChain = colorKeyChain;
-		this.proof = proof;
+		this.track = track;
 		this.bitcoinSelector = new BitcoinCoinSelector(colorKeyChain);
 	}
 
@@ -70,7 +70,7 @@ public class AssetCoinSelector extends DefaultCoinSelector {
 			// Only pick chain-included transactions, or transactions that are ours and pending.
 			if (!shouldSelect(output)) continue;
 			selected.add(output);
-			assetTotal += proof.getOutputs().get(output.getOutPointFor());
+			assetTotal += track.getColor(output.getOutPointFor());
 			total += output.getValue().value;
 		}
 		// Total may be lower than target here, if the given candidates were insufficient to create to requested
@@ -83,7 +83,7 @@ public class AssetCoinSelector extends DefaultCoinSelector {
 			return false;
 		// FIXME locking
 		// FIXME what about multiple color outputs?
-		return proof.isColored(output.getOutPointFor());
+		return track.isColored(output.getOutPointFor());
 	}
 
 	/**
@@ -147,7 +147,7 @@ public class AssetCoinSelector extends DefaultCoinSelector {
 
 			if (assetSelection.assetGathered < assetAmount) {
 				long missing = assetAmount - assetSelection.assetGathered;
-				String message = "Insufficient, missing " + missing + " " + proof.getDefinition().getMetadata().get(ColorDefinition.METADATA_UNIT);
+				String message = "Insufficient, missing " + missing + " " + track.getDefinition().getMetadata().get(ColorDefinition.METADATA_UNIT);
 				throw new InsufficientMoneyException(Coin.valueOf((int) missing, 0), message);
 			}
 			for (TransactionOutput output : assetSelection.gathered) {

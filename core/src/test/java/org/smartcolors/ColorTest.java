@@ -33,7 +33,7 @@ public class ColorTest {
 	public static final Script EMPTY_SCRIPT = new Script(new byte[0]);
 
 	protected NetworkParameters params;
-	protected ColorScanner scanner;
+	protected SPVColorScanner scanner;
 	protected Transaction genesisTx;
 	protected TransactionOutPoint genesisOutPoint;
 	protected MemoryBlockStore blockStore;
@@ -62,7 +62,7 @@ public class ColorTest {
 		Map<String, String> metadata = Maps.newHashMap();
 		metadata.put("name", "widgets");
 		def = new ColorDefinition(params, outPoints, new GenesisScriptMerbinnerTree(), metadata);
-		scanner = new ColorScanner(params);
+		scanner = new SPVColorScanner(params);
 		scanner.addDefinition(def);
 		colorChain = null;
 		wallet = null;
