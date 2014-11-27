@@ -523,6 +523,7 @@ public class ColorTool {
 	}
 
 	private static void usage() throws IOException {
+		System.err.println("Version: " + SmartColors.getVersion());
 		System.err.println("Usage: OPTIONS COMMAND ARGS*\n" +
 				"scan\n" +
 				"send COLOR DEST AMOUNT\n");

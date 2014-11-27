@@ -1,6 +1,7 @@
 package org.smartcolors.core;
 
 import com.google.common.base.Throwables;
+import com.google.common.io.Resources;
 
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.NetworkParameters;
@@ -14,8 +15,10 @@ import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.script.ScriptOpCodes;
 import org.smartcolors.SPVColorTrack;
 
+import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Properties;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
@@ -139,5 +142,21 @@ public class SmartColors {
 			addressHeader = ASSET_ADDRESS_VERSION_TESTNET;
 			acceptableAddressCodes = new int[] { ASSET_ADDRESS_VERSION_TESTNET };
 		}
+	}
+
+	public static String getVersion() {
+		String resource;
+		try {
+			Properties properties = new Properties();
+			properties.load(Resources.getResource("META-INF/maven/smartwallet/smartcolors/pom.properties").openStream());
+			resource = properties.getProperty("version") ;
+		} catch (IOException e) {
+			throw Throwables.propagate(e);
+		} catch (IllegalArgumentException e) {
+			return "SNAPSHOT";
+		}
+		if (resource == null)
+			return "SNAPSHOT";
+		return resource;
 	}
 }

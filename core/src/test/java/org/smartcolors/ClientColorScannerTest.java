@@ -1,5 +1,7 @@
 package org.smartcolors;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Throwables;
 import com.google.common.hash.HashCode;
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -10,10 +12,13 @@ import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.Wallet;
 import org.easymock.IAnswer;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.smartcolors.core.ColorDefinition;
 import org.smartcolors.core.ColorProof;
+import org.smartcolors.marshal.SerializationException;
 
+import java.net.URI;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Map;
@@ -30,11 +35,15 @@ import static org.junit.Assert.assertTrue;
 public class ClientColorScannerTest extends ColorTest {
 	private ClientColorScanner scanner;
 	private ClientColorTrack track;
+	private URI base;
+	private ObjectMapper mapper;
 
 	@Before
 	public void setUp() throws Exception {
 		super.setUp();
-		scanner = new ClientColorScanner(params);
+		mapper = new ObjectMapper();
+		base = new URI("http://localhost:8888/");
+		scanner = new ClientColorScanner(params, base);
 		scanner.addDefinition(def);
 		track = (ClientColorTrack) scanner.getColorTrackByDefinition(def);
 		colorChain = new ColorKeyChain(new SecureRandom(), 128, "", 0) {
@@ -123,5 +132,36 @@ public class ClientColorScannerTest extends ColorTest {
 		Map<ColorDefinition, Long> change = scanner.getNetAssetChange(tx2, wallet, colorChain);
 		assertEquals(1, change.size());
 		assertEquals(10L, (long)change.get(def));
+	}
+
+	@Test
+	public void json() throws Exception {
+		String fixture = FixtureHelpers.fixture("tracker1.json");
+		ClientColorScanner.OutPointResponse res =
+				mapper.readValue(fixture, ClientColorScanner.OutPointResponse.class);
+		System.out.println(res);
+	}
+
+	@Ignore
+	@Test
+	public void http() throws Exception {
+		final ClientColorScanner.Fetcher fetcher = new ClientColorScanner.Fetcher(base, params);
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					System.out.println("start");
+					ColorProof res = fetcher.fetch(genesisTx.getOutput(0).getOutPointFor());
+					System.out.println("stop " + res);
+				} catch (SerializationException e) {
+					System.out.println(e);
+					Throwables.propagate(e);
+				}
+			}
+		}).start();
+		Utils.sleep(2 * 1000);
+//		System.out.println("stopping");
+//		fetcher.stop();
+		Utils.sleep(60*1000);
 	}
 }
