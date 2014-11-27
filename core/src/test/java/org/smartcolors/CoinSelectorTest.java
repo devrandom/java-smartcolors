@@ -36,10 +36,13 @@ public class CoinSelectorTest extends ColorTest {
 	private Script outputScript;
 	private BitcoinCoinSelector bitcoinSelector;
 	private AssetCoinSelector assetSelector;
+	protected SPVColorScanner scanner;
 
 	@Before
 	public void setUp() throws Exception {
 		super.setUp();
+		scanner = new SPVColorScanner(params);
+		scanner.addDefinition(def);
 		colorChain =
 				ColorKeyChain.builder()
 						.random(new SecureRandom())

@@ -218,7 +218,7 @@ public class ColorTool {
 						wallet.getParams().getId() + " vs " + params.getId());
 				return true;
 			}
-			scanner.addAllPending(wallet.getPendingTransactions());
+			scanner.addAllPending(wallet, wallet.getPendingTransactions());
 			if (wallet.getExtensions().get(SmartwalletExtension.IDENTIFIER) == null)
 				throw new UnreadableWalletException("missing smartcolors extension");
 			if (colorChain == null)

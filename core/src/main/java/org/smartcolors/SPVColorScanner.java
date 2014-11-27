@@ -1,15 +1,10 @@
 package org.smartcolors;
 
 import com.google.common.base.Function;
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultimap;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
 import org.bitcoinj.core.AbstractBlockChain;
@@ -23,16 +18,12 @@ import org.bitcoinj.core.ScriptException;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.StoredBlock;
 import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionInput;
-import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.VerificationException;
-import org.bitcoinj.core.Wallet;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptChunk;
 import org.bitcoinj.script.ScriptOpCodes;
 import org.bitcoinj.utils.Threading;
-import org.bitcoinj.wallet.WalletTransaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.smartcolors.core.ColorDefinition;
@@ -42,9 +33,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -54,7 +43,7 @@ import javax.annotation.concurrent.GuardedBy;
 /**
  * A blockchain and peer listener that keeps a set of color trackers updated with blockchain events.
  *
- * <p>You must call {@link #addAllPending(java.util.Collection)} after deserializing the wallet
+ * <p>You must call {@link org.smartcolors.AbstractColorScanner#addAllPending(org.bitcoinj.core.Wallet, java.util.Collection)} after deserializing the wallet
  * so that we pick up any pending transactions that were saved with the wallet but we didn't get to save.
  * The peer will not let us know about it again, and we will be unable to find it when its hash
  * gets into a block.
@@ -71,10 +60,6 @@ public class SPVColorScanner extends AbstractColorScanner implements PeerFilterP
 	protected final ReentrantLock filterLock = Threading.lock("colorScannerFilter");
 	@GuardedBy("lock")
 	SetMultimap<Sha256Hash, SortedTransaction> mapBlockTx = TreeMultimap.create();
-	@GuardedBy("lock")
-	Map<Sha256Hash, Transaction> pending = Maps.newConcurrentMap();
-	@GuardedBy("lock")
-	private Multimap<Transaction, SettableFuture<Transaction>> unknownTransactionFutures = ArrayListMultimap.create();
 
 	public SPVColorScanner(NetworkParameters params) {
 		super(params);
@@ -112,12 +97,6 @@ public class SPVColorScanner extends AbstractColorScanner implements PeerFilterP
 				};
 			}
 		};
-	}
-
-	/** Add a pending transaction from a peer or outgoing from us */
-	public void addPending(Transaction t) {
-		log.info("pending {}", t);
-		pending.put(t.getHash(), t);
 	}
 
 	public AbstractPeerEventListener getPeerEventListener() {
@@ -310,145 +289,6 @@ public class SPVColorScanner extends AbstractColorScanner implements PeerFilterP
 		return true;
 	}
 
-	/**
-	 * Get the net movement of assets caused by the transaction.
-	 *
-	 * <p>If we notice an output that is marked as carrying color, but we don't know what asset
-	 * it is, it will be marked as UNKNOWN</p>
-	 */
-	@Override
-	public Map<ColorDefinition, Long> getNetAssetChange(Transaction tx, Wallet wallet, ColorKeyChain chain) {
-		wallet.beginBloomFilterCalculation();
-		try {
-			Map<ColorDefinition, Long> res = Maps.newHashMap();
-			applyNetAssetChange(tx, wallet, chain, res);
-			return res;
-		} finally {
-   			wallet.endBloomFilterCalculation();
-		}
-	}
-
-	private void applyNetAssetChange(Transaction tx, Wallet wallet, ColorKeyChain chain, Map<ColorDefinition, Long> res) {
-		lock.lock();
-		try {
-			for (TransactionOutput out : tx.getOutputs()) {
-				if (chain.isOutputToMe(out)) {
-					applyOutputValue(out, res);
-				}
-			}
-			inps: for (TransactionInput inp: tx.getInputs()) {
-				if (isInputMine(inp, wallet)) {
-					for (SPVColorTrack track : spvTracks) {
-						Long value = track.getOutputs().get(inp.getOutpoint());
-						if (value != null) {
-							Long existing = res.get(track.getDefinition());
-							if (existing == null)
-								existing = 0L;
-							res.put(track.getDefinition(), existing - value);
-							continue inps;
-						}
-					}
-				}
-			}
-		} finally {
-   			lock.unlock();
-		}
-	}
-
-	private boolean applyOutputValue(TransactionOutput out, Map<ColorDefinition, Long> res) {
-		for (SPVColorTrack track: spvTracks) {
-			Long value = track.getOutputs().get(out.getOutPointFor());
-			if (value == null) {
-				// We don't know about this output yet, try applying the color kernel to figure
-				// it out from the inputs.  This is likely an unconfirmed transaction.
-				Long[] colorOuts = track.applyKernel(out.getParentTransaction());
-				value = colorOuts[out.getIndex()];
-			}
-			if (value != null) {
-				Long existing = res.get(track.getDefinition());
-				if (existing != null)
-					value = existing + value;
-				res.put(track.getDefinition(), value);
-				return true;
-			}
-		}
-		// Unknown asset on this output
-		Long value = SmartColors.removeMsbdropValuePadding(out.getValue().getValue());
-		Long existing = res.get(unknownDefinition);
-		if (existing != null)
-			value = value + existing;
-		res.put(unknownDefinition, value);
-		return false;
-	}
-
-	@Override
-	public Map<ColorDefinition, Long> getBalances(Wallet wallet, ColorKeyChain colorKeyChain) {
-		Map<ColorDefinition, Long> res = Maps.newHashMap();
-		res.put(bitcoinDefinition, 0L);
-		wallet.beginBloomFilterCalculation();
-		lock.lock();
-		try {
-			LinkedList<TransactionOutput> all = wallet.calculateAllSpendCandidates(false);
-			for (TransactionOutput output: all) {
-				if (colorKeyChain.isOutputToMe(output))
-					applyOutputValue(output, res);
-				else
-					res.put(bitcoinDefinition, res.get(bitcoinDefinition) + output.getValue().getValue());
-			}
-		} finally {
-   			lock.unlock();
-			wallet.endBloomFilterCalculation();
-		}
-		return res;
-	}
-
-	/**
-	 * Get a future that will be ready when we make progress finding out the asset types that this
-	 * transaction outputs, or throw {@link SPVColorScanner.ScanningException}
-	 * if we were unable to ascertain some of the outputs.
-	 *
-	 * <p>The caller may have to run this again if we find one asset, but there are other unknownDefinition outputs</p>
- 	 */
-	@Override
-	public ListenableFuture<Transaction> getTransactionWithKnownAssets(Transaction tx, Wallet wallet, ColorKeyChain chain) {
-		wallet.beginBloomFilterCalculation();
-		lock.lock();
-		try {
-			SettableFuture<Transaction> future = SettableFuture.create();
-			if (getNetAssetChange(tx, wallet, chain).containsKey(unknownDefinition)) {
-				// FIXME need to fail here right away if we are past the block where this tx appears and we are bloom filtering
-				unknownTransactionFutures.put(tx, future);
-			} else {
-				future.set(tx);
-			}
-			return future;
-		} finally {
-            lock.unlock();
-			wallet.endBloomFilterCalculation();
-		}
-	}
-
-	private boolean isInputMine(TransactionInput input, Wallet wallet) {
-		TransactionOutPoint outpoint = input.getOutpoint();
-		TransactionOutput connected = getConnected(outpoint, wallet.getTransactionPool(WalletTransaction.Pool.UNSPENT));
-		if (connected == null)
-			connected = getConnected(outpoint, wallet.getTransactionPool(WalletTransaction.Pool.SPENT));
-		if (connected == null)
-			connected = getConnected(outpoint, wallet.getTransactionPool(WalletTransaction.Pool.PENDING));
-		if (connected == null)
-			return false;
-		// The connected output may be the change to the sender of a previous input sent to this wallet. In this
-		// case we ignore it.
-		return connected.isMine(wallet);
-	}
-
-	private TransactionOutput getConnected(TransactionOutPoint outpoint, Map<Sha256Hash, Transaction> transactions) {
-		Transaction tx = transactions.get(outpoint.getHash());
-		if (tx == null)
-			return null;
-		return tx.getOutputs().get((int) outpoint.getIndex());
-	}
-
 	void setMapBlockTx(SetMultimap<Sha256Hash, SortedTransaction> mapBlockTx) {
 		this.mapBlockTx = mapBlockTx;
 	}
@@ -459,37 +299,6 @@ public class SPVColorScanner extends AbstractColorScanner implements PeerFilterP
 
 	public Set<? extends ColorTrack> getColorTracks() {
 		return tracks;
-	}
-
-	Map<Sha256Hash,Transaction> getPending() {
-		return pending;
-	}
-
-	/** Call this after deserializing the wallet with any wallet pending transactions */
-	public void addAllPending(Collection<Transaction> txs) {
-		for (Transaction tx : txs) {
-			pending.put(tx.getHash(), tx);
-		}
-	}
-
-	void setPending(Map<Sha256Hash, Transaction> pending) {
-		this.pending = pending;
-	}
-
-	@Override
-	public Set<ColorDefinition> getDefinitions() {
-		lock.lock();
-		try {
-			Set<ColorDefinition> colors = Sets.newHashSet();
-			colors.add(bitcoinDefinition);
-			for (ColorTrack track: tracks) {
-				colors.add(track.getDefinition());
-			}
-			colors.add(unknownDefinition);
-			return colors;
-		} finally {
-   			lock.unlock();
-		}
 	}
 
 	@Override
@@ -512,18 +321,7 @@ public class SPVColorScanner extends AbstractColorScanner implements PeerFilterP
 
 	/** Reset all state.  Used for blockchain rescan. */
 	@Override
-	public void reset() {
-		lock.lock();
-		try {
-			for (ColorTrack track: tracks) {
-				track.reset();
-			}
-			unknownTransactionFutures.clear();
-			mapBlockTx.clear();
-			pending.clear();
-		} finally {
-   			lock.unlock();
-		}
+	public void doReset() {
+		mapBlockTx.clear();
 	}
-
 }

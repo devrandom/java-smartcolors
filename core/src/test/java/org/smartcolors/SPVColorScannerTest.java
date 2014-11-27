@@ -36,10 +36,13 @@ import static org.junit.Assert.fail;
 
 public class SPVColorScannerTest extends ColorTest {
 	private SmartwalletExtension ext;
+	protected SPVColorScanner scanner;
 
 	@Before
 	public void setUp() throws Exception {
 		super.setUp();
+		scanner = new SPVColorScanner(params);
+		scanner.addDefinition(def);
 		ext = new SmartwalletExtension(params);
 		colorChain = new ColorKeyChain(new SecureRandom(), 128, "", 0) {
 			// Hack - delegate to the current wallet
@@ -83,10 +86,7 @@ public class SPVColorScannerTest extends ColorTest {
 				return true;
 			}
 		};
-		Transaction tx2 = new Transaction(params);
-		tx2.addInput(genesisTx.getOutput(0));
-		tx2.addOutput(Utils.makeAssetCoin(5), ScriptBuilder.createOutputScript(new ECKey()));
-		tx2.addOutput(Coin.ZERO, opReturnScript);
+		Transaction tx2 = makeTx2(new ECKey());
 		Map<ColorDefinition, Long> res = scanner.getNetAssetChange(tx2, wallet, colorChain);
 		Map<ColorDefinition, Long> expected = Maps.newHashMap();
 		expected.put(scanner.getUnknownDefinition(), 5L);
@@ -111,10 +111,7 @@ public class SPVColorScannerTest extends ColorTest {
 			}
 		};
 
-		Transaction tx2 = new Transaction(params);
-		tx2.addInput(SmartColors.makeAssetInput(tx2, genesisTx, 0));
-		tx2.addOutput(Utils.makeAssetCoin(5), ScriptBuilder.createOutputScript(myKey));
-		tx2.addOutput(Coin.ZERO, opReturnScript);
+		Transaction tx2 = makeTx2(myKey);
 		scanner.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
 		wallet.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
 		Map<ColorDefinition, Long> expected = Maps.newHashMap();
@@ -160,10 +157,7 @@ public class SPVColorScannerTest extends ColorTest {
 			}
 		};
 
-		Transaction tx2 = new Transaction(params);
-		tx2.addInput(SmartColors.makeAssetInput(tx2, genesisTx, 0));
-		tx2.addOutput(Utils.makeAssetCoin(5), ScriptBuilder.createOutputScript(myKey));
-		tx2.addOutput(Coin.ZERO, opReturnScript);
+		Transaction tx2 = makeTx2(myKey);
 		wallet.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
 		ListenableFuture<Transaction> future = scanner.getTransactionWithKnownAssets(tx2, wallet, colorChain);
 		//assertFalse(future.isDone());
@@ -211,10 +205,7 @@ public class SPVColorScannerTest extends ColorTest {
 
 	@Test
 	public void testSerializePending() {
-		Transaction tx2 = new Transaction(params);
-		tx2.addInput(SmartColors.makeAssetInput(tx2, genesisTx, 0));
-		tx2.addOutput(Utils.makeAssetCoin(5), ScriptBuilder.createOutputScript(privkey1));
-		tx2.addOutput(Coin.ZERO, opReturnScript);
+		Transaction tx2 = makeTx2(privkey1);
 		scanner.addPending(tx2);
 		Protos.ColorScanner scannerProto = ext.serializeScanner(scanner);
 		SPVColorScanner scanner1 = new SPVColorScanner(params);

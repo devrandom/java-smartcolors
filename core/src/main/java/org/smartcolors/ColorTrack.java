@@ -1,31 +1,75 @@
 package org.smartcolors;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Ordering;
+
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutPoint;
 import org.smartcolors.core.ColorDefinition;
+
+import java.util.Map;
+
+import javax.annotation.Nullable;
 
 /**
  * Created by devrandom on 2014-Nov-23.
  */
 public abstract class ColorTrack {
 	protected final ColorDefinition definition;
+	protected Map<TransactionOutPoint, Long> outputs;
+	protected Ordering<TransactionOutPoint> outputOrdering =
+			Ordering.natural().onResultOf(new Function<TransactionOutPoint, Comparable>() {
+				@Nullable
+				@Override
+				public Comparable apply(@Nullable TransactionOutPoint input) {
+					return Sha256Hash.create(input.bitcoinSerialize());
+				}
+			});
 
 	public ColorTrack(ColorDefinition definition) {
 		this.definition = definition;
+		outputs = Maps.newHashMap();
 	}
 
 	public abstract Sha256Hash getStateHash();
 
-	public abstract Long[] applyKernel(Transaction tx);
+	public Long[] applyKernel(Transaction tx) {
+		// Set up the input color
+		Long colorIn[] = new Long[tx.getInputs().size()];
+		for (int i = 0; i < colorIn.length; i++) {
+			TransactionOutPoint prev = tx.getInput(i).getOutpoint();
+			if (outputs.containsKey(prev))
+				colorIn[i] = outputs.get(prev);
+		}
 
-	public abstract Long getColor(TransactionOutPoint point);
+		// Apply kernel and add output colors to output maps
+		return definition.applyKernel(tx, colorIn);
+	}
+
+	public Map<TransactionOutPoint, Long> getOutputs() {
+		return outputs;
+	}
+
+	/** Get the color value of an outpoint, regardless whether it was spent */
+	public Long getColor(TransactionOutPoint point) {
+		return outputs.get(point);
+	}
 
 	public ColorDefinition getDefinition() {
 		return definition;
 	}
 
-	public abstract void reset();
+	public void reset() {
+		outputs.clear();
+	}
 
-	public abstract boolean isColored(TransactionOutPoint point);
+	void setOutputs(Map<TransactionOutPoint, Long> outputs) {
+		this.outputs = outputs;
+	}
+
+	public boolean isColored(TransactionOutPoint point) {
+		return outputs.containsKey(point);
+	}
 }

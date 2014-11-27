@@ -117,7 +117,7 @@ public abstract class ColorProof extends HashableSerializable {
 
 	abstract void doValidate(Queue<ColorProof> queue) throws ValidationException;
 
-	abstract TransactionOutPoint getOutPoint();
+	abstract public TransactionOutPoint getOutPoint();
 
 	public ColorDefinition getDefinition() {
 		return def;

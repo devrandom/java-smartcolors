@@ -1,9 +1,7 @@
 package org.smartcolors;
 
-import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 
 import org.bitcoinj.core.BloomFilter;
@@ -21,8 +19,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.TreeSet;
 
-import javax.annotation.Nullable;
-
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
@@ -36,21 +32,11 @@ import static com.google.common.base.Preconditions.checkState;
  */
 public class SPVColorTrack extends ColorTrack {
 	public static final String SMART_ASSET_MARKER = "SMARTASS";
-	private Map<TransactionOutPoint, Long> outputs;
 	private Map<TransactionOutPoint, Long> unspentOutputs;
 	private TreeSet<SortedTransaction> txs;
-	private Ordering<TransactionOutPoint> outputOrdering =
-			Ordering.natural().onResultOf(new Function<TransactionOutPoint, Comparable>() {
-				@Nullable
-				@Override
-				public Comparable apply(@Nullable TransactionOutPoint input) {
-					return Sha256Hash.create(input.bitcoinSerialize());
-				}
-			});
 
 	public SPVColorTrack(ColorDefinition definition) {
 		super(definition);
-		outputs = Maps.newHashMap();
 		unspentOutputs = Maps.newHashMap();
 		txs = Sets.newTreeSet();
 	}
@@ -124,20 +110,6 @@ public class SPVColorTrack extends ColorTrack {
 		txs.add(new SortedTransaction(tx, txs.size()));
 	}
 
-	@Override
-	public Long[] applyKernel(Transaction tx) {
-		// Set up the input color
-		Long colorIn[] = new Long[tx.getInputs().size()];
-		for (int i = 0; i < colorIn.length; i++) {
-			TransactionOutPoint prev = tx.getInput(i).getOutpoint();
-			if (unspentOutputs.containsKey(prev))
-				colorIn[i] = unspentOutputs.get(prev);
-		}
-
-		// Apply kernel and add output colors to output maps
-		return definition.applyKernel(tx, colorIn);
-	}
-
 	public boolean contains(Transaction tx) {
 		return txs.contains(new SortedTransaction(tx, 0));
 	}
@@ -172,18 +144,8 @@ public class SPVColorTrack extends ColorTrack {
 		return tx;
 	}
 
-	public Map<TransactionOutPoint, Long> getOutputs() {
-		return outputs;
-	}
-
 	public Map<TransactionOutPoint, Long> getUnspentOutputs() {
 		return unspentOutputs;
-	}
-
-	/** Get the color value of an outpoint, regardless whether it was spent */
-	@Override
-	public Long getColor(TransactionOutPoint point) {
-		return outputs.get(point);
 	}
 
 	/** Whether the transaction spends any of our color, or has a genesis point */
@@ -253,13 +215,9 @@ public class SPVColorTrack extends ColorTrack {
 
 	@Override
 	public void reset() {
-		outputs.clear();
+		super.reset();
 		unspentOutputs.clear();
 		txs.clear();
-	}
-
-	void setOutputs(Map<TransactionOutPoint, Long> outputs) {
-		this.outputs = outputs;
 	}
 
 	void setUnspentOutputs(Map<TransactionOutPoint, Long> unspentOutputs) {
@@ -274,8 +232,4 @@ public class SPVColorTrack extends ColorTrack {
 		return txs;
 	}
 
-	@Override
-	public boolean isColored(TransactionOutPoint point) {
-		return outputs.containsKey(point);
-	}
 }

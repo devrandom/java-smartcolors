@@ -29,14 +29,20 @@ message ColorDefinition {
 }
 
 message ColorProof {
+    required bytes body = 1;
+}
+
+message ColorTrack {
     required ColorDefinition color_definition = 1;
     repeated OutPointValue outputs = 2;
     repeated OutPointValue unspent_outputs = 3;
     repeated SortedTransaction txs = 4;
+
+    repeated ColorProof proofs = 10;
 }
 
 message ColorScanner {
     repeated BlockToSortedTransaction block_to_transaction = 1;
-    repeated ColorProof proofs = 2;
+    repeated ColorTrack proofs = 2;
     repeated bytes pending = 3;
 }

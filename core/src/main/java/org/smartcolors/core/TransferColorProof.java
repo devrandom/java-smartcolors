@@ -142,7 +142,7 @@ public class TransferColorProof extends ColorProof {
 	}
 
 	@Override
-	TransactionOutPoint getOutPoint() {
+	public TransactionOutPoint getOutPoint() {
 		return new TransactionOutPoint(params, index, tx);
 	}
 }

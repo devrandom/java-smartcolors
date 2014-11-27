@@ -43,17 +43,17 @@ public class SPVColorTrackTest {
 		TransactionOutPoint genesisOutPoint = new TransactionOutPoint(params, 0, genesisTx);
 		GenesisOutPointsMerbinnerTree outPoints = makeTree(genesisOutPoint);
 		ColorDefinition def = new ColorDefinition(params, outPoints, new GenesisScriptMerbinnerTree());
-		SPVColorTrack proof = new SPVColorTrack(def);
-		assertTrue(proof.getOutputs().isEmpty());
-		assertTrue(proof.getUnspentOutputs().isEmpty());
+		SPVColorTrack track = new SPVColorTrack(def);
+		assertTrue(track.getOutputs().isEmpty());
+		assertTrue(track.getUnspentOutputs().isEmpty());
 
-		proof.add(genesisTx);
+		track.add(genesisTx);
 		HashMap<TransactionOutPoint, Long> expectedAll = Maps.newHashMap();
 		HashMap<TransactionOutPoint, Long> expectedUnspent = Maps.newHashMap();
 		expectedAll.put(genesisOutPoint, 1L);
 		expectedUnspent.put(genesisOutPoint, 1L);
-		assertEquals(expectedAll, proof.getOutputs());
-		assertEquals(expectedUnspent, proof.getUnspentOutputs());
+		assertEquals(expectedAll, track.getOutputs());
+		assertEquals(expectedUnspent, track.getUnspentOutputs());
 
 		Transaction tx2 = new Transaction(params);
 		tx2.addInput(makeAssetInput(tx2, genesisTx, 0));
@@ -62,9 +62,9 @@ public class SPVColorTrackTest {
 		expectedAll.put(tx2OutPoint, 1L);
 		expectedUnspent.remove(genesisOutPoint);
 		expectedUnspent.put(tx2OutPoint, 1L);
-		proof.add(tx2);
-		assertEquals(expectedAll, proof.getOutputs());
-		assertEquals(expectedUnspent, proof.getUnspentOutputs());
+		track.add(tx2);
+		assertEquals(expectedAll, track.getOutputs());
+		assertEquals(expectedUnspent, track.getUnspentOutputs());
 
 		Transaction tx3 = new Transaction(params);
 		tx3.addInput(makeAssetInput(tx3, tx2, 0));
@@ -73,33 +73,33 @@ public class SPVColorTrackTest {
 		expectedAll.put(tx3OutPoint, 1L);
 		expectedUnspent.remove(tx2OutPoint);
 		expectedUnspent.put(tx3OutPoint, 1L);
-		proof.add(tx3);
-		assertEquals(expectedAll, proof.getOutputs());
-		assertEquals(expectedUnspent, proof.getUnspentOutputs());
+		track.add(tx3);
+		assertEquals(expectedAll, track.getOutputs());
+		assertEquals(expectedUnspent, track.getUnspentOutputs());
 
 		Transaction tx4 = new Transaction(params);
 		tx4.addInput(makeAssetInput(tx4, tx3, 0));
 		tx4.getInput(0).setSequenceNumber(0x7E); // Destroy color
 		tx4.addOutput(ASSET_COIN_ONE, EMPTY_SCRIPT);
 		expectedUnspent.remove(tx3OutPoint);
-		proof.add(tx4);
-		assertEquals(expectedAll, proof.getOutputs());
-		assertEquals(expectedUnspent, proof.getUnspentOutputs());
+		track.add(tx4);
+		assertEquals(expectedAll, track.getOutputs());
+		assertEquals(expectedUnspent, track.getUnspentOutputs());
 		assertEquals(0, expectedUnspent.size());
 		assertEquals(3, expectedAll.size());
 
-		proof.undoLast();
-		proof.undoLast();
-		proof.undoLast();
+		track.undoLast();
+		track.undoLast();
+		track.undoLast();
 		expectedAll = Maps.newHashMap();
 		expectedUnspent = Maps.newHashMap();
 		expectedAll.put(genesisOutPoint, 1L);
 		expectedUnspent.put(genesisOutPoint, 1L);
-		assertEquals(expectedAll, proof.getOutputs());
-		assertEquals(expectedUnspent, proof.getUnspentOutputs());
-		proof.undoLast();
-		assertTrue(proof.getOutputs().isEmpty());
-		assertTrue(proof.getUnspentOutputs().isEmpty());
+		assertEquals(expectedAll, track.getOutputs());
+		assertEquals(expectedUnspent, track.getUnspentOutputs());
+		track.undoLast();
+		assertTrue(track.getOutputs().isEmpty());
+		assertTrue(track.getUnspentOutputs().isEmpty());
 	}
 
 	private GenesisOutPointsMerbinnerTree makeTree(TransactionOutPoint genesisOutPoint) {
@@ -115,30 +115,30 @@ public class SPVColorTrackTest {
 		TransactionOutPoint genesisOutPoint = new TransactionOutPoint(params, 0, genesisTx);
 		GenesisOutPointsMerbinnerTree outPoints = makeTree(genesisOutPoint);
 		ColorDefinition def = new ColorDefinition(params, outPoints, new GenesisScriptMerbinnerTree());
-		SPVColorTrack proof = new SPVColorTrack(def);
+		SPVColorTrack track = new SPVColorTrack(def);
 
-		proof.add(genesisTx);
+		track.add(genesisTx);
 
 		Transaction tx2 = new Transaction(params);
 		tx2.addInput(makeAssetInput(tx2, genesisTx, 0));
 		tx2.addOutput(ASSET_COIN_ONE, EMPTY_SCRIPT);
 		TransactionOutPoint tx2OutPoint = new TransactionOutPoint(params, 0, tx2);
-		proof.add(tx2);
+		track.add(tx2);
 
 		Transaction tx3 = new Transaction(params);
 		tx3.addInput(makeAssetInput(tx3, tx2, 0));
 		tx3.addOutput(ASSET_COIN_ONE, EMPTY_SCRIPT);
 		TransactionOutPoint tx3OutPoint = new TransactionOutPoint(params, 0, tx3);
-		proof.add(tx3);
+		track.add(tx3);
 
 		Transaction tx4 = new Transaction(params);
 		tx4.addInput(makeAssetInput(tx4, tx3, 0));
 		tx4.getInput(0).setSequenceNumber(0x7E); // Destroy color
 		tx4.addOutput(ASSET_COIN_ONE, EMPTY_SCRIPT);
-		proof.add(tx4);
+		track.add(tx4);
 
 		SmartwalletExtension ext = new SmartwalletExtension(params);
-		Protos.ColorProof proofProto = ext.serializeProof(proof);
+		Protos.ColorTrack proofProto = ext.serializeProof(track);
 		SPVColorTrack proof1 = new SPVColorTrack(def);
 		final Map<Sha256Hash, Transaction> txs = Maps.newHashMap();
 		txs.put(genesisTx.getHash(), genesisTx);
@@ -153,12 +153,12 @@ public class SPVColorTrackTest {
 			}
 		};
 		SmartwalletExtension.deserializeProof(params, proofProto, proof1);
-		assertEquals(proof.getStateHash(), proof1.getStateHash());
-		proof.undoLast();
-		Protos.ColorProof proofProto2 = ext.serializeProof(proof);
+		assertEquals(track.getStateHash(), proof1.getStateHash());
+		track.undoLast();
+		Protos.ColorTrack proofProto2 = ext.serializeProof(track);
 		SPVColorTrack proof2 = new SPVColorTrack(def);
 		SmartwalletExtension.deserializeProof(params, proofProto2, proof2);
-		assertEquals(proof.getStateHash(), proof2.getStateHash());
+		assertEquals(track.getStateHash(), proof2.getStateHash());
 	}
 
 	@Test

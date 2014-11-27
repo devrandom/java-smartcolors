@@ -80,8 +80,8 @@ public class SmartwalletExtension implements WalletExtension {
 		return scannerBuilder.build();
 	}
 
-	Protos.ColorProof serializeProof(SPVColorTrack proof) {
-		Protos.ColorProof.Builder proofBuilder = Protos.ColorProof.newBuilder();
+	Protos.ColorTrack serializeProof(SPVColorTrack proof) {
+		Protos.ColorTrack.Builder proofBuilder = Protos.ColorTrack.newBuilder();
 		for (Map.Entry<TransactionOutPoint, Long> entry : proof.getOutputs().entrySet()) {
 			proofBuilder.addOutputs(Protos.OutPointValue.newBuilder()
 					.setHash(getHash(entry.getKey().getHash()))
@@ -141,7 +141,7 @@ public class SmartwalletExtension implements WalletExtension {
 		}
 		scanner.setPending(pending);
 
-		for (Protos.ColorProof proofp : proto.getProofsList()) {
+		for (Protos.ColorTrack proofp : proto.getProofsList()) {
 			HashCode hash = getHash(proofp.getColorDefinition().getHash());
 			ColorTrack proof = scanner.getColorTrackByHash(hash);
 			if (proof == null) {
@@ -168,7 +168,7 @@ public class SmartwalletExtension implements WalletExtension {
 		}
 	}
 
-	static void deserializeProof(NetworkParameters params, Protos.ColorProof proofp, ColorTrack _proof) {
+	static void deserializeProof(NetworkParameters params, Protos.ColorTrack proofp, ColorTrack _proof) {
 		Map<TransactionOutPoint, Long> outputs = Maps.newHashMap();
 		Map<TransactionOutPoint, Long> unspentOutputs = Maps.newHashMap();
 		TreeSet<SortedTransaction> txs = Sets.newTreeSet();

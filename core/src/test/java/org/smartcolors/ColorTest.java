@@ -13,6 +13,7 @@ import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.Wallet;
 import org.bitcoinj.params.TestNet3Params;
 import org.bitcoinj.script.Script;
+import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.store.MemoryBlockStore;
 import org.bitcoinj.testing.FakeTxBuilder;
 import org.junit.Before;
@@ -33,7 +34,6 @@ public class ColorTest {
 	public static final Script EMPTY_SCRIPT = new Script(new byte[0]);
 
 	protected NetworkParameters params;
-	protected SPVColorScanner scanner;
 	protected Transaction genesisTx;
 	protected TransactionOutPoint genesisOutPoint;
 	protected MemoryBlockStore blockStore;
@@ -62,11 +62,17 @@ public class ColorTest {
 		Map<String, String> metadata = Maps.newHashMap();
 		metadata.put("name", "widgets");
 		def = new ColorDefinition(params, outPoints, new GenesisScriptMerbinnerTree(), metadata);
-		scanner = new SPVColorScanner(params);
-		scanner.addDefinition(def);
 		colorChain = null;
 		wallet = null;
 		privkey = new BigInteger(1, HEX.decode("180cb41c7c600be951b5d3d0a7334acc7506173875834f7a6c4c786a28fcbb19"));
 		privkey1 = new DumpedPrivateKey(TestNet3Params.get(), "92shANodC6Y4evT5kFzjNFQAdjqTtHAnDTLzqBBq4BbKUPyx6CD").getKey();
+	}
+
+	protected Transaction makeTx2(ECKey myKey) {
+		Transaction tx2 = new Transaction(params);
+		tx2.addInput(SmartColors.makeAssetInput(tx2, genesisTx, 0));
+		tx2.addOutput(Utils.makeAssetCoin(5), ScriptBuilder.createOutputScript(myKey));
+		tx2.addOutput(Coin.ZERO, opReturnScript);
+		return tx2;
 	}
 }

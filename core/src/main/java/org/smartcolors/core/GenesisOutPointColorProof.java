@@ -80,7 +80,7 @@ public class GenesisOutPointColorProof extends ColorProof {
 	}
 
 	@Override
-	TransactionOutPoint getOutPoint() {
+	public TransactionOutPoint getOutPoint() {
 		return outpoint;
 	}
 }
