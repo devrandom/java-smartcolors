@@ -43,8 +43,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.smartcolors.AssetCoinSelector;
 import org.smartcolors.BitcoinCoinSelector;
+import org.smartcolors.ClientColorScanner;
 import org.smartcolors.ColorKeyChain;
 import org.smartcolors.ColorKeyChainFactory;
+import org.smartcolors.ColorScanner;
 import org.smartcolors.SPVColorScanner;
 import org.smartcolors.SmartwalletExtension;
 import org.smartcolors.core.ColorDefinition;
@@ -60,6 +62,8 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -80,6 +84,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 public class ColorTool {
+	private static final boolean USE_SPV = false;
 	private static final Logger log = LoggerFactory.getLogger(ColorTool.class);
 
 	private static OptionSet options;
@@ -92,7 +97,7 @@ public class ColorTool {
 	private static Wallet wallet;
 	private static File chainFile;
 	private static File walletFile;
-	private static SPVColorScanner scanner;
+	private static ColorScanner scanner;
 	private static File checkpointFile;
 	private static ColorKeyChain colorChain;
 	private static OptionSpec<String> mnemonicSpec;
@@ -244,16 +249,32 @@ public class ColorTool {
 		boolean chainExisted = chainFile.exists();
 		store = new SPVBlockStore(params, chainFile);
 		if (checkpointFile.exists() && !chainExisted) {
-			CheckpointManager.checkpoint(params, new FileInputStream(checkpointFile), store, scanner.getEarliestKeyCreationTime());
+			long creationTime = Long.MAX_VALUE;
+			if (USE_SPV) {
+				creationTime = ((SPVColorScanner)scanner).getEarliestKeyCreationTime();
+			}
+			creationTime = Math.min(creationTime, wallet.getEarliestKeyCreationTime());
+			CheckpointManager.checkpoint(params, new FileInputStream(checkpointFile), store, creationTime);
 		}
 		chain = new MyBlockChain(params, wallet, store);
-		chain.addListener(scanner, Threading.SAME_THREAD);
 
 		if (peers == null) {
 			peers = new PeerGroup(params, chain);
 		}
 		peers.setUserAgent("ColorTool", "1.0");
-		peers.addPeerFilterProvider(scanner);
+
+		if (USE_SPV) {
+			SPVColorScanner spvScanner = (SPVColorScanner) scanner;
+			chain.addListener(spvScanner, Threading.SAME_THREAD);
+			peers.addPeerFilterProvider(spvScanner);
+			peers.addEventListener(spvScanner.getPeerEventListener());
+		} else {
+			ClientColorScanner clientScanner = (ClientColorScanner) scanner;
+			clientScanner.listenToWallet(wallet);
+			clientScanner.setColorKeyChain(colorChain);
+			clientScanner.start();
+		}
+
 		peers.addWallet(wallet);
 		if (options.has("peers")) {
 			String peersFlag = (String) options.valueOf("peers");
@@ -291,7 +312,6 @@ public class ColorTool {
 	private static void syncChain() {
 		try {
 			setup();
-			peers.addEventListener(scanner.getPeerEventListener());
 			int startTransactions = wallet.getTransactions(true).size();
 			DownloadListener listener = new DownloadListener();
 			peers.startAsync();
@@ -359,7 +379,17 @@ public class ColorTool {
 	}
 
 	private static void makeScanner() {
-		scanner = new SPVColorScanner(params);
+		if (USE_SPV)
+			scanner = new SPVColorScanner(params);
+		else {
+			URI baseUri = null;
+			try {
+				baseUri = new URI("http://localhost:8888/");
+			} catch (URISyntaxException e) {
+				Throwables.propagate(e);
+			}
+			scanner = new ClientColorScanner(params, baseUri);
+		}
 	}
 
 	private static void addBuiltins() {
@@ -463,10 +493,11 @@ public class ColorTool {
 	private static void scan(List<?> cmdArgs) {
 		syncChain();
 		checkState(wallet.isConsistent());
+		Utils.sleep(5*1000);
 		if (options.has("verbose")) {
 			dumpState();
 		}
-		Utils.sleep(1000);
+		Utils.sleep(6000*1000);
 		System.exit(0);
 	}
 

@@ -25,4 +25,16 @@ public abstract class HashableSerializable implements Serializable {
 		cachedHash = HashSerializer.calcHash(serializer, getHmacKey());
 		return cachedHash;
 	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (!(obj instanceof HashableSerializable))
+			return false;
+		return getHash().equals(((HashableSerializable)obj).getHash());
+	}
+
+	@Override
+	public int hashCode() {
+		return getHash().hashCode();
+	}
 }

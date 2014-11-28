@@ -16,7 +16,6 @@ import org.apache.http.impl.client.HttpClients;
 import org.bitcoinj.core.AbstractWalletEventListener;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.TransactionOutput;
@@ -26,9 +25,9 @@ import org.slf4j.LoggerFactory;
 import org.smartcolors.core.ColorDefinition;
 import org.smartcolors.core.ColorProof;
 import org.smartcolors.core.SmartColors;
+import org.smartcolors.marshal.BytesDeserializer;
 import org.smartcolors.marshal.SerializationException;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Collection;
@@ -46,15 +45,15 @@ import static com.google.common.base.Preconditions.checkState;
  */
 public class ClientColorScanner extends AbstractColorScanner {
 	private static final Logger log = LoggerFactory.getLogger(ClientColorScanner.class);
-	private static final TransactionOutPoint SENTINEL =
-			new TransactionOutPoint(NetworkParameters.fromID(NetworkParameters.ID_MAINNET), Long.MAX_VALUE, new Sha256Hash(new byte[32]));
+	private static final Transaction SENTINEL =
+			new Transaction(NetworkParameters.fromID(NetworkParameters.ID_MAINNET));
 	public static final int NETWORK_TIMEOUT = 10000;
 
 	private final Iterable<ClientColorTrack> clientTracks;
 	Fetcher fetcher;
-	final BlockingDeque<TransactionOutPoint> lookups;
+	final BlockingDeque<Transaction> lookups;
 	MyService service;
-	private URI baseUri;
+	private ColorKeyChain colorKeyChain;
 
 	public ClientColorScanner(NetworkParameters params, URI baseUri) {
 		super(params);
@@ -88,8 +87,13 @@ public class ClientColorScanner extends AbstractColorScanner {
 		this.fetcher = fetcher;
 	}
 
+	public void setColorKeyChain(ColorKeyChain colorKeyChain) {
+		this.colorKeyChain = colorKeyChain;
+	}
+
 	public void start() {
 		checkState(service == null, "already started service");
+		checkNotNull(colorKeyChain);
 		service = new MyService();
 		service.startAsync();
 	}
@@ -133,15 +137,10 @@ public class ClientColorScanner extends AbstractColorScanner {
 		lock.lock();
 		try {
 			List<TransactionOutput> walletOutputs = tx.getWalletOutputs(wallet);
+			// FIXME just colorKeyChain outputs
 			if (!walletOutputs.isEmpty()) {
 				pending.put(tx.getHash(), tx);
-			}
-			for (TransactionOutput output : walletOutputs) {
-				lookups.add(output.getOutPointFor());
-			}
-			if (!walletOutputs.isEmpty()) {
-				// Tell service to remove tx from pending
-				lookups.add(new TransactionOutPoint(params, Long.MAX_VALUE, tx.getHash()));
+				lookups.add(tx);
 			}
 		} finally {
    			lock.unlock();
@@ -151,19 +150,24 @@ public class ClientColorScanner extends AbstractColorScanner {
 
 	class MyService extends AbstractExecutionThreadService {
 		@Override
-		protected void run() throws Exception {
+		protected void run() throws InterruptedException {
 			while (isRunning()) {
-				TransactionOutPoint outPoint = lookups.take();
-				if (outPoint == SENTINEL)
+				Transaction tx = lookups.take();
+				if (tx == SENTINEL)
 					break;
-				// Check if this is a dummy outpoint that tells us this tx is all fetched
-				if (outPoint.getIndex() == Long.MAX_VALUE) {
-					doTransaction(outPoint);
-					continue;
-				}
 				// Put it back in case we fail
-				lookups.addFirst(outPoint);
-				doOutPoint(outPoint);
+				lookups.addFirst(tx);
+				for (TransactionOutput output : tx.getOutputs()) {
+					try {
+						if (colorKeyChain.isOutputToMe(output))
+							doOutPoint(output.getOutPointFor());
+					} catch (SerializationException e) {
+						log.error("serialization problem", e);
+					} catch (TemporaryFailureException e) {
+						log.warn("tempfail " + output);
+					}
+				}
+				doTransaction(tx);
 			}
 
 			// Remove any sentinel at end
@@ -172,33 +176,32 @@ public class ClientColorScanner extends AbstractColorScanner {
 			}
 		}
 
-		private void doOutPoint(TransactionOutPoint outPoint) throws SerializationException {
+		private void doOutPoint(TransactionOutPoint outPoint) throws SerializationException, TemporaryFailureException {
 			ColorProof proof = fetcher.fetch(outPoint);
-			if (proof != null) {
-				TransactionOutPoint first = lookups.removeFirst();
-				checkState(first == outPoint);
-				boolean found = false;
-				lock.lock();
-				try {
-					for (ClientColorTrack track : clientTracks) {
-						if (track.definition.equals(proof.getDefinition())) {
-							track.add(proof);
-							found = true;
-						}
+			if (proof == null)
+				return;
+			boolean found = false;
+			lock.lock();
+			try {
+				for (ClientColorTrack track : clientTracks) {
+					if (track.definition.equals(proof.getDefinition())) {
+						track.add(proof);
+						found = true;
 					}
-					if (!found) {
-						// TODO handle new asset type
-					}
-				} finally {
-					lock.unlock();
 				}
+				if (!found) {
+					// TODO handle new asset type
+				}
+			} finally {
+				lock.unlock();
 			}
 		}
 
-		private void doTransaction(TransactionOutPoint outPoint) {
+		private void doTransaction(Transaction tx) {
 			lock.lock();
 			try {
-				Transaction tx = pending.remove(outPoint.getHash());
+				pending.remove(tx.getHash());
+				checkState(tx == lookups.removeFirst());
 				Collection<SettableFuture<Transaction>> futures = unknownTransactionFutures.removeAll(tx);
 				if (futures != null) {
 					for (SettableFuture<Transaction> future : futures) {
@@ -214,6 +217,10 @@ public class ClientColorScanner extends AbstractColorScanner {
 		protected void triggerShutdown() {
 			lookups.add(SENTINEL);
 		}
+
+	}
+
+	private static class TemporaryFailureException extends Exception {
 	}
 
 	@JsonDeserialize(keyUsing = HexKeyDeserializer.class)
@@ -261,8 +268,9 @@ public class ClientColorScanner extends AbstractColorScanner {
 					.build();
 		}
 
-		public ColorProof fetch(TransactionOutPoint point) throws SerializationException {
+		public ColorProof fetch(TransactionOutPoint point) throws SerializationException, TemporaryFailureException {
 			String relative = "outpoint/" + point.getHash() + "/" + point.getIndex();
+			log.info("fetching " + relative);
 			HttpGet get = new HttpGet(base.resolve(relative));
 
 			CloseableHttpResponse response = null;
@@ -270,17 +278,20 @@ public class ClientColorScanner extends AbstractColorScanner {
 				response = httpclient.execute(get);
 				if (response.getStatusLine().getStatusCode() != 200) {
 					log.warn("got status " + response.getStatusLine());
-					return null;
+					throw new TemporaryFailureException();
 				}
 				OutPointResponse res = mapper.readValue(response.getEntity().getContent(), OutPointResponse.class);
-				if (!"OK".equals(res.status)) {
-					log.warn("got non-OK result " + res);
+				if ("NOT_COLORED".equals(res.status))
 					return null;
+				if ("NOT_FOUND".equals(res.status))
+					throw new TemporaryFailureException();
+				if (!"OK".equals(res.status)) {
+					log.warn("got unknown result " + res);
+					throw new TemporaryFailureException();
 				}
-				// FIXME handle permanent not-found
 				for (ProofMap map : res.colordefs.values()) {
 					for (byte[] bytes : map.values()) {
-						return ColorProof.deserializeFromFile(params, new ByteArrayInputStream(bytes));
+						return ColorProof.deserialize(params, new BytesDeserializer(bytes));
 					}
 				}
 			} catch (IOException e) {

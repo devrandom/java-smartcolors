@@ -36,7 +36,7 @@ public class SmartwalletExtension implements WalletExtension {
 	public static final String IDENTIFIER = "org.smartcolors";
 	private final ObjectMapper mapper;
 
-	protected SPVColorScanner scanner;
+	protected ColorScanner scanner;
 	protected ColorKeyChain colorKeyChain;
 
 	public SmartwalletExtension(NetworkParameters params) {
@@ -62,10 +62,29 @@ public class SmartwalletExtension implements WalletExtension {
 		return scannerProto.toByteArray();
 	}
 
-	Protos.ColorScanner serializeScanner(SPVColorScanner scanner) {
+	Protos.ColorScanner serializeScanner(ColorScanner scanner) {
+		if (scanner instanceof SPVColorScanner) {
+			return serializeSPV((SPVColorScanner) scanner);
+		} else {
+			return serializeClient((ClientColorScanner) scanner);
+		}
+	}
+
+	private Protos.ColorScanner serializeClient(ClientColorScanner scanner) {
 		Protos.ColorScanner.Builder scannerBuilder = Protos.ColorScanner.newBuilder();
 		for (ColorTrack proof : scanner.getColorTracks()) {
-			scannerBuilder.addProofs(serializeProof((SPVColorTrack)proof));
+			scannerBuilder.addTracks(serializeTrack((ClientColorTrack) proof));
+		}
+		for (Transaction transaction : scanner.getPending().values()) {
+			scannerBuilder.addPending(ByteString.copyFrom(transaction.bitcoinSerialize()));
+		}
+		return scannerBuilder.build();
+	}
+
+	private Protos.ColorScanner serializeSPV(SPVColorScanner scanner) {
+		Protos.ColorScanner.Builder scannerBuilder = Protos.ColorScanner.newBuilder();
+		for (ColorTrack proof : scanner.getColorTracks()) {
+			scannerBuilder.addTracks(serializeTrack((SPVColorTrack) proof));
 		}
 		for (Map.Entry<Sha256Hash, SortedTransaction> entry : scanner.getMapBlockTx().entries()) {
 			scannerBuilder.addBlockToTransaction(Protos.BlockToSortedTransaction.newBuilder()
@@ -80,34 +99,44 @@ public class SmartwalletExtension implements WalletExtension {
 		return scannerBuilder.build();
 	}
 
-	Protos.ColorTrack serializeProof(SPVColorTrack proof) {
-		Protos.ColorTrack.Builder proofBuilder = Protos.ColorTrack.newBuilder();
-		for (Map.Entry<TransactionOutPoint, Long> entry : proof.getOutputs().entrySet()) {
-			proofBuilder.addOutputs(Protos.OutPointValue.newBuilder()
+	Protos.ColorTrack serializeTrack(ClientColorTrack track) {
+		Protos.ColorTrack.Builder trackBuilder = Protos.ColorTrack.newBuilder();
+		serializeTrack(track, trackBuilder);
+		return trackBuilder.build();
+	}
+
+	Protos.ColorTrack serializeTrack(SPVColorTrack track) {
+		Protos.ColorTrack.Builder trackBuilder = Protos.ColorTrack.newBuilder();
+		serializeTrack(track, trackBuilder);
+		for (Map.Entry<TransactionOutPoint, Long> entry : track.getUnspentOutputs().entrySet()) {
+			trackBuilder.addUnspentOutputs(Protos.OutPointValue.newBuilder()
 					.setHash(getHash(entry.getKey().getHash()))
 					.setIndex(entry.getKey().getIndex())
 					.setValue(entry.getValue()));
 		}
-		for (Map.Entry<TransactionOutPoint, Long> entry : proof.getUnspentOutputs().entrySet()) {
-			proofBuilder.addUnspentOutputs(Protos.OutPointValue.newBuilder()
-					.setHash(getHash(entry.getKey().getHash()))
-					.setIndex(entry.getKey().getIndex())
-					.setValue(entry.getValue()));
-		}
-		for (SortedTransaction tx : proof.getTxs()) {
-			proofBuilder.addTxs(Protos.SortedTransaction.newBuilder()
+		for (SortedTransaction tx : track.getTxs()) {
+			trackBuilder.addTxs(Protos.SortedTransaction.newBuilder()
 					.setIndex(tx.index)
 					.setTransaction(ByteString.copyFrom(tx.tx.bitcoinSerialize())));
 		}
+		return trackBuilder.build();
+	}
+
+	private void serializeTrack(ColorTrack track, Protos.ColorTrack.Builder trackBuilder) {
+		for (Map.Entry<TransactionOutPoint, Long> entry : track.getOutputs().entrySet()) {
+			trackBuilder.addOutputs(Protos.OutPointValue.newBuilder()
+					.setHash(getHash(entry.getKey().getHash()))
+					.setIndex(entry.getKey().getIndex())
+					.setValue(entry.getValue()));
+		}
 		try {
-			proofBuilder.setColorDefinition(Protos.ColorDefinition.newBuilder()
-					.setHash(getHash(proof.getDefinition().getHash()))
-					.setJson(mapper.writeValueAsString(proof.getDefinition()))
+			trackBuilder.setColorDefinition(Protos.ColorDefinition.newBuilder()
+							.setHash(getHash(track.getDefinition().getHash()))
+							.setJson(mapper.writeValueAsString(track.getDefinition()))
 			);
 		} catch (JsonProcessingException e) {
 			Throwables.propagate(e);
 		}
-		return proofBuilder.build();
 	}
 
 	private static ByteString getHash(HashCode hash) {
@@ -124,7 +153,17 @@ public class SmartwalletExtension implements WalletExtension {
 		deserializeScanner(wallet.getParams(), proto, scanner);
 	}
 
-	void deserializeScanner(NetworkParameters params, Protos.ColorScanner proto, SPVColorScanner scanner) {
+	private void deserializeScanner(NetworkParameters params, Protos.ColorScanner proto, ColorScanner scanner) {
+		if (scanner instanceof SPVColorScanner) {
+			deserializeScannerSPV(params, proto, (SPVColorScanner) scanner);
+		} else if (scanner instanceof ClientColorScanner) {
+			deserializeScannerClient(params, proto, (ClientColorScanner) scanner);
+		} else {
+			throw new UnsupportedOperationException("unknown scanner type");
+		}
+	}
+
+	void deserializeScannerSPV(NetworkParameters params, Protos.ColorScanner proto, SPVColorScanner scanner) {
 		SetMultimap<Sha256Hash, SortedTransaction> mapBlockTx = TreeMultimap.create();
 		for (Protos.BlockToSortedTransaction bstxp : proto.getBlockToTransactionList()) {
 			Transaction transaction = new Transaction(params, bstxp.getTransaction().getTransaction().toByteArray());
@@ -141,7 +180,42 @@ public class SmartwalletExtension implements WalletExtension {
 		}
 		scanner.setPending(pending);
 
-		for (Protos.ColorTrack proofp : proto.getProofsList()) {
+		for (Protos.ColorTrack trackp : proto.getTracksList()) {
+			HashCode hash = getHash(trackp.getColorDefinition().getHash());
+			ColorTrack proof = scanner.getColorTrackByHash(hash);
+			if (proof == null) {
+				String json = trackp.getColorDefinition().getJson();
+				if (json != null) {
+					ColorDefinition def;
+					try {
+						def = mapper.readValue(json, ColorDefinition.TYPE_REFERENCE);
+					} catch (IOException e) {
+						throw Throwables.propagate(e);
+					}
+					try {
+						scanner.addDefinition(def);
+					} catch (AbstractColorScanner.ColorDefinitionException e) {
+						Throwables.propagate(e);
+					}
+					proof = scanner.getColorTrackByDefinition(def);
+				} else {
+					log.warn("Could not find color track {} for deserializing", hash);
+					continue;
+				}
+			}
+			deserializeProofSPV(params, trackp, (SPVColorTrack)proof);
+		}
+	}
+
+	void deserializeScannerClient(NetworkParameters params, Protos.ColorScanner proto, ClientColorScanner scanner) {
+		Map<Sha256Hash,Transaction> pending = Maps.newHashMap();
+		for (ByteString bytes : proto.getPendingList()) {
+			Transaction tx = new Transaction(params, bytes.toByteArray());
+			pending.put(tx.getHash(), tx);
+		}
+		scanner.setPending(pending);
+
+		for (Protos.ColorTrack proofp : proto.getTracksList()) {
 			HashCode hash = getHash(proofp.getColorDefinition().getHash());
 			ColorTrack proof = scanner.getColorTrackByHash(hash);
 			if (proof == null) {
@@ -164,31 +238,38 @@ public class SmartwalletExtension implements WalletExtension {
 					continue;
 				}
 			}
-			deserializeProof(params, proofp, proof);
+			deserializeTrackClient(params, proofp, (ClientColorTrack) proof);
 		}
 	}
 
-	static void deserializeProof(NetworkParameters params, Protos.ColorTrack proofp, ColorTrack _proof) {
-		Map<TransactionOutPoint, Long> outputs = Maps.newHashMap();
+	static void deserializeProofSPV(NetworkParameters params, Protos.ColorTrack proofp, SPVColorTrack proof) {
+		deserializeTrack(params, proofp, proof);
 		Map<TransactionOutPoint, Long> unspentOutputs = Maps.newHashMap();
-		TreeSet<SortedTransaction> txs = Sets.newTreeSet();
-		for (Protos.OutPointValue outp : proofp.getOutputsList()) {
-			TransactionOutPoint out = new TransactionOutPoint(params, outp.getIndex(), getSha256Hash(outp.getHash()));
-			outputs.put(out, outp.getValue());
-		}
 		for (Protos.OutPointValue outp : proofp.getUnspentOutputsList()) {
 			TransactionOutPoint out = new TransactionOutPoint(params, outp.getIndex(), getSha256Hash(outp.getHash()));
 			unspentOutputs.put(out, outp.getValue());
 		}
+		proof.setUnspentOutputs(unspentOutputs);
+		TreeSet<SortedTransaction> txs = Sets.newTreeSet();
 		for (Protos.SortedTransaction stxp : proofp.getTxsList()) {
 			Transaction transaction = new Transaction(params, stxp.getTransaction().toByteArray());
 			SortedTransaction tx = new SortedTransaction(transaction, stxp.getIndex());
 			txs.add(tx);
 		}
-		SPVColorTrack proof = (SPVColorTrack) _proof;
-		proof.setOutputs(outputs);
-		proof.setUnspentOutputs(unspentOutputs);
 		proof.setTxs(txs);
+	}
+
+	private static void deserializeTrack(NetworkParameters params, Protos.ColorTrack proofp, ColorTrack proof) {
+		Map<TransactionOutPoint, Long> outputs = Maps.newHashMap();
+		for (Protos.OutPointValue outp : proofp.getOutputsList()) {
+			TransactionOutPoint out = new TransactionOutPoint(params, outp.getIndex(), getSha256Hash(outp.getHash()));
+			outputs.put(out, outp.getValue());
+		}
+		proof.setOutputs(outputs);
+	}
+
+	static void deserializeTrackClient(NetworkParameters params, Protos.ColorTrack proofp, ClientColorTrack proof) {
+		deserializeTrack(params, proofp, proof);
 	}
 
 	static private Sha256Hash getSha256Hash(ByteString hash) {
@@ -199,7 +280,7 @@ public class SmartwalletExtension implements WalletExtension {
 		return HashCode.fromBytes(hash.toByteArray());
 	}
 
-	public void setScanner(SPVColorScanner scanner) {
+	public void setScanner(ColorScanner scanner) {
 		checkNotNull(scanner);
 		this.scanner = scanner;
 	}

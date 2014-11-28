@@ -138,7 +138,7 @@ public class SPVColorTrackTest {
 		track.add(tx4);
 
 		SmartwalletExtension ext = new SmartwalletExtension(params);
-		Protos.ColorTrack proofProto = ext.serializeProof(track);
+		Protos.ColorTrack proofProto = ext.serializeTrack(track);
 		SPVColorTrack proof1 = new SPVColorTrack(def);
 		final Map<Sha256Hash, Transaction> txs = Maps.newHashMap();
 		txs.put(genesisTx.getHash(), genesisTx);
@@ -152,12 +152,12 @@ public class SPVColorTrackTest {
 				return txs.get(hash);
 			}
 		};
-		SmartwalletExtension.deserializeProof(params, proofProto, proof1);
+		SmartwalletExtension.deserializeProofSPV(params, proofProto, proof1);
 		assertEquals(track.getStateHash(), proof1.getStateHash());
 		track.undoLast();
-		Protos.ColorTrack proofProto2 = ext.serializeProof(track);
+		Protos.ColorTrack proofProto2 = ext.serializeTrack(track);
 		SPVColorTrack proof2 = new SPVColorTrack(def);
-		SmartwalletExtension.deserializeProof(params, proofProto2, proof2);
+		SmartwalletExtension.deserializeProofSPV(params, proofProto2, proof2);
 		assertEquals(track.getStateHash(), proof2.getStateHash());
 	}
 

@@ -86,6 +86,7 @@ public abstract class AbstractColorScanner implements ColorScanner {
 
 	protected abstract ColorTrack makeTrack(ColorDefinition definition);
 
+	@Override
 	public ColorDefinition getColorDefinitionByHash(Sha256Hash hash) {
 		for (ColorDefinition def: getDefinitions()) {
 			if (def.getHash().equals(hash))
@@ -94,6 +95,7 @@ public abstract class AbstractColorScanner implements ColorScanner {
 		return null;
 	}
 
+	@Override
 	public ColorTrack getColorTrackByHash(HashCode hash) {
 		for (ColorTrack track: tracks) {
 			if (track.getDefinition().getHash().equals(hash))
@@ -102,6 +104,7 @@ public abstract class AbstractColorScanner implements ColorScanner {
 		return null;
 	}
 
+	@Override
 	public ColorTrack getColorTrackByDefinition(ColorDefinition def) {
 		for (ColorTrack track: tracks) {
 			if (track.getDefinition().equals(def))
@@ -310,6 +313,7 @@ public abstract class AbstractColorScanner implements ColorScanner {
 	}
 
 	/** Call this after deserializing the wallet with any wallet pending transactions */
+	@Override
 	public void addAllPending(Wallet wallet, Collection<Transaction> txs) {
 		for (Transaction tx : txs) {
 			pending.put(tx.getHash(), tx);
@@ -318,6 +322,10 @@ public abstract class AbstractColorScanner implements ColorScanner {
 
 	void setPending(Map<Sha256Hash, Transaction> pending) {
 		this.pending = pending;
+	}
+
+	public Set<? extends ColorTrack> getColorTracks() {
+		return tracks;
 	}
 
 	protected abstract void doReset();

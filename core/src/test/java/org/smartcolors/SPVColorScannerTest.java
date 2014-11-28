@@ -140,7 +140,7 @@ public class SPVColorScannerTest extends ColorTest {
 		SPVColorScanner scanner1 = new SPVColorScanner(params);
 		scanner1.addDefinition(def);
 		Protos.ColorScanner proto = ext.serializeScanner(scanner);
-		ext.deserializeScanner(params, proto, scanner1);
+		ext.deserializeScannerSPV(params, proto, scanner1);
 		assertEquals(scanner.getMapBlockTx(), scanner1.getMapBlockTx());
 		assertEquals("9ba0c8df6d37c0dba260ee0510e68cb41d2d0b19396621757522e5cc270dddb8",
 				scanner.getColorTrackByDefinition(def).getStateHash().toString());
@@ -209,7 +209,7 @@ public class SPVColorScannerTest extends ColorTest {
 		scanner.addPending(tx2);
 		Protos.ColorScanner scannerProto = ext.serializeScanner(scanner);
 		SPVColorScanner scanner1 = new SPVColorScanner(params);
-		ext.deserializeScanner(params, scannerProto, scanner1);
+		ext.deserializeScannerSPV(params, scannerProto, scanner1);
 		assertEquals(tx2.getHash(), scanner1.getPending().keySet().iterator().next());
 	}
 }

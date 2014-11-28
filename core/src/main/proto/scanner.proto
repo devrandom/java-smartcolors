@@ -43,6 +43,6 @@ message ColorTrack {
 
 message ColorScanner {
     repeated BlockToSortedTransaction block_to_transaction = 1;
-    repeated ColorTrack proofs = 2;
+    repeated ColorTrack tracks = 2;
     repeated bytes pending = 3;
 }

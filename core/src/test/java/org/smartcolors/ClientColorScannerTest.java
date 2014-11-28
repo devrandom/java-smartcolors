@@ -16,7 +16,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.smartcolors.core.ColorDefinition;
 import org.smartcolors.core.ColorProof;
-import org.smartcolors.marshal.SerializationException;
 
 import java.net.URI;
 import java.security.SecureRandom;
@@ -153,7 +152,7 @@ public class ClientColorScannerTest extends ColorTest {
 					System.out.println("start");
 					ColorProof res = fetcher.fetch(genesisTx.getOutput(0).getOutPointFor());
 					System.out.println("stop " + res);
-				} catch (SerializationException e) {
+				} catch (Exception e) {
 					System.out.println(e);
 					Throwables.propagate(e);
 				}

@@ -34,7 +34,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.Nullable;
@@ -295,10 +294,6 @@ public class SPVColorScanner extends AbstractColorScanner implements PeerFilterP
 
 	SetMultimap<Sha256Hash, SortedTransaction> getMapBlockTx() {
 		return mapBlockTx;
-	}
-
-	public Set<? extends ColorTrack> getColorTracks() {
-		return tracks;
 	}
 
 	@Override
