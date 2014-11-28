@@ -492,11 +492,11 @@ public class ColorTool {
 	private static void scan(List<?> cmdArgs) {
 		syncChain();
 		checkState(wallet.isConsistent());
-		Utils.sleep(5*1000);
+		Utils.sleep(1*1000);
 		if (options.has("verbose")) {
 			dumpState();
 		}
-		Utils.sleep(6000*1000);
+		Utils.sleep(1*1000);
 		System.exit(0);
 	}
 

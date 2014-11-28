@@ -56,6 +56,7 @@ public class ClientColorScannerTest extends ColorTest {
 				return false;
 			}
 		};
+		scanner.setColorKeyChain(colorChain);
 	}
 
 	@Test
@@ -111,6 +112,8 @@ public class ClientColorScannerTest extends ColorTest {
 				return proof;
 			}
 		});
+		fetcher.stop();
+		expectLastCall();
 		replay(fetcher, proof);
 		scanner.onReceive(wallet, tx2);
 		barrier.await();
@@ -118,8 +121,8 @@ public class ClientColorScannerTest extends ColorTest {
 		ListenableFuture<Transaction> future = scanner.getTransactionWithKnownAssets(tx2, wallet, colorChain);
 		Transaction ftx = future.get();
 		assertEquals(tx2, ftx);
-		verify(fetcher, proof);
 		scanner.stop();
+		verify(fetcher, proof);
 		assertTrue(scanner.pending.isEmpty());
 		assertTrue(track.proofs.containsKey(proof.getHash()));
 		future = scanner.getTransactionWithKnownAssets(tx2, wallet, colorChain);

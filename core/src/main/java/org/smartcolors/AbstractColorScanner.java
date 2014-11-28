@@ -31,9 +31,9 @@ import javax.annotation.concurrent.GuardedBy;
 /**
  * Created by devrandom on 2014-Nov-23.
  */
-public abstract class AbstractColorScanner implements ColorScanner {
+public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements ColorScanner {
 	protected final NetworkParameters params;
-	protected Set<ColorTrack> tracks = Sets.newHashSet();
+	protected Set<TRACK> tracks = Sets.newHashSet();
 	protected final ColorDefinition unknownDefinition;
 	protected final ColorDefinition bitcoinDefinition;
 	// General lock.  Wallet lock is internally obtained first for any wallet related work.
@@ -84,10 +84,10 @@ public abstract class AbstractColorScanner implements ColorScanner {
 		pending.put(t.getHash(), t);
 	}
 
-	protected abstract ColorTrack makeTrack(ColorDefinition definition);
+	protected abstract TRACK makeTrack(ColorDefinition definition);
 
 	@Override
-	public ColorDefinition getColorDefinitionByHash(Sha256Hash hash) {
+	public ColorDefinition getColorDefinitionByHash(HashCode hash) {
 		for (ColorDefinition def: getDefinitions()) {
 			if (def.getHash().equals(hash))
 				return def;
@@ -210,24 +210,6 @@ public abstract class AbstractColorScanner implements ColorScanner {
 		if (tx == null)
 			return null;
 		return tx.getOutputs().get((int) outpoint.getIndex());
-	}
-
-	public class ColorDefinitionException extends Exception {
-		public ColorDefinitionException(String s) {
-			super(s);
-		}
-	}
-
-	public class ColorDefinitionOutdated extends ColorDefinitionException {
-		public ColorDefinitionOutdated() {
-			super("Trying to replace an existing definition with an older one.");
-		}
-	}
-
-	public class ColorDefinitionExists extends ColorDefinitionException {
-		public ColorDefinitionExists() {
-			super("Trying to replace an existing definition.");
-		}
 	}
 
 	@Override

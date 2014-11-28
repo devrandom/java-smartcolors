@@ -31,23 +31,23 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
  * Created by devrandom on 2014-Nov-23.
  */
-public class ClientColorScanner extends AbstractColorScanner {
+public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 	private static final Logger log = LoggerFactory.getLogger(ClientColorScanner.class);
 	private static final Transaction SENTINEL =
 			new Transaction(NetworkParameters.fromID(NetworkParameters.ID_MAINNET));
 	public static final int NETWORK_TIMEOUT = 10000;
 
-	private final Iterable<ClientColorTrack> clientTracks;
 	Fetcher fetcher;
 	private ColorKeyChain colorKeyChain;
 	private ScheduledExecutorService retryService;
@@ -56,28 +56,6 @@ public class ClientColorScanner extends AbstractColorScanner {
 	public ClientColorScanner(NetworkParameters params, URI baseUri) {
 		super(params);
 		fetcher = new Fetcher(baseUri, params);
-		clientTracks = new Iterable<ClientColorTrack>() {
-			@Override
-			public Iterator<ClientColorTrack> iterator() {
-				final Iterator iter = tracks.iterator();
-				return new Iterator<ClientColorTrack>() {
-					@Override
-					public boolean hasNext() {
-						return iter.hasNext();
-					}
-
-					@Override
-					public ClientColorTrack next() {
-						return (ClientColorTrack) iter.next();
-					}
-
-					@Override
-					public void remove() {
-						iter.remove();
-					}
-				};
-			}
-		};
 		retryService = makeRetryService();
 	}
 
@@ -100,7 +78,7 @@ public class ClientColorScanner extends AbstractColorScanner {
 	}
 
 	@Override
-	protected ColorTrack makeTrack(ColorDefinition definition) {
+	protected ClientColorTrack makeTrack(ColorDefinition definition) {
 		return new ClientColorTrack(definition);
 	}
 
@@ -120,13 +98,13 @@ public class ClientColorScanner extends AbstractColorScanner {
 	}
 
 	public void addAllPending(Wallet wallet, Collection<Transaction> txs) {
-		super.addAllPending(wallet, txs);
 		for (Transaction tx : txs) {
 			onReceive(wallet, tx);
 		}
 	}
 
 	void onReceive(Wallet wallet, Transaction tx) {
+		checkNotNull(colorKeyChain);
 		wallet.beginBloomFilterCalculation();
 		lock.lock();
 		try {
@@ -137,7 +115,7 @@ public class ClientColorScanner extends AbstractColorScanner {
 				retryService.schedule(new Lookup(tx), 0, TimeUnit.SECONDS);
 			}
 		} finally {
-   			lock.unlock();
+			lock.unlock();
 			wallet.endBloomFilterCalculation();
 		}
 	}
@@ -182,7 +160,7 @@ public class ClientColorScanner extends AbstractColorScanner {
 			boolean found = false;
 			lock.lock();
 			try {
-				for (ClientColorTrack track : clientTracks) {
+				for (ClientColorTrack track : tracks) {
 					if (track.definition.equals(proof.getDefinition())) {
 						track.add(proof);
 						found = true;
@@ -255,15 +233,14 @@ public class ClientColorScanner extends AbstractColorScanner {
 					.setConnectTimeout(NETWORK_TIMEOUT)
 					.setSocketTimeout(NETWORK_TIMEOUT)
 					.build();
-			httpclient =  HttpClients.custom()
+			httpclient = HttpClients.custom()
 					.setUserAgent("SmartColors-java-" + SmartColors.getVersion())
 					.setDefaultRequestConfig(config)
 					.build();
 		}
 
 		public ColorProof fetch(TransactionOutPoint point) throws SerializationException, TemporaryFailureException {
-			//String relative = "outpoint/" + point.getHash() + "/" + point.getIndex();
-			String relative = "outpoint/" + "0123456789012345678901234567890123456789012345678901234567890000" + "/" + point.getIndex();
+			String relative = "outpoint/" + point.getHash() + "/" + point.getIndex();
 			log.info("fetching " + relative);
 			HttpGet get = new HttpGet(base.resolve(relative));
 

@@ -32,7 +32,6 @@ import org.smartcolors.core.SmartColors;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -48,11 +47,10 @@ import javax.annotation.concurrent.GuardedBy;
  * gets into a block.
  * </p>
  */
-public class SPVColorScanner extends AbstractColorScanner implements PeerFilterProvider, BlockChainListener {
+public class SPVColorScanner extends AbstractColorScanner<SPVColorTrack> implements PeerFilterProvider, BlockChainListener {
 	private static final Logger log = LoggerFactory.getLogger(SPVColorScanner.class);
 
 	private final AbstractPeerEventListener peerEventListener;
-	private final Iterable<SPVColorTrack> spvTracks;
 
 	// Lock for bloom filter recalc.  General lock is obtained internally after FilterMerger obtains
 	// this lock and the wallet lock (in any order).
@@ -72,28 +70,6 @@ public class SPVColorScanner extends AbstractColorScanner implements PeerFilterP
 			public void onPeerConnected(Peer peer, int peerCount) {
 				log.info("Peer connected {}", peer);
 				peer.addEventListener(this);
-			}
-		};
-		spvTracks = new Iterable<SPVColorTrack>() {
-			@Override
-			public Iterator<SPVColorTrack> iterator() {
-				final Iterator iter = tracks.iterator();
-				return new Iterator<SPVColorTrack>() {
-					@Override
-					public boolean hasNext() {
-						return iter.hasNext();
-					}
-
-					@Override
-					public SPVColorTrack next() {
-						return (SPVColorTrack) iter.next();
-					}
-
-					@Override
-					public void remove() {
-						iter.remove();
-					}
-				};
 			}
 		};
 	}
@@ -136,7 +112,7 @@ public class SPVColorScanner extends AbstractColorScanner implements PeerFilterP
 	private void doReorganize(List<StoredBlock> oldBlocks, List<StoredBlock> newBlocks) {
 		log.info("reorganize {} -> {}", newBlocks.size(), oldBlocks.size());
 		// Remove transactions from old blocks
-		for (SPVColorTrack track : spvTracks) {
+		for (SPVColorTrack track : tracks) {
 			blocks:
 			for (StoredBlock block : oldBlocks) {
 				for (SortedTransaction tx : mapBlockTx.get(block.getHeader().getHash())) {
@@ -151,7 +127,7 @@ public class SPVColorScanner extends AbstractColorScanner implements PeerFilterP
 		}
 
 		// Add transactions from new blocks
-		for (SPVColorTrack track : spvTracks) {
+		for (SPVColorTrack track : tracks) {
 			for (StoredBlock block : newBlocks) {
 				for (SortedTransaction tx : mapBlockTx.get(block.getHeader().getHash())) {
 					if (track.isTransactionRelevant(tx.tx)) {
@@ -180,7 +156,7 @@ public class SPVColorScanner extends AbstractColorScanner implements PeerFilterP
 			log.info("receive {} {}", tx, relativityOffset);
 			mapBlockTx.put(block.getHeader().getHash(), new SortedTransaction(tx, relativityOffset));
 			if (blockType == AbstractBlockChain.NewBlockType.BEST_CHAIN) {
-				for (SPVColorTrack track : spvTracks) {
+				for (SPVColorTrack track : tracks) {
 					if (track.isTransactionRelevant(tx)) {
 						track.add(tx);
 					}
@@ -209,7 +185,7 @@ public class SPVColorScanner extends AbstractColorScanner implements PeerFilterP
 		}
 
 		// Try some more while our genesis points don't have OP_RETURN
-		for (SPVColorTrack track : spvTracks) {
+		for (SPVColorTrack track : tracks) {
 			if (track.isTransactionRelevant(tx)) {
 				return true;
 			}
@@ -236,7 +212,7 @@ public class SPVColorScanner extends AbstractColorScanner implements PeerFilterP
 		lock.lock();
 		try {
 			long creationTime = Long.MAX_VALUE;
-			for (SPVColorTrack track : spvTracks) {
+			for (SPVColorTrack track : tracks) {
 				creationTime = Math.min(creationTime, track.getCreationTime() + SmartColors.EARLIEST_FUDGE);
 			}
 			return creationTime;
@@ -260,7 +236,7 @@ public class SPVColorScanner extends AbstractColorScanner implements PeerFilterP
 		int count = 0;
 		lock.lock();
 		try {
-			for (SPVColorTrack track : spvTracks) {
+			for (SPVColorTrack track : tracks) {
 				count += track.getBloomFilterElementCount();
 			}
 		} finally {
@@ -274,7 +250,7 @@ public class SPVColorScanner extends AbstractColorScanner implements PeerFilterP
 		BloomFilter filter = new BloomFilter(size, falsePositiveRate, nTweak);
 		lock.lock();
 		try {
-			for (SPVColorTrack track : spvTracks) {
+			for (SPVColorTrack track : tracks) {
 				track.updateBloomFilter(filter);
 			}
 		} finally {
