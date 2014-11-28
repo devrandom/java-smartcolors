@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.Objects;
+import com.google.common.collect.Lists;
 import com.google.common.hash.HashCode;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -18,9 +19,12 @@ import org.bitcoinj.core.AbstractWalletEventListener;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionConfidence;
+import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.Wallet;
+import org.bitcoinj.utils.Threading;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.smartcolors.core.ColorDefinition;
@@ -62,7 +66,11 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 		fetchService = makeFetchService();
 	}
 
-	private final ThreadFactory fetcherThreadFactory = new ThreadFactoryBuilder()
+	public void setFetchService(ScheduledExecutorService fetchService) {
+		this.fetchService = fetchService;
+	}
+
+	private static final ThreadFactory fetcherThreadFactory = new ThreadFactoryBuilder()
 			.setDaemon(true)
 			.setNameFormat("Fetcher thread %d")
 			.setPriority(Thread.MIN_PRIORITY)
@@ -103,7 +111,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 			public void onTransactionConfidenceChanged(Wallet wallet, Transaction tx) {
 				super.onTransactionConfidenceChanged(wallet, tx);
 			}
-		});
+		}, Threading.SAME_THREAD);
 	}
 
 	public void addAllPending(Wallet wallet, Collection<Transaction> txs) {
@@ -121,7 +129,10 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 			boolean needsLookup = false;
 			for (TransactionOutput output : walletOutputs) {
 				if (colorKeyChain.isOutputToMe(output) && !contains(output.getOutPointFor())) {
-					needsLookup = true;
+					if (!tryLocalLookup(tx, false)) {
+						needsLookup = true;
+						break;
+					}
 				}
 			}
 			if (needsLookup) {
@@ -134,6 +145,28 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 		}
 	}
 
+	// True iff we can derive the color output information from the inputs
+	private boolean tryLocalLookup(Transaction tx, boolean overrideFound) {
+		List<ClientColorTrack> found = Lists.newArrayList();
+		// Find all colors that know about inputs
+		for (TransactionInput input : tx.getInputs()) {
+			boolean isFound = false;
+			for (ClientColorTrack track : tracks) {
+				if (track.isColored(input.getOutpoint())) {
+					found.add(track);
+					isFound = true;
+				}
+			}
+			// FIXME uncolored bitcoin inputs will always result in !isFound
+			if (!overrideFound && !isFound)
+				return false;
+		}
+		for (ClientColorTrack track : found) {
+			track.add(tx);
+		}
+		return true;
+	}
+
 	class Lookup implements Runnable {
 		private final Transaction tx;
 		private int tries = 0;
@@ -144,21 +177,39 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 
 		@Override
 		public void run() {
-			for (TransactionOutput output : tx.getOutputs()) {
-				try {
-					if (colorKeyChain.isOutputToMe(output) && !contains(output.getOutPointFor()))
-						doOutPoint(output.getOutPointFor());
-				} catch (SerializationException e) {
-					log.error("serialization problem", e);
-					retry();
-					return;
-				} catch (TemporaryFailureException e) {
-					log.warn("tempfail " + output);
-					retry();
-					return;
+			if (tx.getConfidence().getConfidenceType().equals(TransactionConfidence.ConfidenceType.BUILDING)) {
+				for (TransactionOutput output : tx.getOutputs()) {
+					TransactionOutPoint point = output.getOutPointFor();
+					if (colorKeyChain.isOutputToMe(output)) {
+						if (handleOutpoint(point)) return;
+					}
 				}
+			} else {
+				// Unconfirmed transaction
+				// Lookup all inputs, and derive color from that
+				for (TransactionInput input : tx.getInputs()) {
+					if (handleOutpoint(input.getOutpoint())) return;
+				}
+				tryLocalLookup(tx, true);
 			}
-			doTransaction(tx);
+			notifyTransactionDone(tx);
+		}
+
+		// True if retry initiated
+		private boolean handleOutpoint(TransactionOutPoint point) {
+			try {
+				if (!contains(point))
+					doOutPoint(point);
+			} catch (SerializationException e) {
+				log.error("serialization problem", e);
+				retry();
+				return true;
+			} catch (TemporaryFailureException e) {
+				log.warn("tempfail " + point);
+				retry();
+				return true;
+			}
+			return false;
 		}
 
 		private void retry() {
@@ -188,7 +239,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 			}
 		}
 
-		private void doTransaction(Transaction tx) {
+		private void notifyTransactionDone(Transaction tx) {
 			lock.lock();
 			try {
 				pending.remove(tx.getHash());

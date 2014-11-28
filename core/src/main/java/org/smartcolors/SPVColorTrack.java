@@ -77,6 +77,7 @@ public class SPVColorTrack extends ColorTrack {
 	 * <p>Assumes transactions are provided in topological order, i.e. all of the relevant input
 	 * transactions are added before the transaction itself.</p>
 	 */
+	@Override
 	public void add(Transaction tx) {
 		int numOutputs = tx.getOutputs().size();
 		// Check that the tx is being added in topological order - i.e. that none of its outputs

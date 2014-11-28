@@ -48,6 +48,15 @@ public abstract class ColorTrack {
 		return definition.applyKernel(tx, colorIn);
 	}
 
+	public void add(Transaction tx) {
+		Long[] colorOuts = applyKernel(tx);
+		for (int i = 0; i < tx.getOutputs().size(); i++) {
+			if (colorOuts[i] != null) {
+				outputs.put(tx.getOutput(i).getOutPointFor(), colorOuts[i]);
+			}
+		}
+	}
+
 	public Map<TransactionOutPoint, Long> getOutputs() {
 		return outputs;
 	}

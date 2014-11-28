@@ -2,6 +2,7 @@ package org.smartcolors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.hash.HashCode;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -42,6 +43,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ScheduledExecutorService;
 
 import static junit.framework.Assert.fail;
 import static org.easymock.EasyMock.anyObject;
@@ -127,8 +129,8 @@ public class ClientColorScannerTest extends ColorTest {
 		expectLastCall();
 		scanner.setFetcher(fetcher);
 
-		final CyclicBarrier barrier = new CyclicBarrier(2);
 		final TransactionOutPoint point = tx2.getOutput(0).getOutPointFor();
+		final CyclicBarrier barrier = new CyclicBarrier(2);
 		expect(fetcher.fetch(point)).andStubAnswer(new IAnswer<ColorProof>() {
 			@Override
 			public ColorProof answer() throws Throwable {
@@ -139,9 +141,9 @@ public class ClientColorScannerTest extends ColorTest {
 		fetcher.stop();
 		expectLastCall();
 		replay(fetcher, proof);
+		wallet.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
 		scanner.onReceive(wallet, tx2);
 		barrier.await();
-		Utils.sleep(100);
 		ListenableFuture<Transaction> future = scanner.getTransactionWithKnownAssets(tx2, wallet, colorChain);
 		Transaction ftx = future.get();
 		assertEquals(tx2, ftx);
@@ -154,7 +156,6 @@ public class ClientColorScannerTest extends ColorTest {
 		Map<ColorDefinition, Long> change = scanner.getNetAssetChange(tx2, wallet, colorChain);
 		assertEquals(1, change.size());
 		assertEquals(10L, (long)change.get(def));
-		wallet.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
 		Transaction tx3 = new Transaction(params);
 		tx3.addOutput(Coin.CENT, wallet.currentKey(KeyChain.KeyPurpose.RECEIVE_FUNDS));
 		wallet.receiveFromBlock(tx3, FakeTxBuilder.createFakeBlock(blockStore, tx3).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
@@ -202,6 +203,68 @@ public class ClientColorScannerTest extends ColorTest {
 		ext.deserializeScannerClient(params, proto, scanner1);
 		res = scanner1.getNetAssetChange(tx3, wallet, colorChain);
 		assertEquals(expected, res);
+	}
+
+	@Test
+	public void testGetNetAssetChangeUnconfirmed() throws Exception {
+		scanner.listenToWallet(wallet);
+		ScheduledExecutorService fetchService = createMock(ScheduledExecutorService.class);
+		scanner.setFetchService(fetchService);
+		GenesisOutPointColorProof genesisProof = new GenesisOutPointColorProof(def, genesisTx.getOutput(0).getOutPointFor());
+		proofs.put(genesisTx.getOutput(0).getOutPointFor(), genesisProof);
+		track.add(genesisProof);
+
+		replay(fetchService);
+
+		Transaction tx2 = makeTx2(colorKey);
+		TransferColorProof tx2Proof = new TransferColorProof(def, tx2, 0, Maps.newHashMap(proofs));
+		proofs.put(tx2.getOutput(0).getOutPointFor(), tx2Proof);
+		wallet.receivePending(tx2, Lists.<Transaction>newArrayList());
+		Map<ColorDefinition, Long> expected = Maps.newHashMap();
+		Map<ColorDefinition, Long> res = scanner.getNetAssetChange(tx2, wallet, colorChain);
+		expected.put(def, 5L);
+		assertEquals(expected, res);
+		verify(fetchService);
+
+		wallet.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
+		res = scanner.getNetAssetChange(tx2, wallet, colorChain);
+		expected.put(def, 5L);
+	}
+
+	@Test
+	public void testGetNetAssetChangeUnconfirmedWithUnknownDependency() throws Exception {
+		scanner.listenToWallet(wallet);
+		ClientColorScanner.Fetcher fetcher = createMock(ClientColorScanner.Fetcher.class);
+		scanner.setFetcher(fetcher);
+		TransactionOutPoint point = genesisTx.getOutput(0).getOutPointFor();
+		final GenesisOutPointColorProof genesisProof = new GenesisOutPointColorProof(def, point);
+		proofs.put(point, genesisProof);
+		// We don't put the genesis in the track so that we get a fetch for it
+
+		final CyclicBarrier barrier = new CyclicBarrier(2);
+		expect(fetcher.fetch(point)).andStubAnswer(new IAnswer<ColorProof>() {
+			@Override
+			public ColorProof answer() throws Throwable {
+				barrier.await();
+				return genesisProof;
+			}
+		});
+		replay(fetcher);
+
+		Transaction tx2 = makeTx2(colorKey);
+		TransferColorProof tx2Proof = new TransferColorProof(def, tx2, 0, Maps.newHashMap(proofs));
+		proofs.put(tx2.getOutput(0).getOutPointFor(), tx2Proof);
+		wallet.receivePending(tx2, Lists.<Transaction>newArrayList());
+		barrier.await();
+		Map<ColorDefinition, Long> expected = Maps.newHashMap();
+		Map<ColorDefinition, Long> res = scanner.getNetAssetChange(tx2, wallet, colorChain);
+		expected.put(def, 5L);
+		assertEquals(expected, res);
+		verify(fetcher);
+
+		wallet.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
+		res = scanner.getNetAssetChange(tx2, wallet, colorChain);
+		expected.put(def, 5L);
 	}
 
 	@Test
