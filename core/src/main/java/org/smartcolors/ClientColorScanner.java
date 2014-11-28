@@ -1,11 +1,10 @@
 package org.smartcolors;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.Objects;
-import com.google.common.collect.Queues;
 import com.google.common.hash.HashCode;
-import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.google.common.util.concurrent.SettableFuture;
 
 import org.apache.http.client.config.RequestConfig;
@@ -35,10 +34,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.BlockingDeque;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by devrandom on 2014-Nov-23.
@@ -51,13 +49,12 @@ public class ClientColorScanner extends AbstractColorScanner {
 
 	private final Iterable<ClientColorTrack> clientTracks;
 	Fetcher fetcher;
-	final BlockingDeque<Transaction> lookups;
-	MyService service;
 	private ColorKeyChain colorKeyChain;
+	private ScheduledExecutorService retryService;
+
 
 	public ClientColorScanner(NetworkParameters params, URI baseUri) {
 		super(params);
-		lookups = Queues.newLinkedBlockingDeque();
 		fetcher = new Fetcher(baseUri, params);
 		clientTracks = new Iterable<ClientColorTrack>() {
 			@Override
@@ -81,6 +78,11 @@ public class ClientColorScanner extends AbstractColorScanner {
 				};
 			}
 		};
+		retryService = makeRetryService();
+	}
+
+	private ScheduledExecutorService makeRetryService() {
+		return Executors.newSingleThreadScheduledExecutor();
 	}
 
 	public void setFetcher(Fetcher fetcher) {
@@ -91,18 +93,10 @@ public class ClientColorScanner extends AbstractColorScanner {
 		this.colorKeyChain = colorKeyChain;
 	}
 
-	public void start() {
-		checkState(service == null, "already started service");
-		checkNotNull(colorKeyChain);
-		service = new MyService();
-		service.startAsync();
-	}
-
 	public void stop() {
-		checkNotNull(service);
-		service.stopAsync();
-		service.awaitTerminated();
-		service = null;
+		fetcher.stop();
+		retryService.shutdownNow();
+		retryService = makeRetryService();
 	}
 
 	@Override
@@ -140,7 +134,7 @@ public class ClientColorScanner extends AbstractColorScanner {
 			// FIXME just colorKeyChain outputs
 			if (!walletOutputs.isEmpty()) {
 				pending.put(tx.getHash(), tx);
-				lookups.add(tx);
+				retryService.schedule(new Lookup(tx), 0, TimeUnit.SECONDS);
 			}
 		} finally {
    			lock.unlock();
@@ -148,32 +142,37 @@ public class ClientColorScanner extends AbstractColorScanner {
 		}
 	}
 
-	class MyService extends AbstractExecutionThreadService {
-		@Override
-		protected void run() throws InterruptedException {
-			while (isRunning()) {
-				Transaction tx = lookups.take();
-				if (tx == SENTINEL)
-					break;
-				// Put it back in case we fail
-				lookups.addFirst(tx);
-				for (TransactionOutput output : tx.getOutputs()) {
-					try {
-						if (colorKeyChain.isOutputToMe(output))
-							doOutPoint(output.getOutPointFor());
-					} catch (SerializationException e) {
-						log.error("serialization problem", e);
-					} catch (TemporaryFailureException e) {
-						log.warn("tempfail " + output);
-					}
-				}
-				doTransaction(tx);
-			}
+	class Lookup implements Runnable {
+		private final Transaction tx;
+		private int tries = 0;
 
-			// Remove any sentinel at end
-			while (lookups.peekLast() == SENTINEL) {
-				lookups.removeLast();
+		Lookup(Transaction tx) {
+			this.tx = tx;
+		}
+
+		@Override
+		public void run() {
+			for (TransactionOutput output : tx.getOutputs()) {
+				try {
+					if (colorKeyChain.isOutputToMe(output))
+						doOutPoint(output.getOutPointFor());
+				} catch (SerializationException e) {
+					log.error("serialization problem", e);
+					retry();
+					return;
+				} catch (TemporaryFailureException e) {
+					log.warn("tempfail " + output);
+					retry();
+					return;
+				}
 			}
+			doTransaction(tx);
+		}
+
+		private void retry() {
+			tries++;
+			long delay = 1 + (long) Math.pow(2, Math.min(tries, 7));
+			retryService.schedule(this, delay, TimeUnit.SECONDS);
 		}
 
 		private void doOutPoint(TransactionOutPoint outPoint) throws SerializationException, TemporaryFailureException {
@@ -201,7 +200,6 @@ public class ClientColorScanner extends AbstractColorScanner {
 			lock.lock();
 			try {
 				pending.remove(tx.getHash());
-				checkState(tx == lookups.removeFirst());
 				Collection<SettableFuture<Transaction>> futures = unknownTransactionFutures.removeAll(tx);
 				if (futures != null) {
 					for (SettableFuture<Transaction> future : futures) {
@@ -212,12 +210,6 @@ public class ClientColorScanner extends AbstractColorScanner {
 				lock.unlock();
 			}
 		}
-
-		@Override
-		protected void triggerShutdown() {
-			lookups.add(SENTINEL);
-		}
-
 	}
 
 	private static class TemporaryFailureException extends Exception {
@@ -227,6 +219,7 @@ public class ClientColorScanner extends AbstractColorScanner {
 	public static class ProofMap extends HashMap<HashCode, byte[]> {
 	}
 
+	@JsonIgnoreProperties(ignoreUnknown = true)
 	public static class OutPointResponse {
 		public String status;
 		public String error;
@@ -269,7 +262,8 @@ public class ClientColorScanner extends AbstractColorScanner {
 		}
 
 		public ColorProof fetch(TransactionOutPoint point) throws SerializationException, TemporaryFailureException {
-			String relative = "outpoint/" + point.getHash() + "/" + point.getIndex();
+			//String relative = "outpoint/" + point.getHash() + "/" + point.getIndex();
+			String relative = "outpoint/" + "0123456789012345678901234567890123456789012345678901234567890000" + "/" + point.getIndex();
 			log.info("fetching " + relative);
 			HttpGet get = new HttpGet(base.resolve(relative));
 
@@ -281,11 +275,11 @@ public class ClientColorScanner extends AbstractColorScanner {
 					throw new TemporaryFailureException();
 				}
 				OutPointResponse res = mapper.readValue(response.getEntity().getContent(), OutPointResponse.class);
-				if ("NOT_COLORED".equals(res.status))
-					return null;
-				if ("NOT_FOUND".equals(res.status))
-					throw new TemporaryFailureException();
 				if (!"OK".equals(res.status)) {
+					if ("NOT_COLORED".equals(res.error))
+						return null;
+					if ("NOT_FOUND".equals(res.error))
+						throw new TemporaryFailureException();
 					log.warn("got unknown result " + res);
 					throw new TemporaryFailureException();
 				}
@@ -323,8 +317,6 @@ public class ClientColorScanner extends AbstractColorScanner {
 
 	@Override
 	public void doReset() {
-		checkState(service == null, "service still running");
-		lookups.clear();
-		fetcher.stop();
+		stop();
 	}
 }

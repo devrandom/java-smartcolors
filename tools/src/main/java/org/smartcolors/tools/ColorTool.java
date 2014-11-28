@@ -272,7 +272,6 @@ public class ColorTool {
 			ClientColorScanner clientScanner = (ClientColorScanner) scanner;
 			clientScanner.listenToWallet(wallet);
 			clientScanner.setColorKeyChain(colorChain);
-			clientScanner.start();
 		}
 
 		peers.addWallet(wallet);

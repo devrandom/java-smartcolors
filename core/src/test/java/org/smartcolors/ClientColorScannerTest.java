@@ -64,7 +64,6 @@ public class ClientColorScannerTest extends ColorTest {
 
 		Transaction tx2 = makeTx2(new ECKey());
 		scanner.onReceive(wallet, tx2);
-		assertTrue(scanner.lookups.isEmpty());
 		assertTrue(scanner.pending.isEmpty());
 	}
 
@@ -75,7 +74,6 @@ public class ClientColorScannerTest extends ColorTest {
 
 		Transaction tx2 = makeTx2(myKey);
 		scanner.onReceive(wallet, tx2);
-		assertEquals(2, scanner.lookups.size());
 		assertEquals(1, scanner.pending.size());
 	}
 
@@ -103,7 +101,6 @@ public class ClientColorScannerTest extends ColorTest {
 		proof.validate();
 		expectLastCall();
 		scanner.setFetcher(fetcher);
-		scanner.start();
 
 		final CyclicBarrier barrier = new CyclicBarrier(2);
 		final TransactionOutPoint point = tx2.getOutput(0).getOutPointFor();
@@ -123,7 +120,6 @@ public class ClientColorScannerTest extends ColorTest {
 		assertEquals(tx2, ftx);
 		verify(fetcher, proof);
 		scanner.stop();
-		assertTrue(scanner.lookups.isEmpty());
 		assertTrue(scanner.pending.isEmpty());
 		assertTrue(track.proofs.containsKey(proof.getHash()));
 		future = scanner.getTransactionWithKnownAssets(tx2, wallet, colorChain);
