@@ -162,7 +162,7 @@ public class ClientColorScannerTest extends ColorTest {
 		Map<ColorDefinition, Long> balances = scanner.getBalances(wallet, colorChain);
 		assertEquals(10L, (long) balances.get(def));
 		assertEquals(Coin.CENT.getValue(), (long)balances.get(scanner.getBitcoinDefinition()));
-		assertTrue(scanner.retryService.shutdownNow().isEmpty());
+		assertTrue(scanner.fetchService.shutdownNow().isEmpty());
 	}
 
 	@Test

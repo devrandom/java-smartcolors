@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.Objects;
 import com.google.common.hash.HashCode;
 import com.google.common.util.concurrent.SettableFuture;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.apache.http.StatusLine;
 import org.apache.http.client.config.RequestConfig;
@@ -36,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -51,20 +53,26 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 
 	Fetcher fetcher;
 	private ColorKeyChain colorKeyChain;
-	ScheduledExecutorService retryService;
+	ScheduledExecutorService fetchService;
 
 
 	public ClientColorScanner(NetworkParameters params, URI baseUri) {
 		super(params);
 		fetcher = new Fetcher(baseUri, params);
-		retryService = makeRetryService();
+		fetchService = makeFetchService();
 	}
 
-	private ScheduledExecutorService makeRetryService() {
-		return Executors.newSingleThreadScheduledExecutor();
+	private final ThreadFactory fetcherThreadFactory = new ThreadFactoryBuilder()
+			.setDaemon(true)
+			.setNameFormat("Fetcher thread %d")
+			.setPriority(Thread.MIN_PRIORITY)
+			.build();
+
+	private ScheduledExecutorService makeFetchService() {
+		return Executors.newSingleThreadScheduledExecutor(fetcherThreadFactory);
 	}
 
-	public void setFetcher(Fetcher fetcher) {
+	void setFetcher(Fetcher fetcher) {
 		this.fetcher = fetcher;
 	}
 
@@ -74,8 +82,8 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 
 	public void stop() {
 		fetcher.stop();
-		retryService.shutdownNow();
-		retryService = makeRetryService();
+		fetchService.shutdownNow();
+		fetchService = makeFetchService();
 	}
 
 	@Override
@@ -118,7 +126,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 			}
 			if (needsLookup) {
 				pending.put(tx.getHash(), tx);
-				retryService.schedule(new Lookup(tx), 0, TimeUnit.SECONDS);
+				fetchService.schedule(new Lookup(tx), 0, TimeUnit.SECONDS);
 			}
 		} finally {
 			lock.unlock();
@@ -156,7 +164,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 		private void retry() {
 			tries++;
 			long delay = 1 + (long) Math.pow(2, Math.min(tries, 7));
-			retryService.schedule(this, delay, TimeUnit.SECONDS);
+			fetchService.schedule(this, delay, TimeUnit.SECONDS);
 		}
 
 		private void doOutPoint(TransactionOutPoint outPoint) throws SerializationException, TemporaryFailureException {
