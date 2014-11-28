@@ -31,4 +31,8 @@ public class ClientColorTrack extends ColorTrack {
 		proofs.put(proof.getHash(), proof);
 		outputs.put(proof.getOutPoint(), proof.getQuantity());
 	}
+
+	public Map<HashCode, ColorProof> getProofs() {
+		return proofs;
+	}
 }

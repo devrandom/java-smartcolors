@@ -165,9 +165,25 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 		}
 	}
 
+	@Override
+	public boolean contains(TransactionOutPoint point) {
+		lock.lock();
+		try {
+			for (ColorTrack track : tracks) {
+				Long value = track.getOutputs().get(point);
+				if (value != null)
+					return true;
+			}
+			return false;
+		} finally {
+   			lock.unlock();
+		}
+	}
+
 	protected boolean applyOutputValue(TransactionOutput out, Map<ColorDefinition, Long> res) {
+		TransactionOutPoint point = out.getOutPointFor();
 		for (ColorTrack track : tracks) {
-			Long value = track.getOutputs().get(out.getOutPointFor());
+			Long value = track.getOutputs().get(point);
 			if (value == null) {
 				// We don't know about this output yet, try applying the color kernel to figure
 				// it out from the inputs.  This is likely an unconfirmed transaction.
@@ -290,7 +306,8 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 		}
 	}
 
-	Map<Sha256Hash,Transaction> getPending() {
+	@Override
+	public Map<Sha256Hash,Transaction> getPending() {
 		return pending;
 	}
 

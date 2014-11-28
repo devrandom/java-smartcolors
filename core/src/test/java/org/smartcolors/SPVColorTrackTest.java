@@ -152,12 +152,12 @@ public class SPVColorTrackTest {
 				return txs.get(hash);
 			}
 		};
-		SmartwalletExtension.deserializeProofSPV(params, proofProto, proof1);
+		SmartwalletExtension.deserializeTrackSPV(params, proofProto, proof1);
 		assertEquals(track.getStateHash(), proof1.getStateHash());
 		track.undoLast();
 		Protos.ColorTrack proofProto2 = ext.serializeTrack(track);
 		SPVColorTrack proof2 = new SPVColorTrack(def);
-		SmartwalletExtension.deserializeProofSPV(params, proofProto2, proof2);
+		SmartwalletExtension.deserializeTrackSPV(params, proofProto2, proof2);
 		assertEquals(track.getStateHash(), proof2.getStateHash());
 	}
 

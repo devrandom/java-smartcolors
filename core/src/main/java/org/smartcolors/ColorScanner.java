@@ -3,7 +3,9 @@ package org.smartcolors;
 import com.google.common.hash.HashCode;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.Wallet;
 import org.smartcolors.core.ColorDefinition;
 
@@ -18,6 +20,8 @@ public interface ColorScanner {
 	void addDefinition(ColorDefinition definition) throws ColorScanner.ColorDefinitionExists, ColorScanner.ColorDefinitionOutdated;
 
 	Map<ColorDefinition, Long> getNetAssetChange(Transaction tx, Wallet wallet, ColorKeyChain chain);
+
+	boolean contains(TransactionOutPoint point);
 
 	Map<ColorDefinition, Long> getBalances(Wallet wallet, ColorKeyChain colorKeyChain);
 
@@ -38,6 +42,8 @@ public interface ColorScanner {
 	ColorDefinition getBitcoinDefinition();
 
 	ColorDefinition getUnknownDefinition();
+
+	Map<Sha256Hash,Transaction> getPending();
 
 	void addAllPending(Wallet wallet, Collection<Transaction> txs);
 

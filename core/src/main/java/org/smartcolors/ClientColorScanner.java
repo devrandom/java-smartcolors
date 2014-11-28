@@ -7,6 +7,7 @@ import com.google.common.base.Objects;
 import com.google.common.hash.HashCode;
 import com.google.common.util.concurrent.SettableFuture;
 
+import org.apache.http.StatusLine;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -50,7 +51,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 
 	Fetcher fetcher;
 	private ColorKeyChain colorKeyChain;
-	private ScheduledExecutorService retryService;
+	ScheduledExecutorService retryService;
 
 
 	public ClientColorScanner(NetworkParameters params, URI baseUri) {
@@ -109,8 +110,13 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 		lock.lock();
 		try {
 			List<TransactionOutput> walletOutputs = tx.getWalletOutputs(wallet);
-			// FIXME just colorKeyChain outputs
-			if (!walletOutputs.isEmpty()) {
+			boolean needsLookup = false;
+			for (TransactionOutput output : walletOutputs) {
+				if (colorKeyChain.isOutputToMe(output) && !contains(output.getOutPointFor())) {
+					needsLookup = true;
+				}
+			}
+			if (needsLookup) {
 				pending.put(tx.getHash(), tx);
 				retryService.schedule(new Lookup(tx), 0, TimeUnit.SECONDS);
 			}
@@ -132,7 +138,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 		public void run() {
 			for (TransactionOutput output : tx.getOutputs()) {
 				try {
-					if (colorKeyChain.isOutputToMe(output))
+					if (colorKeyChain.isOutputToMe(output) && !contains(output.getOutPointFor()))
 						doOutPoint(output.getOutPointFor());
 				} catch (SerializationException e) {
 					log.error("serialization problem", e);
@@ -190,7 +196,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 		}
 	}
 
-	private static class TemporaryFailureException extends Exception {
+	static class TemporaryFailureException extends Exception {
 	}
 
 	@JsonDeserialize(keyUsing = HexKeyDeserializer.class)
@@ -227,6 +233,12 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 			initClient();
 		}
 
+		Fetcher(URI base, NetworkParameters params, CloseableHttpClient httpclient) {
+			this.base = base;
+			this.params = params;
+			this.httpclient = httpclient;
+		}
+
 		private void initClient() {
 			RequestConfig config = RequestConfig.custom()
 					.setConnectionRequestTimeout(NETWORK_TIMEOUT)
@@ -247,8 +259,9 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 			CloseableHttpResponse response = null;
 			try {
 				response = httpclient.execute(get);
-				if (response.getStatusLine().getStatusCode() != 200) {
-					log.warn("got status " + response.getStatusLine());
+				StatusLine statusLine = response.getStatusLine();
+				if (statusLine.getStatusCode() >= 300) {
+					log.warn("got status " + statusLine);
 					throw new TemporaryFailureException();
 				}
 				OutPointResponse res = mapper.readValue(response.getEntity().getContent(), OutPointResponse.class);
@@ -260,6 +273,9 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 					log.warn("got unknown result " + res);
 					throw new TemporaryFailureException();
 				}
+				if (res.colordefs == null)
+					return null;
+
 				for (ProofMap map : res.colordefs.values()) {
 					for (byte[] bytes : map.values()) {
 						return ColorProof.deserialize(params, new BytesDeserializer(bytes));
@@ -268,7 +284,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 			} catch (IOException e) {
 				// temporary failure
 				log.warn("got IOException " + e.getMessage());
-				return null;
+				throw new TemporaryFailureException();
 			} finally {
 				if (response != null) {
 					try {
