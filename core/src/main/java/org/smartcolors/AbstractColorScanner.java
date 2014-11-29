@@ -314,8 +314,7 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 	}
 
 	/** Call this after deserializing the wallet with any wallet pending transactions */
-	@Override
-	public void addAllPending(Wallet wallet, Collection<Transaction> txs) {
+	protected void addAllPending(Wallet wallet, Collection<Transaction> txs) {
 		for (Transaction tx : txs) {
 			pending.put(tx.getHash(), tx);
 		}

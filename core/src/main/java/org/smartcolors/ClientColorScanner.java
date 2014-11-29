@@ -9,6 +9,7 @@ import com.google.common.collect.Lists;
 import com.google.common.hash.HashCode;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.google.protobuf.ByteString;
 
 import org.apache.http.StatusLine;
 import org.apache.http.client.config.RequestConfig;
@@ -60,6 +61,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 	Fetcher fetcher;
 	private ColorKeyChain colorKeyChain;
 	ScheduledExecutorService fetchService;
+	private Wallet wallet;
 
 
 	public ClientColorScanner(NetworkParameters params, URI baseUri) {
@@ -102,6 +104,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 
 	public void start(Wallet wallet) {
 		checkState(fetchService == null);
+		this.wallet = wallet;
 		fetchService = makeFetchService();
 		for (Transaction tx : pending.values()) {
 			// Average 1 per second
@@ -109,6 +112,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 			fetchService.schedule(new Lookup(tx), millis, TimeUnit.MILLISECONDS);
 		}
 		listenToWallet(wallet);
+		addAllPending(wallet, wallet.getPendingTransactions());
 	}
 
 	public boolean isStarted() {
@@ -142,7 +146,8 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 		}, Threading.SAME_THREAD);
 	}
 
-	public void addAllPending(Wallet wallet, Collection<Transaction> txs) {
+	@Override
+	protected void addAllPending(Wallet wallet, Collection<Transaction> txs) {
 		for (Transaction tx : txs) {
 			onTransaction(wallet, tx);
 		}
@@ -278,6 +283,8 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 			} finally {
 				lock.unlock();
 			}
+			// TODO fix this hack to save wallet
+			wallet.setTag("smartcolors", ByteString.copyFromUtf8("1.0"));
 			if (futures != null) {
 				for (SettableFuture<Transaction> future : futures) {
 					future.set(tx);

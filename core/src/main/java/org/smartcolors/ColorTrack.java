@@ -1,6 +1,7 @@
 package org.smartcolors;
 
 import com.google.common.base.Function;
+import com.google.common.base.Objects;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 
@@ -80,5 +81,13 @@ public abstract class ColorTrack {
 
 	public boolean isColored(TransactionOutPoint point) {
 		return outputs.containsKey(point);
+	}
+
+	@Override
+	public String toString() {
+		return Objects.toStringHelper(this)
+				.add("name", definition.getName())
+				.add("outputsSize", outputs.size())
+				.toString();
 	}
 }

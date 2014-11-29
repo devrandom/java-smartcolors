@@ -71,6 +71,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 
@@ -224,7 +225,6 @@ public class ColorTool {
 						wallet.getParams().getId() + " vs " + params.getId());
 				return true;
 			}
-			scanner.addAllPending(wallet, wallet.getPendingTransactions());
 			if (wallet.getExtensions().get(SmartwalletExtension.IDENTIFIER) == null)
 				throw new UnreadableWalletException("missing smartcolors extension");
 			if (colorChain == null)
@@ -268,11 +268,13 @@ public class ColorTool {
 			peers.addEventListener(spvScanner.getPeerEventListener());
 		} else {
 			ClientColorScanner clientScanner = (ClientColorScanner) scanner;
-			clientScanner.start(wallet);
 			clientScanner.setColorKeyChain(colorChain);
+			clientScanner.start(wallet);
 		}
 
 		peers.addWallet(wallet);
+		wallet.autosaveToFile(walletFile, 200, TimeUnit.MILLISECONDS, null);
+
 		if (options.has("peers")) {
 			String peersFlag = (String) options.valueOf("peers");
 			String[] peerAddrs = peersFlag.split(",");

@@ -9,7 +9,6 @@ import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.Wallet;
 import org.smartcolors.core.ColorDefinition;
 
-import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
@@ -44,8 +43,6 @@ public interface ColorScanner {
 	ColorDefinition getUnknownDefinition();
 
 	Map<Sha256Hash,Transaction> getPending();
-
-	void addAllPending(Wallet wallet, Collection<Transaction> txs);
 
 	void lock();
 
