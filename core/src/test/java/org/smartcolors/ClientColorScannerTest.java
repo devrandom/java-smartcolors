@@ -114,7 +114,7 @@ public class ClientColorScannerTest extends ColorTest {
 		replay(fetchService);
 		wallet = new Wallet(params);
 		Transaction tx2 = makeTx2(new ECKey());
-		scanner.onReceive(wallet, tx2);
+		scanner.onTransaction(wallet, tx2);
 		assertTrue(scanner.pending.isEmpty());
 		verify(fetchService);
 	}
@@ -125,7 +125,7 @@ public class ClientColorScannerTest extends ColorTest {
 		scanner.setFetchService(fetchService);
 		replay(fetchService);
 		Transaction tx2 = makeTx2(colorKey);
-		scanner.onReceive(wallet, tx2);
+		scanner.onTransaction(wallet, tx2);
 		assertEquals(1, scanner.pending.size());
 		verify(fetchService);
 	}
@@ -158,7 +158,7 @@ public class ClientColorScannerTest extends ColorTest {
 		});
 		replay(fetcher, proof);
 		wallet.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
-		scanner.onReceive(wallet, tx2);
+		scanner.onTransaction(wallet, tx2);
 		barrier.await();
 		ListenableFuture<Transaction> future = scanner.getTransactionWithKnownAssets(tx2, wallet, colorChain);
 		Transaction ftx = future.get();

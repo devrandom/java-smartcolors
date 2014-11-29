@@ -111,6 +111,7 @@ public class ColorTool {
 		parser.accepts("prod", "use prodnet (default is testnet)");
 		parser.accepts("regtest", "use regtest mode (default is testnet)");
 		parser.accepts("force", "force creation of wallet from mnemonic");
+		parser.accepts("linger", "do not exit after done");
 		parser.accepts("debug");
 		parser.accepts("verbose");
 		mnemonicSpec = parser.accepts("mnemonic", "mnemonic phrase").withRequiredArg();
@@ -145,12 +146,12 @@ public class ColorTool {
 			params = NetworkParameters.fromID(NetworkParameters.ID_TESTNET);
 		}
 
-		chainFile = new File(net + ".chain");
 		checkpointFile = new File(net + "-checkpoints.txt");
 
 		String walletName = walletFileName.value(options);
 		if (walletName == null)
 			walletName = net + ".wallet";
+		chainFile = new File(walletName + ".chain");
 		walletFile = new File(walletName);
 		if (!walletFile.exists() || options.has(mnemonicSpec)) {
 			createWallet(options, params, walletFile);
@@ -243,9 +244,6 @@ public class ColorTool {
 	// Sets up all objects needed for network communication but does not bring up the peers.
 	private static void setup() throws BlockStoreException, IOException {
 		if (store != null) return;  // Already done.
-//		if (chainFile.exists())
-//			chainFile.delete();
-//		reset();
 		boolean chainExisted = chainFile.exists();
 		store = new SPVBlockStore(params, chainFile);
 		if (checkpointFile.exists() && !chainExisted) {
@@ -421,7 +419,12 @@ public class ColorTool {
 		Address assetBitcoinAddress = colorChain.freshOutputScript(KeyChain.KeyPurpose.RECEIVE_FUNDS).getToAddress(params);
 		System.out.println(assetBitcoinAddress);
 		System.out.println(SmartColors.toAssetAddress(assetBitcoinAddress, !isTestNet()));
-		System.exit(0);
+		done();
+	}
+
+	private static void done() {
+		if (!options.has("linger"))
+			System.exit(0);
 	}
 
 	private static void send(List<?> cmdArgs) {
@@ -463,7 +466,7 @@ public class ColorTool {
 		}
 		System.out.println(req.tx);
 		Utils.sleep(2000);
-		System.exit(0);
+		done();
 
 	}
 
@@ -497,7 +500,7 @@ public class ColorTool {
 			dumpState();
 		}
 		Utils.sleep(1*1000);
-		System.exit(0);
+		done();
 	}
 
 	private static void dumpState() {

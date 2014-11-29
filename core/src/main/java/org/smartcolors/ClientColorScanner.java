@@ -125,7 +125,14 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 			@Override
 			public void onCoinsReceived(Wallet wallet, Transaction tx, Coin prevBalance, Coin newBalance) {
 				super.onCoinsReceived(wallet, tx, prevBalance, newBalance);
-				onReceive(wallet, tx);
+				onTransaction(wallet, tx);
+			}
+
+			@Override
+			public void onCoinsSent(Wallet wallet, Transaction tx, Coin prevBalance, Coin newBalance) {
+				// FIXME change bitcoinj so that we get this also when diff = 0
+				super.onCoinsSent(wallet, tx, prevBalance, newBalance);
+				onTransaction(wallet, tx);
 			}
 
 			@Override
@@ -137,11 +144,11 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 
 	public void addAllPending(Wallet wallet, Collection<Transaction> txs) {
 		for (Transaction tx : txs) {
-			onReceive(wallet, tx);
+			onTransaction(wallet, tx);
 		}
 	}
 
-	void onReceive(Wallet wallet, Transaction tx) {
+	void onTransaction(Wallet wallet, Transaction tx) {
 		checkNotNull(colorKeyChain);
 		checkNotNull(fetchService);
 		wallet.beginBloomFilterCalculation();
@@ -264,16 +271,17 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 
 		private void notifyTransactionDone(Transaction tx) {
 			lock.lock();
+			Collection<SettableFuture<Transaction>> futures;
 			try {
 				pending.remove(tx.getHash());
-				Collection<SettableFuture<Transaction>> futures = unknownTransactionFutures.removeAll(tx);
-				if (futures != null) {
-					for (SettableFuture<Transaction> future : futures) {
-						future.set(tx);
-					}
-				}
+				futures = unknownTransactionFutures.removeAll(tx);
 			} finally {
 				lock.unlock();
+			}
+			if (futures != null) {
+				for (SettableFuture<Transaction> future : futures) {
+					future.set(tx);
+				}
 			}
 		}
 	}
