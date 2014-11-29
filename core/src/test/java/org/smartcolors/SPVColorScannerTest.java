@@ -210,6 +210,8 @@ public class SPVColorScannerTest extends ColorTest {
 		Protos.ColorScanner scannerProto = ext.serializeScanner(scanner);
 		SPVColorScanner scanner1 = new SPVColorScanner(params);
 		ext.deserializeScannerSPV(params, scannerProto, scanner1);
+		scanner1.lock();
 		assertEquals(tx2.getHash(), scanner1.getPending().keySet().iterator().next());
+		scanner1.unlock();
 	}
 }

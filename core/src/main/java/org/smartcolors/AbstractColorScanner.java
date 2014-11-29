@@ -28,6 +28,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.concurrent.GuardedBy;
 
+import static com.google.common.base.Preconditions.checkState;
+
 /**
  * Created by devrandom on 2014-Nov-23.
  */
@@ -60,7 +62,6 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 	/** Add a color to the set of tracked colors */
 	@Override
 	public void addDefinition(ColorDefinition definition) throws ColorDefinitionExists, ColorDefinitionOutdated {
-
 		boolean exists = false;
 		if (exists) {
 			throw new ColorDefinitionExists();
@@ -308,6 +309,7 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 
 	@Override
 	public Map<Sha256Hash,Transaction> getPending() {
+		checkState(lock.isHeldByCurrentThread());
 		return pending;
 	}
 
@@ -328,4 +330,14 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 	}
 
 	protected abstract void doReset();
+
+	@Override
+	public void lock() {
+		lock.lock();
+	}
+
+	@Override
+	public void unlock() {
+		lock.unlock();
+	}
 }

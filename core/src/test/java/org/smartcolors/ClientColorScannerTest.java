@@ -26,8 +26,8 @@ import org.bitcoinj.testing.FakeTxBuilder;
 import org.bitcoinj.wallet.KeyChain;
 import org.easymock.Capture;
 import org.easymock.IAnswer;
+import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.smartcolors.core.ColorDefinition;
 import org.smartcolors.core.ColorProof;
@@ -44,11 +44,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static junit.framework.Assert.fail;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.createNiceMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
@@ -99,24 +101,38 @@ public class ClientColorScannerTest extends ColorTest {
 		ext = new SmartwalletExtension(params);
 	}
 
+	@After
+	public void tearDown() {
+		if (scanner.isStarted())
+			scanner.stop();
+	}
+
 	@Test
 	public void addNotMine() {
+		ScheduledExecutorService fetchService = createNiceMock(ScheduledExecutorService.class);
+		scanner.setFetchService(fetchService);
+		replay(fetchService);
 		wallet = new Wallet(params);
-
 		Transaction tx2 = makeTx2(new ECKey());
 		scanner.onReceive(wallet, tx2);
 		assertTrue(scanner.pending.isEmpty());
+		verify(fetchService);
 	}
 
 	@Test
 	public void add() {
+		ScheduledExecutorService fetchService = createNiceMock(ScheduledExecutorService.class);
+		scanner.setFetchService(fetchService);
+		replay(fetchService);
 		Transaction tx2 = makeTx2(colorKey);
 		scanner.onReceive(wallet, tx2);
 		assertEquals(1, scanner.pending.size());
+		verify(fetchService);
 	}
 
 	@Test
 	public void run() throws Exception {
+		scanner.start(wallet);
 		Transaction tx2 = makeTx2(colorKey);
 
 		ClientColorScanner.Fetcher fetcher = createMock(ClientColorScanner.Fetcher.class);
@@ -127,6 +143,8 @@ public class ClientColorScannerTest extends ColorTest {
 		expect(proof.getQuantity()).andStubReturn(10L);
 		proof.validate();
 		expectLastCall();
+		fetcher.stop();
+		expectLastCall().asStub();
 		scanner.setFetcher(fetcher);
 
 		final TransactionOutPoint point = tx2.getOutput(0).getOutPointFor();
@@ -138,8 +156,6 @@ public class ClientColorScannerTest extends ColorTest {
 				return proof;
 			}
 		});
-		fetcher.stop();
-		expectLastCall();
 		replay(fetcher, proof);
 		wallet.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
 		scanner.onReceive(wallet, tx2);
@@ -147,23 +163,23 @@ public class ClientColorScannerTest extends ColorTest {
 		ListenableFuture<Transaction> future = scanner.getTransactionWithKnownAssets(tx2, wallet, colorChain);
 		Transaction ftx = future.get();
 		assertEquals(tx2, ftx);
-		scanner.stop();
 		verify(fetcher, proof);
-		assertTrue(scanner.pending.isEmpty());
+		scanner.lock();
+		assertTrue(scanner.getPending().isEmpty());
+		scanner.unlock();
 		assertTrue(track.proofs.containsKey(proof.getHash()));
 		future = scanner.getTransactionWithKnownAssets(tx2, wallet, colorChain);
 		assertTrue(future.isDone());
 		Map<ColorDefinition, Long> change = scanner.getNetAssetChange(tx2, wallet, colorChain);
 		assertEquals(1, change.size());
-		assertEquals(10L, (long)change.get(def));
+		assertEquals(10L, (long) change.get(def));
 		Transaction tx3 = new Transaction(params);
 		tx3.addOutput(Coin.CENT, wallet.currentKey(KeyChain.KeyPurpose.RECEIVE_FUNDS));
 		wallet.receiveFromBlock(tx3, FakeTxBuilder.createFakeBlock(blockStore, tx3).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
 
 		Map<ColorDefinition, Long> balances = scanner.getBalances(wallet, colorChain);
 		assertEquals(10L, (long) balances.get(def));
-		assertEquals(Coin.CENT.getValue(), (long)balances.get(scanner.getBitcoinDefinition()));
-		assertTrue(scanner.fetchService.shutdownNow().isEmpty());
+		assertEquals(Coin.CENT.getValue(), (long) balances.get(scanner.getBitcoinDefinition()));
 	}
 
 	@Test
@@ -207,8 +223,10 @@ public class ClientColorScannerTest extends ColorTest {
 
 	@Test
 	public void testGetNetAssetChangeUnconfirmed() throws Exception {
-		scanner.listenToWallet(wallet);
+		scanner.start(wallet);
 		ScheduledExecutorService fetchService = createMock(ScheduledExecutorService.class);
+		expect(fetchService.shutdownNow()).andStubReturn(null);
+		expect(fetchService.awaitTermination(5, TimeUnit.SECONDS)).andStubReturn(true);
 		scanner.setFetchService(fetchService);
 		GenesisOutPointColorProof genesisProof = new GenesisOutPointColorProof(def, genesisTx.getOutput(0).getOutPointFor());
 		proofs.put(genesisTx.getOutput(0).getOutPointFor(), genesisProof);
@@ -233,8 +251,10 @@ public class ClientColorScannerTest extends ColorTest {
 
 	@Test
 	public void testGetNetAssetChangeUnconfirmedWithUnknownDependency() throws Exception {
-		scanner.listenToWallet(wallet);
+		scanner.start(wallet);
 		ClientColorScanner.Fetcher fetcher = createMock(ClientColorScanner.Fetcher.class);
+		fetcher.stop();
+		expectLastCall().asStub();
 		scanner.setFetcher(fetcher);
 		TransactionOutPoint point = genesisTx.getOutput(0).getOutPointFor();
 		final GenesisOutPointColorProof genesisProof = new GenesisOutPointColorProof(def, point);
@@ -257,6 +277,8 @@ public class ClientColorScannerTest extends ColorTest {
 		wallet.receivePending(tx2, Lists.<Transaction>newArrayList());
 		barrier.await();
 		Map<ColorDefinition, Long> expected = Maps.newHashMap();
+		ListenableFuture<Transaction> future = scanner.getTransactionWithKnownAssets(tx2, wallet, colorChain);
+		Transaction ftx = future.get();
 		Map<ColorDefinition, Long> res = scanner.getNetAssetChange(tx2, wallet, colorChain);
 		expected.put(def, 5L);
 		assertEquals(expected, res);
@@ -274,8 +296,7 @@ public class ClientColorScannerTest extends ColorTest {
 				mapper.readValue(fixture, ClientColorScanner.OutPointResponse.class);
 	}
 
-	@Ignore
-	@Test
+	// Ad-hoc manual test
 	public void http() throws Exception {
 		final ClientColorScanner.Fetcher fetcher = new ClientColorScanner.Fetcher(base, params);
 		new Thread(new Runnable() {

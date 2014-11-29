@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.Objects;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.hash.HashCode;
 import com.google.common.util.concurrent.SettableFuture;
@@ -18,7 +19,6 @@ import org.apache.http.impl.client.HttpClients;
 import org.bitcoinj.core.AbstractWalletEventListener;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionConfidence;
 import org.bitcoinj.core.TransactionInput;
@@ -46,6 +46,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Created by devrandom on 2014-Nov-23.
@@ -64,7 +65,6 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 	public ClientColorScanner(NetworkParameters params, URI baseUri) {
 		super(params);
 		fetcher = new Fetcher(baseUri, params);
-		fetchService = makeFetchService();
 	}
 
 	public void setFetchService(ScheduledExecutorService fetchService) {
@@ -92,7 +92,27 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 	public void stop() {
 		fetcher.stop();
 		fetchService.shutdownNow();
+		try {
+			fetchService.awaitTermination(5, TimeUnit.SECONDS);
+		} catch (InterruptedException e) {
+			Throwables.propagate(e);
+		}
+		fetchService = null;
+	}
+
+	public void start(Wallet wallet) {
+		checkState(fetchService == null);
 		fetchService = makeFetchService();
+		for (Transaction tx : pending.values()) {
+			// Average 1 per second
+			long millis = (long)(1000 * pending.size() * Math.random());
+			fetchService.schedule(new Lookup(tx), millis, TimeUnit.MILLISECONDS);
+		}
+		listenToWallet(wallet);
+	}
+
+	public boolean isStarted() {
+		return fetchService != null;
 	}
 
 	@Override
@@ -100,7 +120,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 		return new ClientColorTrack(definition);
 	}
 
-	public void listenToWallet(Wallet wallet) {
+	private void listenToWallet(Wallet wallet) {
 		wallet.addEventListener(new AbstractWalletEventListener() {
 			@Override
 			public void onCoinsReceived(Wallet wallet, Transaction tx, Coin prevBalance, Coin newBalance) {
@@ -121,18 +141,9 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 		}
 	}
 
-	@Override
-	void setPending(Map<Sha256Hash, Transaction> pending) {
-		super.setPending(pending);
-		for (Transaction tx : pending.values()) {
-			// Average 1 per second
-			long millis = (long)(1000 * pending.size() * Math.random());
-			fetchService.schedule(new Lookup(tx), millis, TimeUnit.MILLISECONDS);
-		}
-	}
-
 	void onReceive(Wallet wallet, Transaction tx) {
 		checkNotNull(colorKeyChain);
+		checkNotNull(fetchService);
 		wallet.beginBloomFilterCalculation();
 		lock.lock();
 		try {

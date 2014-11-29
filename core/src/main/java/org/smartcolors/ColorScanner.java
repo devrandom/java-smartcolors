@@ -47,6 +47,10 @@ public interface ColorScanner {
 
 	void addAllPending(Wallet wallet, Collection<Transaction> txs);
 
+	void lock();
+
+	void unlock();
+
 	public static class ScanningException extends RuntimeException {
 		public ScanningException(String reason) {
 			super(reason);

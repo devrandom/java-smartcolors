@@ -270,7 +270,7 @@ public class ColorTool {
 			peers.addEventListener(spvScanner.getPeerEventListener());
 		} else {
 			ClientColorScanner clientScanner = (ClientColorScanner) scanner;
-			clientScanner.listenToWallet(wallet);
+			clientScanner.start(wallet);
 			clientScanner.setColorKeyChain(colorChain);
 		}
 

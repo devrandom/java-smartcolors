@@ -92,13 +92,18 @@ public class SmartwalletExtension implements WalletExtension {
 
 	Protos.ColorScanner serializeScanner(ColorScanner scanner) {
 		Protos.ColorScanner.Builder scannerBuilder = Protos.ColorScanner.newBuilder();
-		for (Transaction transaction : scanner.getPending().values()) {
-			scannerBuilder.addPending(ByteString.copyFrom(transaction.bitcoinSerialize()));
-		}
-		if (scanner instanceof SPVColorScanner) {
-			return serializeSPV(scannerBuilder, (SPVColorScanner) scanner);
-		} else {
-			return serializeClient(scannerBuilder, (ClientColorScanner) scanner);
+		scanner.lock();
+		try {
+			for (Transaction transaction : scanner.getPending().values()) {
+				scannerBuilder.addPending(ByteString.copyFrom(transaction.bitcoinSerialize()));
+			}
+			if (scanner instanceof SPVColorScanner) {
+				return serializeSPV(scannerBuilder, (SPVColorScanner) scanner);
+			} else {
+				return serializeClient(scannerBuilder, (ClientColorScanner) scanner);
+			}
+		} finally {
+   			scanner.unlock();
 		}
 	}
 
