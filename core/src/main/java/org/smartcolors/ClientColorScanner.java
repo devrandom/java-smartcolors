@@ -18,6 +18,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.bitcoinj.core.AbstractWalletEventListener;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionConfidence;
 import org.bitcoinj.core.TransactionInput;
@@ -120,6 +121,16 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 		}
 	}
 
+	@Override
+	void setPending(Map<Sha256Hash, Transaction> pending) {
+		super.setPending(pending);
+		for (Transaction tx : pending.values()) {
+			// Average 1 per second
+			long millis = (long)(1000 * pending.size() * Math.random());
+			fetchService.schedule(new Lookup(tx), millis, TimeUnit.MILLISECONDS);
+		}
+	}
+
 	void onReceive(Wallet wallet, Transaction tx) {
 		checkNotNull(colorKeyChain);
 		wallet.beginBloomFilterCalculation();
@@ -214,8 +225,9 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 
 		private void retry() {
 			tries++;
-			long delay = 1 + (long) Math.pow(2, Math.min(tries, 7));
-			fetchService.schedule(this, delay, TimeUnit.SECONDS);
+			// Jitter 2 seconds + 2 ** tries
+			long delay = (long) (Math.random() * 2000 + 1000 * Math.pow(2, Math.min(tries, 7)));
+			fetchService.schedule(this, delay, TimeUnit.MILLISECONDS);
 		}
 
 		private void doOutPoint(TransactionOutPoint outPoint) throws SerializationException, TemporaryFailureException {

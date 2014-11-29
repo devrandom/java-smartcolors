@@ -209,13 +209,6 @@ public class SmartwalletExtension implements WalletExtension {
 		}
 		scanner.setMapBlockTx(mapBlockTx);
 
-		Map<Sha256Hash,Transaction> pending = Maps.newHashMap();
-		for (ByteString bytes : proto.getPendingList()) {
-			Transaction tx = new Transaction(params, bytes.toByteArray());
-			pending.put(tx.getHash(), tx);
-		}
-		scanner.setPending(pending);
-
 		for (Protos.ColorTrack trackp : proto.getTracksList()) {
 			HashCode hash = getHash(trackp.getColorDefinition().getHash());
 			ColorTrack track = scanner.getColorTrackByHash(hash);
@@ -241,16 +234,16 @@ public class SmartwalletExtension implements WalletExtension {
 			}
 			deserializeTrackSPV(params, trackp, (SPVColorTrack) track);
 		}
-	}
 
-	void deserializeScannerClient(NetworkParameters params, Protos.ColorScanner proto, ClientColorScanner scanner) throws UnreadableWalletException {
 		Map<Sha256Hash,Transaction> pending = Maps.newHashMap();
 		for (ByteString bytes : proto.getPendingList()) {
 			Transaction tx = new Transaction(params, bytes.toByteArray());
 			pending.put(tx.getHash(), tx);
 		}
 		scanner.setPending(pending);
+	}
 
+	void deserializeScannerClient(NetworkParameters params, Protos.ColorScanner proto, ClientColorScanner scanner) throws UnreadableWalletException {
 		for (Protos.ColorTrack trackp : proto.getTracksList()) {
 			HashCode hash = getHash(trackp.getColorDefinition().getHash());
 			ColorTrack track = scanner.getColorTrackByHash(hash);
@@ -276,6 +269,13 @@ public class SmartwalletExtension implements WalletExtension {
 			}
 			deserializeTrackClient(params, trackp, (ClientColorTrack) track);
 		}
+
+		Map<Sha256Hash,Transaction> pending = Maps.newHashMap();
+		for (ByteString bytes : proto.getPendingList()) {
+			Transaction tx = new Transaction(params, bytes.toByteArray());
+			pending.put(tx.getHash(), tx);
+		}
+		scanner.setPending(pending);
 	}
 
 	static void deserializeTrackSPV(NetworkParameters params, Protos.ColorTrack trackp, SPVColorTrack track) {
