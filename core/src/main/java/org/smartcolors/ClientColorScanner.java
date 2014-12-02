@@ -46,6 +46,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
+import javax.net.ssl.SSLContext;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
@@ -321,6 +323,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 	}
 
 	public static class Fetcher {
+		private static SSLContext sslContext;
 		private final URI base;
 		private final NetworkParameters params;
 		CloseableHttpClient httpclient;
@@ -338,6 +341,10 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 			this.httpclient = httpclient;
 		}
 
+		public static void setSslContext(SSLContext sslContext) {
+			Fetcher.sslContext = sslContext;
+		}
+
 		private void initClient() {
 			RequestConfig config = RequestConfig.custom()
 					.setConnectionRequestTimeout(NETWORK_TIMEOUT)
@@ -347,6 +354,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 			httpclient = HttpClients.custom()
 					.setUserAgent("SmartColors-java-" + SmartColors.getVersion())
 					.setDefaultRequestConfig(config)
+					.setSslcontext(sslContext)
 					.build();
 		}
 
