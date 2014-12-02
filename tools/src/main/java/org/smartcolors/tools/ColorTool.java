@@ -383,7 +383,7 @@ public class ColorTool {
 		else {
 			URI baseUri = null;
 			try {
-				baseUri = new URI("http://localhost:8888/");
+				baseUri = new URI("http://tracker0.smartcolors.org:8888/");
 			} catch (URISyntaxException e) {
 				Throwables.propagate(e);
 			}

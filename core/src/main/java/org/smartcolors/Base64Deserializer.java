@@ -4,8 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.deser.std.FromStringDeserializer;
 import com.google.common.hash.HashCode;
-
-import org.apache.commons.codec.binary.Base64;
+import com.google.common.io.BaseEncoding;
 
 import java.io.IOException;
 
@@ -19,6 +18,6 @@ public class Base64Deserializer extends FromStringDeserializer<byte[]> {
 
 	@Override
 	protected byte[] _deserialize(String value, DeserializationContext ctxt) throws IOException, JsonProcessingException {
-		return Base64.decodeBase64(value);
+		return BaseEncoding.base64().decode(value);
 	}
 }

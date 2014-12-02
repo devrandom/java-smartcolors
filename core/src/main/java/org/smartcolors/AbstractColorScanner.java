@@ -51,10 +51,12 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 		this.params = params;
 	}
 
+	@Override
 	public ColorDefinition getBitcoinDefinition() {
 		return bitcoinDefinition;
 	}
 
+	@Override
 	public ColorDefinition getUnknownDefinition() {
 		return unknownDefinition;
 	}
@@ -81,8 +83,14 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 	}
 
 	/** Add a pending transaction from a peer or outgoing from us */
-	protected void addPending(Transaction t) {
+	@Override
+	public void addPending(Transaction t) {
 		pending.put(t.getHash(), t);
+	}
+
+	@Override
+	public void start(Wallet wallet) {
+		addAllPending(wallet, wallet.getPendingTransactions());
 	}
 
 	protected abstract TRACK makeTrack(ColorDefinition definition);
@@ -94,6 +102,13 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 				return def;
 		}
 		return null;
+	}
+
+	@Override
+	public boolean removeDefinition(ColorDefinition def) throws Exception {
+		HashCode hash = def.getHash();
+		ColorTrack track = getColorTrackByHash(hash);
+		return tracks.remove(track);
 	}
 
 	@Override
@@ -112,13 +127,6 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 				return track;
 		}
 		return null;
-	}
-
-	@Override
-	public boolean removeDefinition(ColorDefinition def) throws Exception {
-		HashCode hash = def.getHash();
-		ColorTrack track = getColorTrackByHash(hash);
-		return tracks.remove(track);
 	}
 
 	/**
@@ -338,5 +346,9 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 	@Override
 	public void unlock() {
 		lock.unlock();
+	}
+
+	@Override
+	public void stop() {
 	}
 }

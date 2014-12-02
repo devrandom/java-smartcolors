@@ -28,6 +28,12 @@ public interface ColorScanner {
 
 	Set<ColorDefinition> getDefinitions();
 
+	void stop();
+
+	void addPending(Transaction t);
+
+	void start(Wallet wallet);
+
 	ColorDefinition getColorDefinitionByHash(HashCode hash);
 
 	ColorTrack getColorTrackByHash(HashCode hash);
@@ -38,9 +44,9 @@ public interface ColorScanner {
 
 	void reset();
 
-	ColorDefinition getBitcoinDefinition();
 
 	ColorDefinition getUnknownDefinition();
+	ColorDefinition getBitcoinDefinition();
 
 	Map<Sha256Hash,Transaction> getPending();
 

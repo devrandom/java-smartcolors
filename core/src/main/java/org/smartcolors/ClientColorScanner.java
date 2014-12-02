@@ -91,6 +91,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 		this.colorKeyChain = colorKeyChain;
 	}
 
+	@Override
 	public void stop() {
 		fetcher.stop();
 		fetchService.shutdownNow();
@@ -102,6 +103,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 		fetchService = null;
 	}
 
+	@Override
 	public void start(Wallet wallet) {
 		checkState(fetchService == null);
 		this.wallet = wallet;
