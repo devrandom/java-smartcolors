@@ -37,6 +37,7 @@ import org.smartcolors.marshal.SerializationException;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -65,6 +66,18 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 	ScheduledExecutorService fetchService;
 	private Wallet wallet;
 
+
+	public ClientColorScanner(NetworkParameters params) {
+		this(params, getDefaultUri(params));
+	}
+
+	private static URI getDefaultUri(NetworkParameters params) {
+		try {
+			return new URI("http://localhost:8888/");
+		} catch (URISyntaxException e) {
+			throw Throwables.propagate(e);
+		}
+	}
 
 	public ClientColorScanner(NetworkParameters params, URI baseUri) {
 		super(params);
@@ -95,6 +108,10 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 
 	@Override
 	public void stop() {
+		if (fetchService == null) {
+			log.warn("already stopped");
+			return;
+		}
 		fetcher.stop();
 		fetchService.shutdownNow();
 		try {
