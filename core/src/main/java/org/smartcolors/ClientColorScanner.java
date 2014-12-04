@@ -9,7 +9,6 @@ import com.google.common.collect.Lists;
 import com.google.common.hash.HashCode;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.google.protobuf.ByteString;
 
 import org.apache.http.StatusLine;
 import org.apache.http.client.config.RequestConfig;
@@ -26,6 +25,7 @@ import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.Wallet;
+import org.bitcoinj.script.Script;
 import org.bitcoinj.utils.Threading;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -305,7 +305,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 				lock.unlock();
 			}
 			// TODO fix this hack to save wallet
-			wallet.setTag("smartcolors", ByteString.copyFromUtf8("1.0"));
+			wallet.removeWatchedScripts(Lists.<Script>newArrayList());
 			if (futures != null) {
 				for (SettableFuture<Transaction> future : futures) {
 					future.set(tx);
