@@ -44,11 +44,17 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 	protected Multimap<Transaction, SettableFuture<Transaction>> unknownTransactionFutures = ArrayListMultimap.create();
 	@GuardedBy("lock")
 	Map<Sha256Hash, Transaction> pending = Maps.newConcurrentMap();
+	protected ColorKeyChain colorKeyChain;
 
 	public AbstractColorScanner(NetworkParameters params) {
 		this.bitcoinDefinition = ColorDefinition.makeBitcoin(params);
 		this.unknownDefinition = ColorDefinition.makeUnknown(params);
 		this.params = params;
+	}
+
+	@Override
+	public void setColorKeyChain(ColorKeyChain colorKeyChain) {
+		this.colorKeyChain = colorKeyChain;
 	}
 
 	@Override

@@ -62,7 +62,6 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 	public static final int NETWORK_TIMEOUT = 10000;
 
 	Fetcher fetcher;
-	private ColorKeyChain colorKeyChain;
 	ScheduledExecutorService fetchService;
 	private Wallet wallet;
 
@@ -102,10 +101,6 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 		this.fetcher = fetcher;
 	}
 
-	public void setColorKeyChain(ColorKeyChain colorKeyChain) {
-		this.colorKeyChain = colorKeyChain;
-	}
-
 	@Override
 	public void stop() {
 		if (fetchService == null) {
@@ -125,6 +120,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 	@Override
 	public void start(Wallet wallet) {
 		checkState(fetchService == null);
+		checkState(colorKeyChain != null);
 		this.wallet = wallet;
 		fetchService = makeFetchService();
 		for (Transaction tx : pending.values()) {

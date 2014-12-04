@@ -46,6 +46,9 @@ public interface ColorScanner {
 
 
 	ColorDefinition getUnknownDefinition();
+
+	void setColorKeyChain(ColorKeyChain colorKeyChain);
+
 	ColorDefinition getBitcoinDefinition();
 
 	Map<Sha256Hash,Transaction> getPending();
