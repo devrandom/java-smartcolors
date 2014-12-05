@@ -87,6 +87,7 @@
                                         <exec executable="protoc" failonerror="true">
                                             <arg value="--java_out=${project.basedir}/src/main/java"/>
                                             <arg value="-I${project.basedir}/src"/>
+                                            <!--suppress MavenModelInspection -->
                                             <arg line="${proto.files}"/>
                                         </exec>
                                     </tasks>

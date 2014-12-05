@@ -9,22 +9,13 @@ import com.google.common.collect.Lists;
 import com.google.common.hash.HashCode;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-
 import org.apache.http.StatusLine;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.bitcoinj.core.AbstractWalletEventListener;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionConfidence;
-import org.bitcoinj.core.TransactionInput;
-import org.bitcoinj.core.TransactionOutPoint;
-import org.bitcoinj.core.TransactionOutput;
-import org.bitcoinj.core.Wallet;
+import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.utils.Threading;
 import org.slf4j.Logger;
@@ -35,6 +26,7 @@ import org.smartcolors.core.SmartColors;
 import org.smartcolors.marshal.BytesDeserializer;
 import org.smartcolors.marshal.SerializationException;
 
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -46,8 +38,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-
-import javax.net.ssl.SSLContext;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
@@ -122,6 +112,11 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 		checkState(fetchService == null);
 		checkState(colorKeyChain != null);
 		this.wallet = wallet;
+
+		// Intern the transactions so we get the right confidence level
+		for (Map.Entry<Sha256Hash, Transaction> entry : pending.entrySet()) {
+			pending.put(entry.getKey(), wallet.getTransaction(entry.getValue().getHash()));
+		}
 		fetchService = makeFetchService();
 		for (Transaction tx : pending.values()) {
 			// Average 1 per second

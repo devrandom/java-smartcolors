@@ -1,12 +1,6 @@
 package org.smartcolors;
 
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.InsufficientMoneyException;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionConfidence;
-import org.bitcoinj.core.TransactionInput;
-import org.bitcoinj.core.TransactionOutput;
-import org.bitcoinj.core.Wallet;
+import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.wallet.CoinSelection;
 import org.bitcoinj.wallet.KeyChain;
@@ -15,11 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.smartcolors.core.ColorDefinition;
 import org.smartcolors.core.SmartColors;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -30,12 +20,10 @@ public class AssetCoinSelector extends DefaultCoinSelector {
 	private static final Logger log = LoggerFactory.getLogger(AssetCoinSelector.class);
 	protected final ColorKeyChain colorKeyChain;
 	protected final ColorTrack track;
-	private final BitcoinCoinSelector bitcoinSelector;
 
 	public AssetCoinSelector(ColorKeyChain colorKeyChain, ColorTrack track) {
 		this.colorKeyChain = colorKeyChain;
 		this.track = track;
-		this.bitcoinSelector = new BitcoinCoinSelector(colorKeyChain);
 	}
 
 	public static class AssetCoinSelection extends CoinSelection {
