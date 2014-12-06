@@ -7,26 +7,18 @@ import com.google.common.collect.Sets;
 import com.google.common.hash.HashCode;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Sha256Hash;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionInput;
-import org.bitcoinj.core.TransactionOutPoint;
-import org.bitcoinj.core.TransactionOutput;
-import org.bitcoinj.core.Wallet;
+import org.bitcoinj.core.*;
 import org.bitcoinj.utils.Threading;
 import org.bitcoinj.wallet.WalletTransaction;
 import org.smartcolors.core.ColorDefinition;
 import org.smartcolors.core.SmartColors;
 
+import javax.annotation.concurrent.GuardedBy;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
-
-import javax.annotation.concurrent.GuardedBy;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -177,6 +169,24 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 			}
 		} finally {
    			lock.unlock();
+		}
+	}
+
+	@Override
+	public Map<ColorDefinition, Long> getOutputValues(Transaction tx, Wallet wallet, ColorKeyChain chain) {
+		wallet.beginBloomFilterCalculation();
+		lock.lock();
+		try {
+			Map<ColorDefinition, Long> res = Maps.newHashMap();
+			for (TransactionOutput out : tx.getOutputs()) {
+				if (out.isAvailableForSpending() && chain.isOutputToMe(out)) {
+					applyOutputValue(out, res);
+				}
+			}
+			return res;
+		} finally {
+			lock.unlock();
+			wallet.endBloomFilterCalculation();
 		}
 	}
 

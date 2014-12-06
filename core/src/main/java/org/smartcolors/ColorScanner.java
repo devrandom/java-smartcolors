@@ -2,7 +2,6 @@ package org.smartcolors;
 
 import com.google.common.hash.HashCode;
 import com.google.common.util.concurrent.ListenableFuture;
-
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutPoint;
@@ -56,6 +55,8 @@ public interface ColorScanner {
 	void lock();
 
 	void unlock();
+
+	Map<ColorDefinition,Long> getOutputValues(Transaction tx, Wallet wallet, ColorKeyChain colorChain);
 
 	public static class ScanningException extends RuntimeException {
 		public ScanningException(String reason) {

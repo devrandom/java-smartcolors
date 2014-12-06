@@ -1,36 +1,19 @@
 package org.smartcolors.core;
 
-import com.fasterxml.jackson.annotation.JacksonInject;
-import com.fasterxml.jackson.annotation.JsonAnyGetter;
-import com.fasterxml.jackson.annotation.JsonAnySetter;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.base.Objects;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Sha256Hash;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionInput;
-import org.bitcoinj.core.TransactionOutPoint;
-import org.bitcoinj.core.TransactionOutput;
-import org.bitcoinj.core.Utils;
+import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
-import org.smartcolors.marshal.BytesDeserializer;
-import org.smartcolors.marshal.BytesSerializer;
-import org.smartcolors.marshal.Deserializer;
-import org.smartcolors.marshal.FileSerializer;
-import org.smartcolors.marshal.HashableSerializable;
-import org.smartcolors.marshal.MemoizedDeserializer;
-import org.smartcolors.marshal.SerializationException;
-import org.smartcolors.marshal.Serializer;
+import org.smartcolors.marshal.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -340,21 +323,27 @@ public class ColorDefinition extends HashableSerializable {
 	public static ColorDefinition deserializeFromFile(final NetworkParameters params, InputStream is) throws SerializationException {
 		MemoizedDeserializer des = new MemoizedDeserializer(is);
 
-		FileSerializer fser = new FileSerializer() {
-			@Override
-			protected byte[] getMagic() {
-				return FILE_MAGIC;
-			}
-		};
-		fser.readHeader(des);
+		fileSerializer.readHeader(des);
 		ColorDefinition me = des.readObject(new Deserializer.ObjectReader<ColorDefinition>() {
 			@Override
 			public ColorDefinition readObject(Deserializer des) throws SerializationException {
 				return deserialize(params, des);
 			}
 		});
-		fser.verifyHash(des, me);
+		fileSerializer.verifyHash(des, me);
 		return me;
+	}
+
+	private static FileSerializer fileSerializer = new FileSerializer() {
+		@Override
+		protected byte[] getMagic() {
+			return FILE_MAGIC;
+		}
+	};
+
+	public void serializeToFile(OutputStream os) throws SerializationException {
+		MemoizedSerializer ser = new MemoizedSerializer(os);
+		fileSerializer.write(ser, this);
 	}
 
 	@JsonIgnore

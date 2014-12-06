@@ -3,62 +3,33 @@ package org.smartcolors.tools;
 import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import com.google.common.collect.*;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-
-import org.bitcoinj.core.AbstractWalletEventListener;
-import org.bitcoinj.core.Address;
-import org.bitcoinj.core.AddressFormatException;
-import org.bitcoinj.core.BlockChain;
-import org.bitcoinj.core.CheckpointManager;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.DownloadListener;
-import org.bitcoinj.core.InsufficientMoneyException;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.PeerAddress;
-import org.bitcoinj.core.PeerGroup;
-import org.bitcoinj.core.Sha256Hash;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionOutPoint;
-import org.bitcoinj.core.Utils;
-import org.bitcoinj.core.Wallet;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
+import org.bitcoinj.core.*;
+import org.bitcoinj.crypto.ChildNumber;
+import org.bitcoinj.crypto.DeterministicKey;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
-import org.bitcoinj.store.BlockStore;
-import org.bitcoinj.store.BlockStoreException;
-import org.bitcoinj.store.SPVBlockStore;
-import org.bitcoinj.store.UnreadableWalletException;
-import org.bitcoinj.store.WalletProtobufSerializer;
+import org.bitcoinj.store.*;
 import org.bitcoinj.utils.BriefLogFormatter;
 import org.bitcoinj.utils.Threading;
-import org.bitcoinj.wallet.DeterministicKeyChain;
-import org.bitcoinj.wallet.DeterministicSeed;
-import org.bitcoinj.wallet.KeyChain;
-import org.bitcoinj.wallet.KeyChainGroup;
-import org.bitcoinj.wallet.WalletTransaction;
+import org.bitcoinj.wallet.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.smartcolors.AssetCoinSelector;
-import org.smartcolors.BitcoinCoinSelector;
-import org.smartcolors.ClientColorScanner;
-import org.smartcolors.ColorKeyChain;
-import org.smartcolors.ColorKeyChainFactory;
-import org.smartcolors.ColorScanner;
-import org.smartcolors.SPVColorScanner;
-import org.smartcolors.SmartwalletExtension;
+import org.smartcolors.*;
 import org.smartcolors.core.ColorDefinition;
 import org.smartcolors.core.GenesisOutPointsMerbinnerTree;
 import org.smartcolors.core.GenesisScriptMerbinnerTree;
 import org.smartcolors.core.SmartColors;
+import org.smartcolors.marshal.SerializationException;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import javax.annotation.Nullable;
+import java.io.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -67,19 +38,11 @@ import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
-
-import javax.annotation.Nullable;
-
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
@@ -117,7 +80,12 @@ public class ColorTool {
 		parser.accepts("verbose");
 		mnemonicSpec = parser.accepts("mnemonic", "mnemonic phrase").withRequiredArg();
 		OptionSpec<String> walletFileName = parser.accepts("wallet").withRequiredArg();
-		parser.nonOptions("COMMAND: one of - help, scan, send\n");
+		parser.nonOptions("COMMAND: one of:" +
+				"\n help" +
+				"\n scan" +
+				"\n send COLOR_NAME DEST AMOUNT" +
+				"\n issue COLOR_NAME DEST BASE_AMOUNT" +
+				"\n");
 
 		options = parser.parse(args);
 
@@ -185,6 +153,8 @@ public class ColorTool {
 			scan(cmdArgs);
 		} else if (cmd.equals("send")) {
 			send(cmdArgs);
+		} else if (cmd.equals("issue")) {
+			issue(cmdArgs);
 		} else if (cmd.equals("dump")) {
 			dump(cmdArgs);
 		} else {
@@ -329,10 +299,11 @@ public class ColorTool {
 			wallet.saveToFile(walletFile);
 		} catch (BlockStoreException e) {
 			System.err.println("Error reading block chain file " + chainFile + ": " + e.getMessage());
-			e.printStackTrace();
+			System.exit(1);
 		} catch (IOException e) {
 			System.err.println("Error : " + e.getMessage());
 			e.printStackTrace();
+			System.exit(1);
 		}
 	}
 
@@ -362,8 +333,8 @@ public class ColorTool {
 			KeyChainGroup group = new KeyChainGroup(params);
 			group.addAndActivateHDChain(colorChain);
 			group.addAndActivateHDChain(chain);
-			group.setLookaheadSize(20);
-			group.setLookaheadThreshold(10);
+			group.setLookaheadSize(40);
+			group.setLookaheadThreshold(20);
 			wallet = new Wallet(params, group);
 			extension = new SmartwalletExtension(params);
 			//extension.setColorKeyChain(colorChain);
@@ -393,8 +364,9 @@ public class ColorTool {
 
 	private static void addBuiltins() {
 		try {
-			scanner.addDefinition(loadDefinition("gold.json"));
-			scanner.addDefinition(loadDefinition("oil.json"));
+			scanner.addDefinition(loadDefinition("gold.smartcolor"));
+			scanner.addDefinition(loadDefinition("oil.smartcolor"));
+			scanner.addDefinition(loadDefinition("usd.smartcolor"));
 		} catch (SPVColorScanner.ColorDefinitionException colorDefinitionExists) {
 			Throwables.propagate(colorDefinitionExists);
 		}
@@ -431,12 +403,12 @@ public class ColorTool {
 
 	private static void send(List<?> cmdArgs) {
 		syncChain();
-		String color = (String)cmdArgs.get(0);
+		String name = (String)cmdArgs.get(0);
 		String dest = (String)cmdArgs.get(1);
 		String amountString = (String)cmdArgs.get(2);
 		ColorDefinition def = null;
 		for (ColorDefinition definition : scanner.getDefinitions()) {
-			if (definition.getName().equalsIgnoreCase(color)) {
+			if (definition.getName().equalsIgnoreCase(name)) {
 				def = definition;
 				break;
 			}
@@ -467,6 +439,66 @@ public class ColorTool {
 			Throwables.propagate(e);
 		}
 		System.out.println(req.tx);
+		Utils.sleep(2000);
+		done();
+
+	}
+
+	private static void issue(List<?> cmdArgs) {
+		syncChain();
+		int ind = 0;
+		String name = (String)cmdArgs.get(ind++);
+		String dest = cmdArgs.size() >= 3 ? (String)cmdArgs.get(ind++) : SmartColors.toAssetAddress(colorChain.freshOutputScript(KeyChain.KeyPurpose.RECEIVE_FUNDS).getToAddress(params), !isTestNet()).toString();
+		String amountString = (String)cmdArgs.get(ind++);
+
+		long amount = Long.parseLong(amountString);
+
+		Wallet.SendRequest req = null;
+		try {
+			req = makeAssetSendRequest(dest, amount);
+			req.shuffleOutputs = false;
+			wallet.completeTx(req);
+		} catch (AddressFormatException e) {
+			Throwables.propagate(e);
+		} catch (InsufficientMoneyException e) {
+			Throwables.propagate(e);
+		}
+		Map<TransactionOutPoint, Long> nodes = Maps.newHashMap();
+		nodes.put(req.tx.getOutput(0).getOutPointFor(), amount);
+		GenesisOutPointsMerbinnerTree outPoints = new GenesisOutPointsMerbinnerTree(params, nodes);
+		Map<String, String> metadata = Maps.newHashMap();
+		metadata.put("name", name);
+		ColorDefinition def = new ColorDefinition(params, outPoints, new GenesisScriptMerbinnerTree(), metadata, chain.getBestChainHeight() - 6, new byte[16]);
+		System.out.println(req.tx);
+		File jsonFile = new File(name + ".smartcolor");
+		File scdefFile = new File(name + ".scdef");
+		if (!options.has("force") && (jsonFile.exists() || scdefFile.exists())) {
+			log.error("file exists");
+			done();
+			return;
+		}
+
+		try {
+			OutputStream jsonOut = new FileOutputStream(jsonFile);
+			ObjectMapper mapper = new ObjectMapper();
+			mapper.writerWithDefaultPrettyPrinter().writeValue(jsonOut, def);
+			jsonOut.close();
+			OutputStream scdefOut = new FileOutputStream(scdefFile);
+			def.serializeToFile(scdefOut);
+			scdefOut.close();
+		} catch (IOException e) {
+			Throwables.propagate(e);
+		} catch (SerializationException e) {
+			Throwables.propagate(e);
+		}
+		wallet.commitTx(req.tx);
+		try {
+			peers.broadcastTransaction(req.tx).get();
+		} catch (InterruptedException e) {
+			Throwables.propagate(e);
+		} catch (ExecutionException e) {
+			Throwables.propagate(e);
+		}
 		Utils.sleep(2000);
 		done();
 
@@ -508,19 +540,75 @@ public class ColorTool {
 	private static void dumpState() {
 		System.out.println(scanner);
 		System.out.println(wallet);
-		System.out.println("************** Transactions:");
+		System.out.println("************** Unspent Transactions:");
 		for (Transaction tx: wallet.getTransactionPool(WalletTransaction.Pool.UNSPENT).values()) {
-			Map<ColorDefinition, Long> values = scanner.getNetAssetChange(tx, wallet, colorChain);
-			System.out.println(tx.getHash());
-			System.out.println(values);
+			Map<ColorDefinition, Long> values = scanner.getOutputValues(tx, wallet, colorChain);
+			System.out.print(tx.getHash());
+			for (Map.Entry<ColorDefinition, Long> entry : values.entrySet()) {
+				BigDecimal divisibilityDivider = getDivider(entry.getKey());
+				BigDecimal amount = BigDecimal.valueOf(entry.getValue()).divide(divisibilityDivider);
+				System.out.print("  " + entry.getKey().getName() + ": " + amount);
+			}
+			System.out.println();
 		}
 		System.out.println("\n************** Balances:");
 		Map<ColorDefinition, Long> balances = scanner.getBalances(wallet, colorChain);
 		for (Map.Entry<ColorDefinition, Long> entry : balances.entrySet()) {
 			BigDecimal divisibilityDivider = getDivider(entry.getKey());
-			long amount = BigDecimal.valueOf(entry.getValue()).divide(divisibilityDivider).intValue();
+			BigDecimal amount = BigDecimal.valueOf(entry.getValue()).divide(divisibilityDivider);
 			System.out.println(entry.getKey().getName() + " : " + amount);
 		}
+		System.out.println("\n************** Key Usage:");
+		List<DeterministicKey> sorted = getSortedKeys(wallet);
+		for (DeterministicKey key : sorted) {
+			System.out.println("  " + key.toAddress(params) + " " + key.getPathAsString());
+		}
+	}
+
+	private static List<DeterministicKey> getSortedKeys(Wallet wallet) {
+		Set<DeterministicKey> keys = Sets.newHashSet();
+		for (Transaction tx : wallet.getTransactions(true)) {
+			for (TransactionOutput o : tx.getOutputs()) {
+				if (o.isMine(wallet)) {
+					try {
+                        Script script = o.getScriptPubKey();
+                        ECKey key;
+                        if (script.isSentToRawPubKey()) {
+                            byte[] pubkey = script.getPubKey();
+                            key = wallet.findKeyFromPubKey(pubkey);
+                        } else if (script.isSentToAddress()) {
+                            byte[] pubkeyHash = script.getPubKeyHash();
+                            key = wallet.findKeyFromPubHash(pubkeyHash);
+                        } else if (script.isPayToScriptHash()) {
+                            byte[] a = script.getPubKeyHash();
+                            key = wallet.findRedeemDataFromScriptHash(a).getFullKey();
+                        } else {
+                            log.warn("unknown script format " + script);
+                            continue;
+                        }
+                        keys.add((DeterministicKey) key);
+                    } catch (ScriptException e) {
+                        // Just means we didn't understand the output of this transaction: ignore it.
+                        log.warn("Could not parse tx output script: {}", e.toString());
+                    }
+				}
+			}
+		}
+		return new Ordering<DeterministicKey>() {
+			@Override
+			public int compare(@Nullable DeterministicKey left, @Nullable DeterministicKey right) {
+				Iterator<ChildNumber> li = left.getPath().iterator();
+				Iterator<ChildNumber> ri = right.getPath().iterator();
+				ComparisonChain chain = ComparisonChain.start();
+				while (ri.hasNext() && li.hasNext()) {
+					ChildNumber rc = ri.next();
+					ChildNumber lc = li.next();
+					chain = chain.compare(lc.i(), rc.i());
+				}
+				chain = chain.compare(li.hasNext(), ri.hasNext());
+				return chain.result();
+			}
+		}.sortedCopy(keys);
 	}
 
 	private static boolean isTestNet() {
