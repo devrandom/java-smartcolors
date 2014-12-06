@@ -280,6 +280,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 				}
 				if (!found) {
 					// TODO handle new asset type
+					log.warn("Unknown asset type fetched " + proof.getDefinition().getHash());
 				}
 			} finally {
 				lock.unlock();

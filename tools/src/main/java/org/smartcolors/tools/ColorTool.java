@@ -364,11 +364,12 @@ public class ColorTool {
 
 	private static void addBuiltins() {
 		try {
-			scanner.addDefinition(loadDefinition("gold.smartcolor"));
-			scanner.addDefinition(loadDefinition("oil.smartcolor"));
-			scanner.addDefinition(loadDefinition("usd.smartcolor"));
-		} catch (SPVColorScanner.ColorDefinitionException colorDefinitionExists) {
-			Throwables.propagate(colorDefinitionExists);
+			scanner.addDefinition(loadDefinition("assets/eur.smartcolor"));
+			scanner.addDefinition(loadDefinition("assets/usd.smartcolor"));
+			scanner.addDefinition(loadDefinition("assets/oil.smartcolor"));
+			scanner.addDefinition(loadDefinition("assets/gold.smartcolor"));
+		} catch (SPVColorScanner.ColorDefinitionException e) {
+			Throwables.propagate(e);
 		}
 	}
 
