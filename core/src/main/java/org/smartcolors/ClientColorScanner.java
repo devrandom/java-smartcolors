@@ -319,7 +319,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 		public String error;
 		public String details;
 		@JsonDeserialize(keyUsing = HexKeyDeserializer.class)
-		public Map<HashCode, ProofMap> colordefs;
+		public Map<HashCode, ProofMap> proofs;
 
 		@Override
 		public String toString() {
@@ -389,10 +389,10 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 					log.warn("got unknown result " + res);
 					throw new TemporaryFailureException();
 				}
-				if (res.colordefs == null)
+				if (res.proofs == null)
 					return null;
 
-				for (ProofMap map : res.colordefs.values()) {
+				for (ProofMap map : res.proofs.values()) {
 					for (byte[] bytes : map.values()) {
 						return ColorProof.deserialize(params, new BytesDeserializer(bytes));
 					}

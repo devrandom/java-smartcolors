@@ -6,21 +6,13 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.hash.HashCode;
 import com.google.common.util.concurrent.ListenableFuture;
-
 import org.apache.http.ProtocolVersion;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.message.BasicStatusLine;
-import org.bitcoinj.core.AbstractBlockChain;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.Sha256Hash;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionOutPoint;
-import org.bitcoinj.core.TransactionOutput;
-import org.bitcoinj.core.Wallet;
+import org.bitcoinj.core.*;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.testing.FakeTxBuilder;
 import org.bitcoinj.wallet.KeyChain;
@@ -29,11 +21,7 @@ import org.easymock.IAnswer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.smartcolors.core.ColorDefinition;
-import org.smartcolors.core.ColorProof;
-import org.smartcolors.core.GenesisOutPointColorProof;
-import org.smartcolors.core.SmartColors;
-import org.smartcolors.core.TransferColorProof;
+import org.smartcolors.core.*;
 import org.smartcolors.protos.Protos;
 
 import java.io.IOException;
@@ -47,18 +35,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static junit.framework.Assert.fail;
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.capture;
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.createNiceMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.reset;
-import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.easymock.EasyMock.*;
+import static org.junit.Assert.*;
 
 public class ClientColorScannerTest extends ColorTest {
 	private ClientColorScanner scanner;
@@ -385,7 +363,7 @@ public class ClientColorScannerTest extends ColorTest {
 		reset(client, response);
 
 		// Yet another way to say not-colored
-		mockResponse(client, cap, response, "{\"status\":\"OK\", \"colordefs\":{}}");
+		mockResponse(client, cap, response, "{\"status\":\"OK\", \"proofs\":{}}");
 		replay(client, response);
 		res = fetcher.fetch(point);
 		verify(client, response);
