@@ -3,7 +3,6 @@ package org.smartcolors;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
-
 import org.bitcoinj.core.BloomFilter;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.TransactionOutput;
@@ -18,12 +17,11 @@ import org.bitcoinj.wallet.DeterministicSeed;
 import org.bitcoinj.wallet.RedeemData;
 import org.spongycastle.crypto.params.KeyParameter;
 
+import javax.annotation.Nullable;
 import java.security.SecureRandom;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -135,7 +133,7 @@ public class ColorKeyChain extends DeterministicKeyChain {
 	/** Get the redeem data for a key in this married chain */
 	@Override
 	public RedeemData getRedeemData(DeterministicKey key) {
-		List<ECKey> keys = Lists.newArrayList((ECKey)key);
+		List<ECKey> keys = Lists.newArrayList((ECKey) key);
 		Script redeemScript = ScriptBuilder.createOutputScript(keys.get(0));
 		return RedeemData.of(keys, redeemScript);
 	}
@@ -146,6 +144,33 @@ public class ColorKeyChain extends DeterministicKeyChain {
 		maybeLookAheadScripts();
 		Script redeemScript = ScriptBuilder.createOutputScript(key);
 		return ScriptBuilder.createP2SHOutputScript(redeemScript);
+	}
+
+	public Script currentOutputScript(KeyPurpose purpose) {
+		DeterministicKey key = currentKey(purpose);
+		Script redeemScript = ScriptBuilder.createOutputScript(key);
+		return ScriptBuilder.createP2SHOutputScript(redeemScript);
+	}
+
+	public DeterministicKey currentKey(KeyPurpose purpose) {
+		if (purpose == KeyPurpose.RECEIVE_FUNDS) {
+			if (getIssuedExternalKeys() > 0) {
+				DeterministicKey currentExternalKey = getKeyByPath(
+						ImmutableList.<ChildNumber>builder().addAll(getAccountPath()).addAll(EXTERNAL_PATH).add(new ChildNumber(getIssuedExternalKeys() - 1)).build());
+				return currentExternalKey;
+			}
+		} else if (purpose == KeyPurpose.CHANGE) {
+			if (getIssuedInternalKeys() > 0) {
+				DeterministicKey currentInternalKey = getKeyByPath(
+						ImmutableList.<ChildNumber>builder().addAll(getAccountPath()).addAll(INTERNAL_PATH).add(new ChildNumber(getIssuedInternalKeys() - 1)).build());
+				return currentInternalKey;
+			}
+		} else {
+			throw new RuntimeException("unsupported key purpose");
+		}
+		DeterministicKey key = getKey(purpose);
+		maybeLookAheadScripts();
+		return key;
 	}
 
 	@Override
