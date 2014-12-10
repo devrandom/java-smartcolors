@@ -381,16 +381,13 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 					throw new TemporaryFailureException();
 				}
 				OutPointResponse res = mapper.readValue(response.getEntity().getContent(), OutPointResponse.class);
-				if (!"OK".equals(res.status)) {
-					if ("NOT_COLORED".equals(res.error))
-						return null;
-					if ("NOT_FOUND".equals(res.error))
-						throw new TemporaryFailureException();
-					log.warn("got unknown result " + res);
+
+				if (res.proofs == null) {
+					log.warn("fetch failure " + res.status + " " + res.details);
 					throw new TemporaryFailureException();
 				}
-				if (res.proofs == null)
-					return null;
+
+				log.info("fetch success " + res.status + ", " + res.proofs.size() + " proofs");
 
 				for (ProofMap map : res.proofs.values()) {
 					for (byte[] bytes : map.values()) {

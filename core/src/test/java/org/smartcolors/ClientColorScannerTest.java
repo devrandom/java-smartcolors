@@ -332,7 +332,7 @@ public class ClientColorScannerTest extends ColorTest {
 		reset(client, response);
 
 		// Not found
-		mockResponse(client, cap, response, "{\"error\":\"NOT_FOUND\"}");
+		mockResponse(client, cap, response, "{\"status\":\"NOT_KNOWN\"}");
 		replay(client, response);
 		try {
 			fetcher.fetch(point);
@@ -345,7 +345,7 @@ public class ClientColorScannerTest extends ColorTest {
 		reset(client, response);
 
 		// Not colored
-		mockResponse(client, cap, response, "{\"error\":\"NOT_COLORED\"}");
+		mockResponse(client, cap, response, "{\"status\":\"NOT_COLORED\", \"proofs\":{}}");
 		replay(client, response);
 		ColorProof res = fetcher.fetch(point);
 		verify(client, response);
@@ -354,20 +354,13 @@ public class ClientColorScannerTest extends ColorTest {
 		reset(client, response);
 
 		// Another way to say not-colored
-		mockResponse(client, cap, response, "{\"status\":\"OK\"}");
+		mockResponse(client, cap, response, "{\"status\":\"COLORED\", \"proofs\":{}}");
 		replay(client, response);
 		res = fetcher.fetch(point);
 		verify(client, response);
 		assertNull(res);
 
 		reset(client, response);
-
-		// Yet another way to say not-colored
-		mockResponse(client, cap, response, "{\"status\":\"OK\", \"proofs\":{}}");
-		replay(client, response);
-		res = fetcher.fetch(point);
-		verify(client, response);
-		assertNull(res);
 
 		String fixture = FixtureHelpers.fixture("tracker1.json");
 		reset(client, response);
