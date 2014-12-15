@@ -1,16 +1,7 @@
 package org.smartcolors;
 
 import com.google.common.collect.Maps;
-
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.DumpedPrivateKey;
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Sha256Hash;
-import org.bitcoinj.core.StoredBlock;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionOutPoint;
-import org.bitcoinj.core.Wallet;
+import org.bitcoinj.core.*;
 import org.bitcoinj.params.TestNet3Params;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
@@ -71,8 +62,13 @@ public class ColorTest {
 	protected Transaction makeTx2(ECKey myKey) {
 		Transaction tx2 = new Transaction(params);
 		tx2.addInput(SmartColors.makeAssetInput(tx2, genesisTx, 0));
-		tx2.addOutput(Utils.makeAssetCoin(5), ScriptBuilder.createOutputScript(myKey));
+		Script outputScript = makeP2SHOutputScript(myKey);
+		tx2.addOutput(Utils.makeAssetCoin(5), outputScript);
 		tx2.addOutput(Coin.ZERO, opReturnScript);
 		return tx2;
+	}
+
+	protected Script makeP2SHOutputScript(ECKey key) {
+		return ScriptBuilder.createP2SHOutputScript(ScriptBuilder.createOutputScript(key));
 	}
 }

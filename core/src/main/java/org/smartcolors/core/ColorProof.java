@@ -4,17 +4,10 @@ import com.google.common.base.Objects;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
-
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.Utils;
-import org.smartcolors.marshal.Deserializer;
-import org.smartcolors.marshal.FileSerializer;
-import org.smartcolors.marshal.HashSerializer;
-import org.smartcolors.marshal.HashableSerializable;
-import org.smartcolors.marshal.MemoizedDeserializer;
-import org.smartcolors.marshal.SerializationException;
-import org.smartcolors.marshal.Serializer;
+import org.smartcolors.marshal.*;
 
 import java.io.InputStream;
 import java.util.Map;
@@ -55,7 +48,7 @@ public abstract class ColorProof extends HashableSerializable {
 		}
 		int version = des.readVaruint();
 		if (version != VERSION)
-			throw new SerializationException("unknown vesion " + version);
+			throw new SerializationException("unknown version " + version);
 		inst.params = params;
 		inst.def = des.readObject(new Deserializer.ObjectReader<ColorDefinition>() {
 			@Override

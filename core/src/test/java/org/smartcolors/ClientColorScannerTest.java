@@ -13,9 +13,10 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.message.BasicStatusLine;
 import org.bitcoinj.core.*;
-import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.testing.FakeTxBuilder;
+import org.bitcoinj.wallet.DeterministicKeyChain;
 import org.bitcoinj.wallet.KeyChain;
+import org.bitcoinj.wallet.KeyChainGroup;
 import org.easymock.Capture;
 import org.easymock.IAnswer;
 import org.junit.After;
@@ -27,7 +28,6 @@ import org.smartcolors.protos.Protos;
 import java.io.IOException;
 import java.net.URI;
 import java.security.SecureRandom;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CyclicBarrier;
@@ -55,24 +55,17 @@ public class ClientColorScannerTest extends ColorTest {
 		scanner = new ClientColorScanner(params, base);
 		scanner.addDefinition(def);
 		track = (ClientColorTrack) scanner.getColorTrackByDefinition(def);
-		colorKey = new ECKey();
-		colorChain = new ColorKeyChain(new SecureRandom(), 128, "", 0) {
-			// Hack - delegate to the current wallet
-			@Override
-			public boolean isOutputToMe(TransactionOutput output) {
-				if (output.getScriptPubKey().isSentToAddress())
-					return colorKey.getPubKeyHash().equals(output.getScriptPubKey().getPubKeyHash());
-				else if (output.getScriptPubKey().isSentToRawPubKey())
-					return Arrays.equals(colorKey.getPubKey(), output.getScriptPubKey().getPubKey());
-				return false;
-			}
-		};
-		wallet = new Wallet(params) {
-			@Override
-			public boolean isPubKeyMine(byte[] pubkey) {
-				return Arrays.equals(pubkey, colorKey.getPubKey()) || super.isPubKeyMine(pubkey);
-			}
-		};
+		colorChain = new ColorKeyChain(new SecureRandom(), 128, "", 0);
+		colorKey = colorChain.currentKey(KeyChain.KeyPurpose.RECEIVE_FUNDS);
+
+		DeterministicKeyChain chain =
+				DeterministicKeyChain.builder()
+						.seed(colorChain.getSeed())
+						.build();
+		KeyChainGroup keyChainGroup = new KeyChainGroup(params);
+		keyChainGroup.addAndActivateHDChain(colorChain);
+		keyChainGroup.addAndActivateHDChain(chain);
+		wallet = new Wallet(params, keyChainGroup);
 
 		scanner.setColorKeyChain(colorChain);
 		proofs = Maps.newHashMap();
@@ -109,7 +102,7 @@ public class ClientColorScannerTest extends ColorTest {
 	}
 
 	@Test
-	public void run() throws Exception {
+	public void transactions() throws Exception {
 		scanner.start(wallet);
 		Transaction tx2 = makeTx2(colorKey);
 
@@ -178,8 +171,8 @@ public class ClientColorScannerTest extends ColorTest {
 
 		Transaction tx3 = new Transaction(params);
 		tx3.addInput(SmartColors.makeAssetInput(tx3, tx2, 0));
-		tx3.addOutput(Utils.makeAssetCoin(2), ScriptBuilder.createOutputScript(colorKey));
-		tx3.addOutput(Utils.makeAssetCoin(3), ScriptBuilder.createOutputScript(privkey1));
+		tx3.addOutput(Utils.makeAssetCoin(2), makeP2SHOutputScript(colorKey));
+		tx3.addOutput(Utils.makeAssetCoin(3), makeP2SHOutputScript(privkey1));
 		tx3.addOutput(Coin.ZERO, opReturnScript);
 		TransferColorProof tx3Proof = new TransferColorProof(def, tx3, 0, Maps.newHashMap(proofs));
 		track.add(tx3Proof);
@@ -197,6 +190,36 @@ public class ClientColorScannerTest extends ColorTest {
 		ext.deserializeScannerClient(params, proto, scanner1);
 		res = scanner1.getNetAssetChange(tx3, wallet, colorChain);
 		assertEquals(expected, res);
+	}
+
+	@Test
+	public void testEncrypt() throws Exception {
+		GenesisOutPointColorProof genesisProof = new GenesisOutPointColorProof(def, genesisTx.getOutput(0).getOutPointFor());
+		proofs.put(genesisTx.getOutput(0).getOutPointFor(), genesisProof);
+		track.add(genesisProof);
+
+		Transaction tx2 = makeTx2(colorKey);
+		TransferColorProof tx2Proof = new TransferColorProof(def, tx2, 0, Maps.newHashMap(proofs));
+		track.add(tx2Proof);
+		proofs.put(tx2.getOutput(0).getOutPointFor(), tx2Proof);
+		wallet.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
+		Map<ColorDefinition, Long> expected = Maps.newHashMap();
+		Map<ColorDefinition, Long> res = scanner.getNetAssetChange(tx2, wallet, colorChain);
+		expected.put(def, 5L);
+		assertEquals(expected, res);
+
+		Transaction tx3 = new Transaction(params);
+		tx3.addInput(SmartColors.makeAssetInput(tx3, tx2, 0));
+		tx3.addOutput(Utils.makeAssetCoin(2), makeP2SHOutputScript(colorKey));
+		tx3.addOutput(Utils.makeAssetCoin(3), makeP2SHOutputScript(privkey1));
+		tx3.addOutput(Coin.ZERO, opReturnScript);
+		TransferColorProof tx3Proof = new TransferColorProof(def, tx3, 0, Maps.newHashMap(proofs));
+		track.add(tx3Proof);
+		proofs.put(tx3.getOutput(0).getOutPointFor(), tx3Proof);
+		wallet.receiveFromBlock(tx3, FakeTxBuilder.createFakeBlock(blockStore, tx3).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
+
+		wallet.encrypt("hello");
+		assertEquals(2L, (long) scanner.getBalances(wallet, colorChain).get(def));
 	}
 
 	@Test

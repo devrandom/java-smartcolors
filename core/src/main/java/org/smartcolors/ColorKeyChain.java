@@ -54,6 +54,7 @@ public class ColorKeyChain extends DeterministicKeyChain {
 
 	public ColorKeyChain(KeyCrypter keyCrypter, KeyParameter aesKey, ColorKeyChain colorKeyChain) {
 		super(keyCrypter, aesKey, colorKeyChain);
+		maybeLookAheadScripts();
 	}
 
 	public static class Builder<T extends Builder<T>> extends DeterministicKeyChain.Builder<T> {
