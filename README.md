@@ -3,7 +3,17 @@ Welcome to _SmartColors_, a improved color kernel allowing:
 * Untrusted asset servers serving SPV proofs
 * Atomic swaps
 
+# Prerequisites
+
+```
+    git clone https://github.com/devrandom/bitcoinj
+    cd bitcoinj
+    mvn install
+```
+
 # Compile
+
+Clone this repo, and compile:
 
 `mvn package`
 
