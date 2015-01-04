@@ -6,12 +6,12 @@
 
     <groupId>smartwallet</groupId>
     <artifactId>tools</artifactId>
-    <version>0.1-SNAPSHOT</version>
+    <version>0.2-SNAPSHOT</version>
     <dependencies>
         <dependency>
             <groupId>smartwallet</groupId>
             <artifactId>smartcolors</artifactId>
-            <version>0.1-SNAPSHOT</version>
+            <version>0.2-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>net.sf.jopt-simple</groupId>
