@@ -29,7 +29,8 @@ import static com.google.common.base.Preconditions.checkState;
  * Created by devrandom on 2014-10-12.
  */
 public class ColorKeyChain extends DeterministicKeyChain {
-	public static final ImmutableList<ChildNumber> ASSET_PATH = ImmutableList.of(new ChildNumber(1000, true), ChildNumber.ZERO);
+	public static final int SMARTCOLOR_BASE58 = 1461; // "SC" in base58 represents 1461
+	public static final ImmutableList<ChildNumber> ASSET_PATH = ImmutableList.of(new ChildNumber(SMARTCOLOR_BASE58, true), ChildNumber.ZERO_HARDENED, ChildNumber.ZERO_HARDENED);
 	private LinkedHashMap<ByteString, RedeemData> redeemDataMap = new LinkedHashMap<ByteString, RedeemData>();
 
 	public ColorKeyChain(SecureRandom random, int bits, String passphrase, long seedCreationTimeSecs) {
