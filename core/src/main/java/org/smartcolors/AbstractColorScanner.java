@@ -9,7 +9,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import org.bitcoinj.core.*;
 import org.bitcoinj.utils.Threading;
-import org.bitcoinj.wallet.WalletTransaction;
 import org.smartcolors.core.ColorDefinition;
 import org.smartcolors.core.SmartColors;
 
@@ -154,7 +153,7 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 				}
 			}
 			inps: for (TransactionInput inp: tx.getInputs()) {
-				if (isInputMine(inp, wallet)) {
+				if (SmartColors.isInputMine(inp, wallet)) {
 					for (ColorTrack track : tracks) {
 						Long value = track.getOutputs().get(inp.getOutpoint());
 						if (value != null) {
@@ -191,6 +190,40 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 	}
 
 	@Override
+	public Map<ColorDefinition, Long> getOutputValue(TransactionOutput output, Wallet wallet) {
+		wallet.beginBloomFilterCalculation();
+		lock.lock();
+		try {
+			Map<ColorDefinition, Long> res = Maps.newHashMap();
+			applyOutputValue(output, res, false);
+			return res;
+		} finally {
+			lock.unlock();
+			wallet.endBloomFilterCalculation();
+		}
+	}
+
+	@Override
+	public Map<ColorDefinition, Long> getInputValue(TransactionInput input, Wallet wallet) {
+		wallet.beginBloomFilterCalculation();
+		lock.lock();
+		try {
+			Map<ColorDefinition, Long> res = Maps.newHashMap();
+			for (ColorTrack track : tracks) {
+				TransactionOutPoint point = input.getOutpoint();
+				Long value = track.getOutputs().get(point);
+				if (value != null) {
+					res.put(track.getDefinition(), value);
+				}
+			}
+			return res;
+		} finally {
+			lock.unlock();
+			wallet.endBloomFilterCalculation();
+		}
+	}
+
+	@Override
 	public boolean contains(TransactionOutPoint point) {
 		lock.lock();
 		try {
@@ -206,6 +239,10 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 	}
 
 	protected boolean applyOutputValue(TransactionOutput out, Map<ColorDefinition, Long> res) {
+		return applyOutputValue(out, res, true);
+	}
+
+	protected boolean applyOutputValue(TransactionOutput out, Map<ColorDefinition, Long> res, boolean useUnknown) {
 		TransactionOutPoint point = out.getOutPointFor();
 		for (ColorTrack track : tracks) {
 			Long value = track.getOutputs().get(point);
@@ -223,34 +260,16 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 				return true;
 			}
 		}
-		// Unknown asset on this output
-		Long value = SmartColors.removeMsbdropValuePadding(out.getValue().getValue());
-		Long existing = res.get(unknownDefinition);
-		if (existing != null)
-			value = value + existing;
-		res.put(unknownDefinition, value);
+
+		if (useUnknown) {
+			// Unknown asset on this output
+			Long value = SmartColors.removeMsbdropValuePadding(out.getValue().getValue());
+			Long existing = res.get(unknownDefinition);
+			if (existing != null)
+				value = value + existing;
+			res.put(unknownDefinition, value);
+		}
 		return false;
-	}
-
-	private boolean isInputMine(TransactionInput input, Wallet wallet) {
-		TransactionOutPoint outpoint = input.getOutpoint();
-		TransactionOutput connected = getConnected(outpoint, wallet.getTransactionPool(WalletTransaction.Pool.UNSPENT));
-		if (connected == null)
-			connected = getConnected(outpoint, wallet.getTransactionPool(WalletTransaction.Pool.SPENT));
-		if (connected == null)
-			connected = getConnected(outpoint, wallet.getTransactionPool(WalletTransaction.Pool.PENDING));
-		if (connected == null)
-			return false;
-		// The connected output may be the change to the sender of a previous input sent to this wallet. In this
-		// case we ignore it.
-		return connected.isMine(wallet);
-	}
-
-	private TransactionOutput getConnected(TransactionOutPoint outpoint, Map<Sha256Hash, Transaction> transactions) {
-		Transaction tx = transactions.get(outpoint.getHash());
-		if (tx == null)
-			return null;
-		return tx.getOutputs().get((int) outpoint.getIndex());
 	}
 
 	@Override
