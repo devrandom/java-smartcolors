@@ -44,7 +44,8 @@ public class ColorTest {
 		genesisTx.addInput(Sha256Hash.ZERO_HASH, 0, EMPTY_SCRIPT);
 		opReturnScript = SmartColors.makeOpReturnScript();
 		genesisTx.addOutput(Utils.makeAssetCoin(10), new Script(new byte[0]));
-		genesisTx.addOutput(Coin.ZERO, opReturnScript);
+		if (SmartColors.ENABLE_OP_RETURN_MARKER)
+			genesisTx.addOutput(Coin.ZERO, opReturnScript);
 		genesisBlock = FakeTxBuilder.createFakeBlock(blockStore, genesisTx).storedBlock;
 		genesisOutPoint = new TransactionOutPoint(params, 0, genesisTx);
 		Map<TransactionOutPoint, Long> nodes = Maps.newHashMap();

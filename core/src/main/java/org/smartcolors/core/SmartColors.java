@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 public class SmartColors {
 	public static final int EARLIEST_FUDGE = 86400 * 7; // counteract bitcoinj fudge
+	public static final boolean ENABLE_OP_RETURN_MARKER = false;
 	private static long epoch;
 
 	/**

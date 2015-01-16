@@ -156,8 +156,10 @@ public class AssetCoinSelector extends DefaultCoinSelector {
 				req.tx.addOutput(changeOutput);
 			}
 
-			// Add OP_RETURN output
-			req.tx.addOutput(new TransactionOutput(wallet.getParams(), req.tx, Coin.ZERO, SmartColors.makeOpReturnScript().getProgram()));
+			if (SmartColors.ENABLE_OP_RETURN_MARKER) {
+				// Add OP_RETURN output
+				req.tx.addOutput(new TransactionOutput(wallet.getParams(), req.tx, Coin.ZERO, SmartColors.makeOpReturnScript().getProgram()));
+			}
 
 			CoinSelection bestCoinSelection;
 			TransactionOutput bestChangeOutput = null;
