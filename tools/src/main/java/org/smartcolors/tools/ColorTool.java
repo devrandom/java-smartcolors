@@ -391,9 +391,6 @@ public class ColorTool {
 		syncChain();
 		dumpState();
 		System.out.println(wallet.currentReceiveAddress());
-		Address assetBitcoinAddress = colorChain.freshOutputScript(KeyChain.KeyPurpose.RECEIVE_FUNDS).getToAddress(params);
-		System.out.println(assetBitcoinAddress);
-		System.out.println(SmartColors.toAssetAddress(assetBitcoinAddress, !isTestNet()));
 		done();
 	}
 
@@ -564,6 +561,10 @@ public class ColorTool {
 		for (DeterministicKey key : sorted) {
 			System.out.println("  " + key.toAddress(params) + " " + key.getPathAsString());
 		}
+		System.out.println("\n************** Current Key:");
+		Address assetBitcoinAddress = colorChain.currentOutputScript(KeyChain.KeyPurpose.RECEIVE_FUNDS).getToAddress(params);
+		System.out.println(assetBitcoinAddress);
+		System.out.println(SmartColors.toAssetAddress(assetBitcoinAddress, !isTestNet()));
 	}
 
 	private static List<DeterministicKey> getSortedKeys(Wallet wallet) {
