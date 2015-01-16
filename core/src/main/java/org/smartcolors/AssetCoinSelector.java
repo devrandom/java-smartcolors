@@ -136,7 +136,7 @@ public class AssetCoinSelector extends DefaultCoinSelector {
 			if (assetSelection.assetGathered < assetAmount) {
 				long missing = assetAmount - assetSelection.assetGathered;
 				String message = "Insufficient, missing " + missing + " " + track.getDefinition().getMetadata().get(ColorDefinition.METADATA_UNIT);
-				throw new InsufficientMoneyException(Coin.valueOf((int) missing, 0), message);
+				throw new InsufficientAssetException(Coin.valueOf((int) missing, 0), message);
 			}
 			for (TransactionOutput output : assetSelection.gathered) {
 				TransactionInput input = req.tx.addInput(SmartColors.makeAssetInput(req.tx, output));
