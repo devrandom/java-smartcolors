@@ -282,7 +282,7 @@ public class ColorTool {
 		try {
 			setup();
 			int startTransactions = wallet.getTransactions(true).size();
-			DownloadListener listener = new DownloadListener();
+			DownloadProgressTracker listener = new DownloadProgressTracker();
 			peers.startAsync();
 			peers.awaitRunning();
 			peers.startBlockChainDownload(listener);
