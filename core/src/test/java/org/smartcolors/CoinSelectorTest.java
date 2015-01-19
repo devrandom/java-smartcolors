@@ -1,22 +1,12 @@
 package org.smartcolors;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-
-import org.bitcoinj.core.AbstractBlockChain;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.InsufficientMoneyException;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionInput;
-import org.bitcoinj.core.Wallet;
+import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.testing.FakeTxBuilder;
-import org.bitcoinj.wallet.CoinSelection;
-import org.bitcoinj.wallet.DeterministicKeyChain;
-import org.bitcoinj.wallet.DeterministicSeed;
-import org.bitcoinj.wallet.KeyChain;
-import org.bitcoinj.wallet.KeyChainGroup;
+import org.bitcoinj.wallet.*;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -28,6 +18,7 @@ import java.security.SecureRandom;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.smartcolors.core.SmartColors.makeAssetInput;
 
 public class CoinSelectorTest extends ColorTest {
@@ -120,6 +111,10 @@ public class CoinSelectorTest extends ColorTest {
 		wallet.receiveFromBlock(tx, FakeTxBuilder.createFakeBlock(blockStore, tx).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
 	}
 
+	private void receivePendingTransaction(Transaction tx) {
+		wallet.receivePending(tx, Lists.<Transaction>newArrayList());
+	}
+
 	@Test
 	public void testRestoreFromSeed() {
 		DeterministicSeed existingSeed = wallet.getKeyChainSeed();
@@ -138,5 +133,121 @@ public class CoinSelectorTest extends ColorTest {
 		Wallet wallet1 = new Wallet(params, group);
 		Script outputScript1 = colorChain1.freshOutputScript(KeyChain.KeyPurpose.RECEIVE_FUNDS);
 		assertEquals(outputScript, outputScript1);
+	}
+
+	@Test
+	public void testInsufficient() {
+		Transaction tx;
+		Wallet.SendRequest request;
+
+		// Incoming asset
+		Transaction tx2 = new Transaction(params);
+		tx2.addInput(makeAssetInput(tx2, genesisTx, 0));
+		tx2.addOutput(Utils.makeAssetCoin(8), outputScript);
+		tx2.addOutput(Coin.ZERO, opReturnScript);
+		receiveTransaction(tx2);
+
+		// Partially spend asset
+		Transaction tx3 = new Transaction(params);
+		tx3.addInput(makeAssetInput(tx3, tx2, 0));
+		tx3.addOutput(Utils.makeAssetCoin(5), outputScript);
+		tx3.addOutput(Utils.makeAssetCoin(3), ScriptBuilder.createOutputScript(new ECKey()));
+		receiveTransaction(tx3);
+
+		// Incoming pending bitcoin
+		Transaction tx4 = new Transaction(params);
+		tx4.addInput(makeAssetInput(tx4, genesisTx, 0));
+		tx4.addOutput(Coin.COIN, ScriptBuilder.createOutputScript(wallet.currentReceiveKey()));
+		receivePendingTransaction(tx4);
+
+		// Insufficient bitcoin
+		tx = new Transaction(wallet.getParams());
+		request = makeRequest(tx);
+		AssetCoinSelector.addAssetOutput(tx, ScriptBuilder.createOutputScript(new ECKey().toAddress(params)), 2L);
+		try {
+			assetSelector.completeTx(wallet, request, 2L);
+			fail();
+		} catch (InsufficientMoneyException e) {
+			assertEquals(Coin.valueOf(3050), e.missing);
+		}
+
+		// Asset is checked before bitcoin - insufficient asset
+		tx = new Transaction(wallet.getParams());
+		request = makeRequest(tx);
+		AssetCoinSelector.addAssetOutput(tx, ScriptBuilder.createOutputScript(new ECKey().toAddress(params)), 7L);
+		try {
+			assetSelector.completeTx(wallet, request, 7L);
+			fail();
+		} catch (InsufficientAssetException e) {
+			assertEquals(Coin.valueOf(2, 0), e.missing);
+		} catch (InsufficientMoneyException e) {
+			fail();
+		}
+
+		// Confirm
+		receiveTransaction(tx4);
+
+		// Insufficient asset
+		tx = new Transaction(wallet.getParams());
+		request = makeRequest(tx);
+		AssetCoinSelector.addAssetOutput(tx, ScriptBuilder.createOutputScript(new ECKey().toAddress(params)), 7L);
+		try {
+			assetSelector.completeTx(wallet, request, 7L);
+			fail();
+		} catch (InsufficientAssetException e) {
+			assertEquals(Coin.valueOf(2, 0), e.missing);
+		} catch (InsufficientMoneyException e) {
+			fail();
+		}
+
+		// Sufficient
+		tx = new Transaction(wallet.getParams());
+		request = makeRequest(tx);
+		AssetCoinSelector.addAssetOutput(tx, ScriptBuilder.createOutputScript(new ECKey().toAddress(params)), 2L);
+		try {
+			assetSelector.completeTx(wallet, request, 2L);
+		} catch (InsufficientMoneyException e) {
+			fail();
+		}
+
+		// Incoming pending asset
+		Transaction tx5 = new Transaction(params);
+		tx5.addInput(makeAssetInput(tx5, tx3, 1));
+		tx5.addOutput(Utils.makeAssetCoin(3), outputScript);
+		receivePendingTransaction(tx5);
+
+		// Insufficient asset
+		tx = new Transaction(wallet.getParams());
+		request = makeRequest(tx);
+		AssetCoinSelector.addAssetOutput(tx, ScriptBuilder.createOutputScript(new ECKey().toAddress(params)), 7L);
+		try {
+			assetSelector.completeTx(wallet, request, 7L);
+			fail();
+		} catch (InsufficientAssetException e) {
+			assertEquals(Coin.valueOf(2, 0), e.missing);
+		} catch (InsufficientMoneyException e) {
+			fail();
+		}
+
+		// Confirm
+		receiveTransaction(tx5);
+
+		// Sufficient
+		tx = new Transaction(wallet.getParams());
+		request = makeRequest(tx);
+		AssetCoinSelector.addAssetOutput(tx, ScriptBuilder.createOutputScript(new ECKey().toAddress(params)), 7L);
+		try {
+			assetSelector.completeTx(wallet, request, 7L);
+		} catch (InsufficientMoneyException e) {
+			fail();
+		}
+	}
+
+	private Wallet.SendRequest makeRequest(Transaction tx) {
+		Wallet.SendRequest request;
+		request = Wallet.SendRequest.forTx(tx);
+		request.shuffleOutputs = false;
+		request.coinSelector = bitcoinSelector;
+		return request;
 	}
 }
