@@ -13,6 +13,7 @@ import joptsimple.OptionSpec;
 import org.bitcoinj.core.*;
 import org.bitcoinj.crypto.ChildNumber;
 import org.bitcoinj.crypto.DeterministicKey;
+import org.bitcoinj.net.discovery.DnsDiscovery;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.store.*;
@@ -257,8 +258,8 @@ public class ColorTool {
 				}
 			}
 		} else {
-			peers.addAddress(PeerAddress.localhost(params));
-			//peers.addPeerDiscovery(new DnsDiscovery(params));
+			//peers.addAddress(PeerAddress.localhost(params));
+			peers.addPeerDiscovery(new DnsDiscovery(params));
 		}
 	}
 
