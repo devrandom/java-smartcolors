@@ -86,6 +86,8 @@ public class ColorTool {
 				"\n scan" +
 				"\n send COLOR_NAME DEST AMOUNT" +
 				"\n issue COLOR_NAME DEST BASE_AMOUNT" +
+                "\n getaddress" +
+                "\n getassetaddress" +
 				"\n");
 
 		options = parser.parse(args);
@@ -158,6 +160,10 @@ public class ColorTool {
 			issue(cmdArgs);
 		} else if (cmd.equals("dump")) {
 			dump(cmdArgs);
+        } else if (cmd.equals("getaddress")) {
+            getAddress(cmdArgs);
+        } else if (cmd.equals("getassetaddress")) {
+            getAssetAddress(cmdArgs);
 		} else {
 			usage();
 		}
@@ -247,16 +253,18 @@ public class ColorTool {
 		wallet.autosaveToFile(walletFile, 200, TimeUnit.MILLISECONDS, null);
 
 		if (options.has("peers")) {
-			String peersFlag = (String) options.valueOf("peers");
-			String[] peerAddrs = peersFlag.split(",");
-			for (String peer : peerAddrs) {
-				try {
-					peers.addAddress(new PeerAddress(InetAddress.getByName(peer), params.getPort()));
-				} catch (UnknownHostException e) {
-					System.err.println("Could not understand peer domain name/IP address: " + peer + ": " + e.getMessage());
-					System.exit(1);
-				}
-			}
+            String peersFlag = (String) options.valueOf("peers");
+            String[] peerAddrs = peersFlag.split(",");
+            for (String peer : peerAddrs) {
+                try {
+                    peers.addAddress(new PeerAddress(InetAddress.getByName(peer), params.getPort()));
+                } catch (UnknownHostException e) {
+                    System.err.println("Could not understand peer domain name/IP address: " + peer + ": " + e.getMessage());
+                    System.exit(1);
+                }
+            }
+        } else if (isRegTest()) {
+            peers.addAddress(InetAddress.getLocalHost());
 		} else {
 			//peers.addAddress(PeerAddress.localhost(params));
 			peers.addPeerDiscovery(new DnsDiscovery(params));
@@ -395,7 +403,20 @@ public class ColorTool {
 		done();
 	}
 
-	private static void done() {
+    private static void getAddress(List<?> cmdArgs) {
+        syncChain();
+        System.out.println(wallet.currentReceiveAddress());
+        done();
+    }
+
+    private static void getAssetAddress(List<?> cmdArgs) {
+        syncChain();
+        Address assetBitcoinAddress = colorChain.currentOutputScript(KeyChain.KeyPurpose.RECEIVE_FUNDS).getToAddress(params);
+        System.out.println(SmartColors.toAssetAddress(assetBitcoinAddress, !isTestNet()));
+        done();
+    }
+
+    private static void done() {
 		if (!options.has("linger"))
 			System.exit(0);
 	}
@@ -618,7 +639,11 @@ public class ColorTool {
 		return params.getId().equals(NetworkParameters.ID_TESTNET);
 	}
 
-	private static ColorDefinition makeColorDefinition() {
+    private static boolean isRegTest() {
+        return params.getId().equals(NetworkParameters.ID_REGTEST);
+    }
+
+    private static ColorDefinition makeColorDefinition() {
 		String ser;
 		if (params.getId().equals(NetworkParameters.ID_REGTEST)) {
 			ser = "000000005b0000000000000000000000000000000000000000000000000000000000000000000000010174b16bf3ce53c26c3bc7a42f06328b4776a616182478b7011fba181db0539fc500000000";
