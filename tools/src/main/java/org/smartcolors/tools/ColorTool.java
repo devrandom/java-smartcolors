@@ -264,7 +264,7 @@ public class ColorTool {
                 }
             }
         } else if (isRegTest()) {
-            peers.addAddress(InetAddress.getLocalHost());
+            peers.addAddress(new PeerAddress(InetAddress.getLoopbackAddress(), 28883));
 		} else {
 			//peers.addAddress(PeerAddress.localhost(params));
 			peers.addPeerDiscovery(new DnsDiscovery(params));
