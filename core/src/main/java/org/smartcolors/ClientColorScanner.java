@@ -7,6 +7,7 @@ import com.google.common.base.Objects;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.hash.HashCode;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.http.StatusLine;
@@ -30,14 +31,8 @@ import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
+import java.util.concurrent.*;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
@@ -425,4 +420,27 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 	public void doReset() {
 		stop();
 	}
+
+    @Override
+    public List<ListenableFuture<Transaction>> rescanUnknown(Wallet wallet, ColorKeyChain colorKeyChain) {
+        wallet.beginBloomFilterCalculation();
+        lock.lock();
+        try {
+            List<ListenableFuture<Transaction>> futures = Lists.newArrayList();
+            List<TransactionOutput> all = wallet.calculateAllSpendCandidates(false);
+            for (TransactionOutput output : all) {
+                if (colorKeyChain.isOutputToMe(output) && !contains(output.getOutPointFor())) {
+                    SettableFuture<Transaction> future = SettableFuture.create();
+                    futures.add(future);
+                    Transaction tx = output.getParentTransaction();
+                    unknownTransactionFutures.put(tx, future);
+                    onTransaction(wallet, tx);
+                }
+            }
+            return futures;
+        } finally {
+            lock.unlock();
+            wallet.endBloomFilterCalculation();
+        }
+    }
 }

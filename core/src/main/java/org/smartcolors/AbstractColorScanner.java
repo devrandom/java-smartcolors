@@ -1,9 +1,6 @@
 package org.smartcolors;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import com.google.common.hash.HashCode;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -13,10 +10,7 @@ import org.smartcolors.core.ColorDefinition;
 import org.smartcolors.core.SmartColors;
 
 import javax.annotation.concurrent.GuardedBy;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -78,6 +72,11 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
    			lock.unlock();
 		}
 	}
+
+    @Override
+    public List<ListenableFuture<Transaction>> rescanUnknown(Wallet wallet, ColorKeyChain colorKeyChain) {
+        return Lists.newArrayList();
+    }
 
 	/** Add a pending transaction from a peer or outgoing from us */
 	@Override
@@ -279,7 +278,7 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 		wallet.beginBloomFilterCalculation();
 		lock.lock();
 		try {
-			LinkedList<TransactionOutput> all = wallet.calculateAllSpendCandidates(false);
+			List<TransactionOutput> all = wallet.calculateAllSpendCandidates(false);
 			for (TransactionOutput output: all) {
 				if (colorKeyChain.isOutputToMe(output))
 					applyOutputValue(output, res);

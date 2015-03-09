@@ -5,6 +5,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import org.bitcoinj.core.*;
 import org.smartcolors.core.ColorDefinition;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -26,7 +27,9 @@ public interface ColorScanner {
 
 	void stop();
 
-	void addPending(Transaction t);
+    List<ListenableFuture<Transaction>> rescanUnknown(Wallet wallet, ColorKeyChain colorKeyChain);
+
+    void addPending(Transaction t);
 
 	void start(Wallet wallet);
 
