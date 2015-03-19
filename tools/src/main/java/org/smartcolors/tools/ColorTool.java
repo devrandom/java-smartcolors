@@ -23,20 +23,14 @@ import org.bitcoinj.wallet.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.smartcolors.*;
-import org.smartcolors.core.ColorDefinition;
-import org.smartcolors.core.GenesisOutPointsMerbinnerTree;
-import org.smartcolors.core.GenesisScriptMerbinnerTree;
-import org.smartcolors.core.SmartColors;
+import org.smartcolors.core.*;
 import org.smartcolors.marshal.SerializationException;
 
 import javax.annotation.Nullable;
 import java.io.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.net.InetAddress;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -77,10 +71,11 @@ public class ColorTool {
 		parser.accepts("regtest", "use regtest mode (default is testnet)");
 		parser.accepts("force", "force creation of wallet from mnemonic");
 		parser.accepts("linger", "do not exit after done");
+        OptionSpec<String> assetsPathSpec = parser.accepts("assets", "asset directory, containing *.smartcolors").withRequiredArg();
 		parser.accepts("debug");
 		parser.accepts("verbose");
 		mnemonicSpec = parser.accepts("mnemonic", "mnemonic phrase").withRequiredArg();
-		OptionSpec<String> walletFileName = parser.accepts("wallet").withRequiredArg();
+		OptionSpec<String> walletFileNameSpec = parser.accepts("wallet").withRequiredArg();
 		parser.nonOptions("COMMAND: one of:" +
 				"\n help" +
 				"\n scan" +
@@ -120,13 +115,13 @@ public class ColorTool {
 
 		checkpointFile = new File(net + "-checkpoints.txt");
 
-		String walletName = walletFileName.value(options);
+		String walletName = walletFileNameSpec.value(options);
 		if (walletName == null)
 			walletName = net + ".wallet";
 		chainFile = new File(walletName + ".chain");
 		walletFile = new File(walletName);
 		if (!walletFile.exists() || options.has(mnemonicSpec)) {
-			createWallet(options, params, walletFile);
+			createWallet(options, params, walletFile, assetsPathSpec);
 		}
 
 		if (readWallet()) return;
@@ -316,7 +311,7 @@ public class ColorTool {
 		}
 	}
 
-	private static void createWallet(OptionSet options, NetworkParameters params, File walletFile) throws IOException {
+	private static void createWallet(OptionSet options, NetworkParameters params, File walletFile, OptionSpec<String> assetsDirSpec) throws IOException {
 		if (walletFile.exists() && !options.has("force")) {
 			System.err.println("Wallet creation requested but " + walletFile + " already exists, use --force");
 			System.exit(1);
@@ -349,7 +344,11 @@ public class ColorTool {
 			//extension.setColorKeyChain(colorChain);
 			wallet.addOrGetExistingExtension(extension);
 			makeScanner();
-			addBuiltins();
+            if (options.has("assets")) {
+                addAssetsFromDirectory(assetsDirSpec.value(options));
+            } else {
+                addBuiltins();
+            }
 			extension.setScanner(scanner);
 		} catch (UnreadableWalletException e) {
 			throw new RuntimeException(e);
@@ -376,30 +375,56 @@ public class ColorTool {
 
 	private static void addBuiltins() {
 		try {
-			scanner.addDefinition(loadDefinition("assets/eur.smartcolor"));
-			scanner.addDefinition(loadDefinition("assets/usd.smartcolor"));
-			scanner.addDefinition(loadDefinition("assets/oil.smartcolor"));
-			scanner.addDefinition(loadDefinition("assets/gold.smartcolor"));
+			scanner.addDefinition(loadDefinitionFromResource("assets/eur.smartcolor"));
+			scanner.addDefinition(loadDefinitionFromResource("assets/usd.smartcolor"));
+			scanner.addDefinition(loadDefinitionFromResource("assets/oil.smartcolor"));
+			scanner.addDefinition(loadDefinitionFromResource("assets/gold.smartcolor"));
 		} catch (SPVColorScanner.ColorDefinitionException e) {
 			Throwables.propagate(e);
 		}
 	}
 
-	private static ColorDefinition loadDefinition(String path) {
-		ObjectMapper mapper = new ObjectMapper();
-		Map<String, Object> values = Maps.newHashMap();
-		values.put(ColorDefinition.NETWORK_ID_INJECTABLE, NetworkParameters.ID_TESTNET);
-		mapper.setInjectableValues(new InjectableValues.Std(values));
-		ClassLoader classloader = Thread.currentThread().getContextClassLoader();
-		InputStream is = classloader.getResourceAsStream(path);
-		try {
-			return mapper.readValue(is, ColorDefinition.TYPE_REFERENCE);
-		} catch (IOException e) {
-			throw Throwables.propagate(e);
-		}
+    private static void addAssetsFromDirectory(String path) {
+        try {
+            File dir = new File(path);
+            for (File file: dir.listFiles()) {
+                if (file.getPath().endsWith(".smartcolor")) {
+                    scanner.addDefinition(loadDefinitionFromFile(file));
+                }
+            }
+        } catch (SPVColorScanner.ColorDefinitionException e) {
+            Throwables.propagate(e);
+        }
+    }
+
+    private static ColorDefinition loadDefinitionFromResource(String path) {
+        ClassLoader classloader = Thread.currentThread().getContextClassLoader();
+        InputStream is = classloader.getResourceAsStream(path);
+        return loadDefinition(is);
 	}
 
-	private static void dump(List<?> cmdArgs) {
+    private static ColorDefinition loadDefinitionFromFile(File file) {
+        try {
+            InputStream is = new FileInputStream(file);
+            return loadDefinition(is);
+        } catch (FileNotFoundException e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+    private static ColorDefinition loadDefinition(InputStream is) {
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, Object> values = Maps.newHashMap();
+        values.put(ColorDefinition.NETWORK_ID_INJECTABLE, NetworkParameters.ID_TESTNET);
+        mapper.setInjectableValues(new InjectableValues.Std(values));
+        try {
+            return mapper.readValue(is, ColorDefinition.TYPE_REFERENCE);
+        } catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+    private static void dump(List<?> cmdArgs) {
 		syncChain();
 		dumpState();
 		System.out.println(wallet.currentReceiveAddress());
