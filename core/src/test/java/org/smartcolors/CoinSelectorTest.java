@@ -1,12 +1,13 @@
 package org.smartcolors;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.testing.FakeTxBuilder;
 import org.bitcoinj.wallet.*;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -179,7 +180,7 @@ public class CoinSelectorTest extends ColorTest {
 			assetSelector.completeTx(wallet, request, 7L);
 			fail();
 		} catch (InsufficientAssetException e) {
-			assertEquals(Coin.valueOf(2, 0), e.missing);
+			assertEquals(Coin.valueOf(2), e.missing);
 		} catch (InsufficientMoneyException e) {
 			fail();
 		}
@@ -195,7 +196,7 @@ public class CoinSelectorTest extends ColorTest {
 			assetSelector.completeTx(wallet, request, 7L);
 			fail();
 		} catch (InsufficientAssetException e) {
-			assertEquals(Coin.valueOf(2, 0), e.missing);
+			assertEquals(Coin.valueOf(2), e.missing);
 		} catch (InsufficientMoneyException e) {
 			fail();
 		}
@@ -224,7 +225,7 @@ public class CoinSelectorTest extends ColorTest {
 			assetSelector.completeTx(wallet, request, 7L);
 			fail();
 		} catch (InsufficientAssetException e) {
-			assertEquals(Coin.valueOf(2, 0), e.missing);
+			assertEquals(Coin.valueOf(2), e.missing);
 		} catch (InsufficientMoneyException e) {
 			fail();
 		}

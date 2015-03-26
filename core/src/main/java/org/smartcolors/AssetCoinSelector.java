@@ -4,6 +4,7 @@ import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.wallet.CoinSelection;
 import org.bitcoinj.wallet.KeyChain;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.smartcolors.core.ColorDefinition;
@@ -136,7 +137,7 @@ public class AssetCoinSelector extends DefaultCoinSelector {
 			if (assetSelection.assetGathered < assetAmount) {
 				long missing = assetAmount - assetSelection.assetGathered;
 				String message = "Insufficient, missing " + missing + " " + track.getDefinition().getMetadata().get(ColorDefinition.METADATA_UNIT);
-				throw new InsufficientAssetException(Coin.valueOf((int) missing, 0), message);
+				throw new InsufficientAssetException(Coin.valueOf(missing), message);
 			}
 			for (TransactionOutput output : assetSelection.gathered) {
 				TransactionInput input = req.tx.addInput(SmartColors.makeAssetInput(req.tx, output));
