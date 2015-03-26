@@ -1,5 +1,9 @@
 package org.smartcolors;
 
+import org.bitcoinj.core.*;
+import org.bitcoinj.script.Script;
+import org.bitcoinj.utils.Threading;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -16,9 +20,6 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.bitcoinj.core.*;
-import org.bitcoinj.script.Script;
-import org.bitcoinj.utils.Threading;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.smartcolors.core.ColorDefinition;
@@ -42,8 +43,6 @@ import static com.google.common.base.Preconditions.checkState;
  */
 public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 	private static final Logger log = LoggerFactory.getLogger(ClientColorScanner.class);
-	private static final Transaction SENTINEL =
-			new Transaction(NetworkParameters.fromID(NetworkParameters.ID_MAINNET));
 	public static final int NETWORK_TIMEOUT = 10000;
 
 	Fetcher fetcher;
@@ -162,7 +161,6 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 
 	void onTransaction(Wallet wallet, Transaction tx) {
 		checkNotNull(colorKeyChain);
-		checkNotNull(fetchService);
 		wallet.beginBloomFilterCalculation();
 		lock.lock();
 		try {
@@ -178,7 +176,9 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 			}
 			if (needsLookup) {
 				pending.put(tx.getHash(), tx);
-				fetchService.schedule(new Lookup(tx), 0, TimeUnit.SECONDS);
+				// This can be null if we are stopped.  We'll scan this transaction when we start again
+				if (fetchService != null)
+					fetchService.schedule(new Lookup(tx), 0, TimeUnit.SECONDS);
 			}
 		} finally {
 			lock.unlock();
@@ -423,10 +423,10 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 
     @Override
     public List<ListenableFuture<Transaction>> rescanUnknown(Wallet wallet, ColorKeyChain colorKeyChain) {
+		List<ListenableFuture<Transaction>> futures = Lists.newArrayList();
         wallet.beginBloomFilterCalculation();
         lock.lock();
         try {
-            List<ListenableFuture<Transaction>> futures = Lists.newArrayList();
             List<TransactionOutput> all = wallet.calculateAllSpendCandidates(false);
             for (TransactionOutput output : all) {
                 if (colorKeyChain.isOutputToMe(output) && !contains(output.getOutPointFor())) {
@@ -437,10 +437,13 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
                     onTransaction(wallet, tx);
                 }
             }
-            return futures;
         } finally {
             lock.unlock();
             wallet.endBloomFilterCalculation();
         }
-    }
+
+		// TODO fix this hack to save wallet
+		wallet.removeWatchedScripts(Lists.<Script>newArrayList());
+		return futures;
+	}
 }

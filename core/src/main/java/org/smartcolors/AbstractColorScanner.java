@@ -1,11 +1,12 @@
 package org.smartcolors;
 
+import org.bitcoinj.core.*;
+import org.bitcoinj.utils.Threading;
+
 import com.google.common.collect.*;
 import com.google.common.hash.HashCode;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import org.bitcoinj.core.*;
-import org.bitcoinj.utils.Threading;
 import org.smartcolors.core.ColorDefinition;
 import org.smartcolors.core.SmartColors;
 
@@ -101,7 +102,7 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 	}
 
 	@Override
-	public boolean removeDefinition(ColorDefinition def) throws Exception {
+	public boolean removeDefinition(ColorDefinition def) {
 		HashCode hash = def.getHash();
 		ColorTrack track = getColorTrackByHash(hash);
 		return tracks.remove(track);
@@ -188,7 +189,6 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 		}
 	}
 
-	@Override
 	public Map<ColorDefinition, Long> getOutputValue(TransactionOutput output, Wallet wallet) {
 		wallet.beginBloomFilterCalculation();
 		lock.lock();
@@ -202,7 +202,6 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 		}
 	}
 
-	@Override
 	public Map<ColorDefinition, Long> getInputValue(TransactionInput input, Wallet wallet) {
 		wallet.beginBloomFilterCalculation();
 		lock.lock();
