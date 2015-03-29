@@ -354,6 +354,16 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 		return pending;
 	}
 
+	@Override
+	public int getPendingCount() {
+		lock.lock();
+		try {
+			return pending.size();
+		} finally {
+			lock.unlock();
+		}
+	}
+
 	/** Call this after deserializing the wallet with any wallet pending transactions */
 	protected void addAllPending(Wallet wallet, Collection<Transaction> txs) {
 		for (Transaction tx : txs) {

@@ -78,8 +78,11 @@ public interface ColorScanner {
 	/** Set the color key chain - used during loading */
 	void setColorKeyChain(ColorKeyChain colorKeyChain);
 
-	/** Get the pending transaction queue */
+	/** Get the pending transaction queue.  Caller must {@link #lock()} the object. */
 	Map<Sha256Hash,Transaction> getPending();
+
+	/** Get the number of pending transactions */
+	int getPendingCount();
 
 	/** Lock */
 	void lock();
