@@ -13,7 +13,6 @@ import com.google.common.collect.Lists;
 import com.google.common.hash.HashCode;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.http.StatusLine;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -71,14 +70,21 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 		this.fetchService = fetchService;
 	}
 
-	private static final ThreadFactory fetcherThreadFactory = new ThreadFactoryBuilder()
-			.setDaemon(true)
-			.setNameFormat("Fetcher thread %d")
-			.setPriority(Thread.MIN_PRIORITY)
-			.build();
-
 	private ScheduledExecutorService makeFetchService() {
-		return Executors.newSingleThreadScheduledExecutor(fetcherThreadFactory);
+		return Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
+			@Override
+			public Thread newThread(Runnable r) {
+				SecurityManager s = System.getSecurityManager();
+				ThreadGroup group = (s != null) ? s.getThreadGroup() :
+						Thread.currentThread().getThreadGroup();
+				Thread t = new Thread(group, r,
+						"Fetcher Thread",
+						2 * 1024 * 1024);
+				t.setDaemon(true);
+				t.setPriority(Thread.MIN_PRIORITY);
+				return t;
+			}
+		});
 	}
 
 	void setFetcher(Fetcher fetcher) {
@@ -262,6 +268,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 
 		private void doOutPoint(TransactionOutPoint outPoint) throws SerializationException, TemporaryFailureException {
 			ColorProof proof = fetcher.fetch(outPoint);
+			log.info("after fetch: " + getPendingCount() + " pending");
 			if (proof == null)
 				return;
 			boolean found = false;
@@ -393,6 +400,9 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 				// temporary failure
 				log.warn("got IOException " + e.getMessage());
 				throw new TemporaryFailureException();
+			} catch (StackOverflowError e) {
+				log.error("could not deserialize proof, deeming UNKNOWN");
+				return null;
 			} finally {
 				if (response != null) {
 					try {
@@ -426,6 +436,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 		List<ListenableFuture<Transaction>> futures = Lists.newArrayList();
         wallet.beginBloomFilterCalculation();
         lock.lock();
+		log.info("before rescan " + pending.size() + " pending");
         try {
             List<TransactionOutput> all = wallet.calculateAllSpendCandidates(false);
             for (TransactionOutput output : all) {
@@ -437,6 +448,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
                     onTransaction(wallet, tx);
                 }
             }
+			log.info("after rescan start " + pending.size() + " pending");
         } finally {
             lock.unlock();
             wallet.endBloomFilterCalculation();
