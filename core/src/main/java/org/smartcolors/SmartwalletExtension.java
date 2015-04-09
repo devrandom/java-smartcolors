@@ -1,27 +1,20 @@
 package org.smartcolors;
 
+import org.bitcoinj.core.*;
+import org.bitcoinj.store.UnreadableWalletException;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
-import com.google.common.collect.Maps;
-import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
-import com.google.common.collect.TreeMultimap;
+import com.google.common.collect.*;
 import com.google.common.hash.HashCode;
 import com.google.protobuf.ByteString;
-
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Sha256Hash;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionOutPoint;
-import org.bitcoinj.core.Wallet;
-import org.bitcoinj.core.WalletExtension;
-import org.bitcoinj.store.UnreadableWalletException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.smartcolors.core.ColorDefinition;
 import org.smartcolors.core.ColorProof;
+import org.smartcolors.core.SmartColors;
 import org.smartcolors.marshal.BytesDeserializer;
 import org.smartcolors.marshal.BytesSerializer;
 import org.smartcolors.marshal.SerializationException;
@@ -30,6 +23,9 @@ import org.smartcolors.protos.Protos;
 import java.io.IOException;
 import java.util.Map;
 import java.util.TreeSet;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -86,7 +82,23 @@ public class SmartwalletExtension implements WalletExtension {
 
 	@Override
 	public byte[] serializeWalletExtension() {
-		Protos.ColorScanner scannerProto = serializeScanner(scanner);
+		Callable<Protos.ColorScanner> call = new Callable<Protos.ColorScanner>() {
+			@Override
+			public Protos.ColorScanner call() throws Exception {
+				return serializeScanner(scanner);
+			}
+		};
+		log.warn("Using separate thread for serialization");
+		ExecutorService service = SmartColors.makeSerializationService("Serialize thread");
+		final Protos.ColorScanner scannerProto;
+		try {
+			scannerProto = service.submit(call).get();
+		} catch (InterruptedException e) {
+			throw Throwables.propagate(e);
+		} catch (ExecutionException e) {
+			throw Throwables.propagate(e);
+		}
+		service.shutdown();
 		return scannerProto.toByteArray();
 	}
 

@@ -32,7 +32,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
@@ -70,23 +71,6 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 		this.fetchService = fetchService;
 	}
 
-	private ScheduledExecutorService makeFetchService() {
-		return Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
-			@Override
-			public Thread newThread(Runnable r) {
-				SecurityManager s = System.getSecurityManager();
-				ThreadGroup group = (s != null) ? s.getThreadGroup() :
-						Thread.currentThread().getThreadGroup();
-				Thread t = new Thread(group, r,
-						"Fetcher Thread",
-						2 * 1024 * 1024);
-				t.setDaemon(true);
-				t.setPriority(Thread.MIN_PRIORITY);
-				return t;
-			}
-		});
-	}
-
 	void setFetcher(Fetcher fetcher) {
 		this.fetcher = fetcher;
 	}
@@ -117,7 +101,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 		for (Map.Entry<Sha256Hash, Transaction> entry : pending.entrySet()) {
 			pending.put(entry.getKey(), wallet.getTransaction(entry.getValue().getHash()));
 		}
-		fetchService = makeFetchService();
+		fetchService = SmartColors.makeSerializationService("Fetcher thread");
 		for (Transaction tx : pending.values()) {
 			// Average 1 per second
 			long millis = (long)(1000 * pending.size() * Math.random());

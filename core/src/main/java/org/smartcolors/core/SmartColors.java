@@ -1,7 +1,5 @@
 package org.smartcolors.core;
 
-import com.google.common.base.Throwables;
-import com.google.common.io.Resources;
 import org.bitcoinj.core.*;
 import org.bitcoinj.params.MainNetParams;
 import org.bitcoinj.params.TestNet3Params;
@@ -9,6 +7,9 @@ import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.script.ScriptOpCodes;
 import org.bitcoinj.wallet.WalletTransaction;
+
+import com.google.common.base.Throwables;
+import com.google.common.io.Resources;
 import org.smartcolors.SPVColorTrack;
 
 import java.io.IOException;
@@ -16,6 +17,9 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
@@ -23,6 +27,7 @@ import static com.google.common.base.Preconditions.checkState;
 public class SmartColors {
 	public static final int EARLIEST_FUDGE = 86400 * 7; // counteract bitcoinj fudge
 	public static final boolean ENABLE_OP_RETURN_MARKER = false;
+	public static final int SERIALIZATION_STACK_SIZE = 2 * 1024 * 1024;
 	private static long epoch;
 
 	/**
@@ -124,6 +129,23 @@ public class SmartColors {
 		TransactionInput input = new TransactionInput(parent.getParams(), parent, new byte[0], output.getOutPointFor(), output.getValue());
 		input.setSequenceNumber(ColorDefinition.makeSequence());
 		return input;
+	}
+
+	public static ScheduledExecutorService makeSerializationService(final String name) {
+		return Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
+			@Override
+			public Thread newThread(Runnable r) {
+				SecurityManager s = System.getSecurityManager();
+				ThreadGroup group = (s != null) ? s.getThreadGroup() :
+						Thread.currentThread().getThreadGroup();
+				Thread t = new Thread(group, r,
+						name,
+						SERIALIZATION_STACK_SIZE);
+				t.setDaemon(true);
+				t.setPriority(Thread.MIN_PRIORITY);
+				return t;
+			}
+		});
 	}
 
 	private static class AssetMainNetParams extends MainNetParams {
