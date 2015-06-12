@@ -38,6 +38,7 @@ public class CoinSelectorTest extends ColorTest {
 		colorChain =
 				ColorKeyChain.builder()
 						.random(new SecureRandom())
+						.passphrase("")
 						.build();
 		DeterministicKeyChain chain =
 				DeterministicKeyChain.builder()
@@ -119,7 +120,7 @@ public class CoinSelectorTest extends ColorTest {
 	@Test
 	public void testRestoreFromSeed() {
 		DeterministicSeed existingSeed = wallet.getKeyChainSeed();
-		DeterministicSeed seed = new DeterministicSeed(existingSeed.getMnemonicCode(), null, null, existingSeed.getCreationTimeSeconds());
+		DeterministicSeed seed = new DeterministicSeed(existingSeed.getMnemonicCode(), null, "", existingSeed.getCreationTimeSeconds());
 		assertEquals(seed, existingSeed);
 		ColorKeyChain colorChain1 = ColorKeyChain.builder()
 				.seed(seed)

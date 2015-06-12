@@ -1,26 +1,17 @@
 package org.smartcolors;
 
-import com.google.common.collect.Maps;
-
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Sha256Hash;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionOutPoint;
-import org.bitcoinj.core.Wallet;
+import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
+
+import com.google.common.collect.Maps;
 import org.junit.Before;
 import org.junit.Test;
-import org.smartcolors.core.ColorDefinition;
-import org.smartcolors.core.GenesisOutPointsMerbinnerTree;
-import org.smartcolors.core.GenesisScriptMerbinnerTree;
-import org.smartcolors.core.SmartColors;
+import org.smartcolors.core.*;
 import org.smartcolors.protos.Protos;
 
+import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
-
-import javax.annotation.Nullable;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -34,6 +25,7 @@ public class SPVColorTrackTest {
 	@Before
 	public void setUp() {
 		params = NetworkParameters.fromID(NetworkParameters.ID_TESTNET);
+		new Context(params);
 	}
 
 	@Test

@@ -129,7 +129,7 @@ public class AssetCoinSelector extends DefaultCoinSelector {
 			//
 			// Note that this code is poorly optimized: the spend candidates only alter when transactions in the wallet
 			// change - it could be pre-calculated and held in RAM, and this is probably an optimization worth doing.
-			LinkedList<TransactionOutput> candidates = wallet.calculateAllSpendCandidates(true);
+			List<TransactionOutput> candidates = wallet.calculateAllSpendCandidates(true, false);
 
 			// Select and add requested asset
 			AssetCoinSelection assetSelection = select(candidates, assetAmount);
@@ -163,11 +163,10 @@ public class AssetCoinSelector extends DefaultCoinSelector {
 			}
 
 			CoinSelection bestCoinSelection;
-			TransactionOutput bestChangeOutput = null;
 			FeeCalculator.FeeCalculation feeCalculation;
 			feeCalculation = FeeCalculator.calculateFee(wallet, req, value, originalInputs, needAtLeastReferenceFee, candidates);
 			bestCoinSelection = feeCalculation.bestCoinSelection;
-			bestChangeOutput = feeCalculation.bestChangeOutput;
+			TransactionOutput bestChangeOutput = feeCalculation.bestChangeOutput;
 
 			for (TransactionOutput output : bestCoinSelection.gathered)
 				req.tx.addInput(output);

@@ -2,10 +2,8 @@ package org.smartcolors;
 
 import org.bitcoinj.crypto.DeterministicKey;
 import org.bitcoinj.crypto.KeyCrypter;
-import org.bitcoinj.wallet.DefaultKeyChainFactory;
-import org.bitcoinj.wallet.DeterministicKeyChain;
-import org.bitcoinj.wallet.DeterministicSeed;
-import org.bitcoinj.wallet.Protos;
+import org.bitcoinj.store.UnreadableWalletException;
+import org.bitcoinj.wallet.*;
 
 import java.util.List;
 
@@ -30,7 +28,7 @@ public class ColorKeyChainFactory extends DefaultKeyChainFactory {
 	@Override
 	public DeterministicKeyChain makeKeyChain(Protos.Key key, Protos.Key firstSubKey, DeterministicSeed seed, KeyCrypter crypter, boolean isMarried) {
 		List<Integer> path = firstSubKey.getDeterministicKey().getPathList();
-		if (!path.isEmpty() && path.get(0).equals(ColorKeyChain.ASSET_PATH.get(0).i())) {
+		if (isAssetPath(path)) {
 			checkArgument(!isMarried, "no multisig support yet");
 			ColorKeyChain result = new ColorKeyChain(seed, crypter);
 			callback.onRestore(result);
@@ -41,14 +39,18 @@ public class ColorKeyChainFactory extends DefaultKeyChainFactory {
 	}
 
 	@Override
-	public DeterministicKeyChain makeWatchingKeyChain(Protos.Key key, Protos.Key firstSubKey, DeterministicKey accountKey, boolean isFollowingKey, boolean isMarried) {
+	public DeterministicKeyChain makeWatchingKeyChain(Protos.Key key, Protos.Key firstSubKey, DeterministicKey accountKey, boolean isFollowingKey, boolean isMarried) throws UnreadableWalletException {
 		List<Integer> path = firstSubKey.getDeterministicKey().getPathList();
-		if (!path.isEmpty() && path.get(0).equals(ColorKeyChain.ASSET_PATH)) {
+		if (isAssetPath(path)) {
 			ColorKeyChain result = new ColorKeyChain(accountKey, isFollowingKey);
 			callback.onRestore(result);
 			return result;
 		} else {
 			return new DefaultKeyChainFactory().makeWatchingKeyChain(key, firstSubKey, accountKey, isFollowingKey, isMarried);
 		}
+	}
+
+	private boolean isAssetPath(List<Integer> path) {
+		return !path.isEmpty() && path.get(0).equals(ColorKeyChain.ASSET_PATH.get(0).i());
 	}
 }

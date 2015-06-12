@@ -1,12 +1,6 @@
 package org.smartcolors;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.protobuf.ByteString;
-import org.bitcoinj.core.BloomFilter;
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.TransactionOutput;
-import org.bitcoinj.core.Utils;
+import org.bitcoinj.core.*;
 import org.bitcoinj.crypto.ChildNumber;
 import org.bitcoinj.crypto.DeterministicKey;
 import org.bitcoinj.crypto.KeyCrypter;
@@ -15,6 +9,10 @@ import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.wallet.DeterministicKeyChain;
 import org.bitcoinj.wallet.DeterministicSeed;
 import org.bitcoinj.wallet.RedeemData;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.protobuf.ByteString;
 import org.spongycastle.crypto.params.KeyParameter;
 
 import javax.annotation.Nullable;
@@ -64,6 +62,7 @@ public class ColorKeyChain extends DeterministicKeyChain {
 
 		public ColorKeyChain build() {
 			checkState(random != null || entropy != null || seed != null, "Must provide either entropy or random");
+			checkState(passphrase == null || seed == null, "Passphrase must not be specified with seed");
 			ColorKeyChain chain;
 			if (random != null) {
 				chain = new ColorKeyChain(random, bits, passphrase, Utils.currentTimeSeconds());
@@ -106,7 +105,7 @@ public class ColorKeyChain extends DeterministicKeyChain {
 	}
 
 	@Override
-	protected DeterministicKeyChain makeDecryptedKeyChain(DeterministicSeed decSeed) {
+	protected DeterministicKeyChain makeKeyChainFromSeed(DeterministicSeed decSeed) {
 		return new ColorKeyChain(decSeed);
 	}
 
@@ -157,15 +156,13 @@ public class ColorKeyChain extends DeterministicKeyChain {
 	public DeterministicKey currentKey(KeyPurpose purpose) {
 		if (purpose == KeyPurpose.RECEIVE_FUNDS) {
 			if (getIssuedExternalKeys() > 0) {
-				DeterministicKey currentExternalKey = getKeyByPath(
-						ImmutableList.<ChildNumber>builder().addAll(getAccountPath()).addAll(EXTERNAL_PATH).add(new ChildNumber(getIssuedExternalKeys() - 1)).build());
-				return currentExternalKey;
+				return getKeyByPath(
+						ImmutableList.<ChildNumber>builder().addAll(getAccountPath()).addAll(EXTERNAL_SUBPATH).add(new ChildNumber(getIssuedExternalKeys() - 1)).build());
 			}
 		} else if (purpose == KeyPurpose.CHANGE) {
 			if (getIssuedInternalKeys() > 0) {
-				DeterministicKey currentInternalKey = getKeyByPath(
-						ImmutableList.<ChildNumber>builder().addAll(getAccountPath()).addAll(INTERNAL_PATH).add(new ChildNumber(getIssuedInternalKeys() - 1)).build());
-				return currentInternalKey;
+				return getKeyByPath(
+						ImmutableList.<ChildNumber>builder().addAll(getAccountPath()).addAll(INTERNAL_SUBPATH).add(new ChildNumber(getIssuedInternalKeys() - 1)).build());
 			}
 		} else {
 			throw new RuntimeException("unsupported key purpose");

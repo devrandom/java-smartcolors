@@ -1,17 +1,15 @@
 package org.smartcolors;
 
-import com.google.common.collect.Maps;
 import org.bitcoinj.core.*;
 import org.bitcoinj.params.TestNet3Params;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.store.MemoryBlockStore;
 import org.bitcoinj.testing.FakeTxBuilder;
+
+import com.google.common.collect.Maps;
 import org.junit.Before;
-import org.smartcolors.core.ColorDefinition;
-import org.smartcolors.core.GenesisOutPointsMerbinnerTree;
-import org.smartcolors.core.GenesisScriptMerbinnerTree;
-import org.smartcolors.core.SmartColors;
+import org.smartcolors.core.*;
 
 import java.math.BigInteger;
 import java.util.Map;
@@ -39,6 +37,7 @@ public class ColorTest {
 	@Before
 	public void setUp() throws Exception {
 		params = NetworkParameters.fromID(NetworkParameters.ID_REGTEST);
+		new Context(params);
 		blockStore = new MemoryBlockStore(params);
 		genesisTx = new Transaction(params);
 		genesisTx.addInput(Sha256Hash.ZERO_HASH, 0, EMPTY_SCRIPT);

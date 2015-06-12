@@ -1,15 +1,6 @@
 package org.smartcolors;
 
-import org.bitcoinj.core.Address;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.InsufficientMoneyException;
-import org.bitcoinj.core.ScriptException;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionInput;
-import org.bitcoinj.core.TransactionOutput;
-import org.bitcoinj.core.VarInt;
-import org.bitcoinj.core.Wallet;
+import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.wallet.CoinSelection;
 import org.bitcoinj.wallet.CoinSelector;
@@ -31,7 +22,7 @@ public class FeeCalculator {
 	}
 
 	public static FeeCalculation calculateFee(Wallet wallet, Wallet.SendRequest req, Coin value, List<TransactionInput> originalInputs,
-	                                          boolean needAtLeastReferenceFee, LinkedList<TransactionOutput> candidates) throws InsufficientMoneyException {
+	                                          boolean needAtLeastReferenceFee, List<TransactionOutput> candidates) throws InsufficientMoneyException {
 		FeeCalculation result = new FeeCalculation();
 		// There are 3 possibilities for what adding change might do:
 		// 1) No effect

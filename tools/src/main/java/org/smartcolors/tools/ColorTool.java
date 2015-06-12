@@ -1,15 +1,5 @@
 package org.smartcolors.tools;
 
-import com.fasterxml.jackson.databind.InjectableValues;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Throwables;
-import com.google.common.collect.*;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
 import org.bitcoinj.core.*;
 import org.bitcoinj.crypto.ChildNumber;
 import org.bitcoinj.crypto.DeterministicKey;
@@ -20,6 +10,17 @@ import org.bitcoinj.store.*;
 import org.bitcoinj.utils.BriefLogFormatter;
 import org.bitcoinj.utils.Threading;
 import org.bitcoinj.wallet.*;
+
+import com.fasterxml.jackson.databind.InjectableValues;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Throwables;
+import com.google.common.collect.*;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.smartcolors.*;
@@ -480,7 +481,7 @@ public class ColorTool {
 		}
 		wallet.commitTx(req.tx);
 		try {
-			peers.broadcastTransaction(req.tx).get();
+			peers.broadcastTransaction(req.tx).future().get();
 		} catch (InterruptedException e) {
 			Throwables.propagate(e);
 		} catch (ExecutionException e) {
@@ -541,7 +542,7 @@ public class ColorTool {
 		}
 		wallet.commitTx(req.tx);
 		try {
-			peers.broadcastTransaction(req.tx).get();
+			peers.broadcastTransaction(req.tx).future().get();
 		} catch (InterruptedException e) {
 			Throwables.propagate(e);
 		} catch (ExecutionException e) {
@@ -549,7 +550,6 @@ public class ColorTool {
 		}
 		Utils.sleep(2000);
 		done();
-
 	}
 
 	private static BigDecimal getDivider(ColorDefinition def) {
