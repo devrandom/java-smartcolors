@@ -6,7 +6,7 @@
 
     <groupId>smartwallet</groupId>
     <artifactId>smartcolors</artifactId>
-    <version>0.2-SNAPSHOT</version>
+    <version>0.3-SNAPSHOT</version>
 
     <dependencies>
         <dependency>
