@@ -1,5 +1,11 @@
 package org.smartcolors;
 
+import org.bitcoinj.core.*;
+import org.bitcoinj.testing.FakeTxBuilder;
+import org.bitcoinj.wallet.DeterministicKeyChain;
+import org.bitcoinj.wallet.KeyChain;
+import org.bitcoinj.wallet.KeyChainGroup;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
@@ -12,11 +18,6 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.message.BasicStatusLine;
-import org.bitcoinj.core.*;
-import org.bitcoinj.testing.FakeTxBuilder;
-import org.bitcoinj.wallet.DeterministicKeyChain;
-import org.bitcoinj.wallet.KeyChain;
-import org.bitcoinj.wallet.KeyChainGroup;
 import org.easymock.Capture;
 import org.easymock.IAnswer;
 import org.junit.After;
@@ -65,7 +66,7 @@ public class ClientColorScannerTest extends ColorTest {
 		KeyChainGroup keyChainGroup = new KeyChainGroup(params);
 		keyChainGroup.addAndActivateHDChain(colorChain);
 		keyChainGroup.addAndActivateHDChain(chain);
-		wallet = new Wallet(params, keyChainGroup);
+		wallet = new SmartWallet(params, keyChainGroup);
 
 		scanner.setColorKeyChain(colorChain);
 		proofs = Maps.newHashMap();
@@ -83,7 +84,7 @@ public class ClientColorScannerTest extends ColorTest {
 		ScheduledExecutorService fetchService = createNiceMock(ScheduledExecutorService.class);
 		scanner.setFetchService(fetchService);
 		replay(fetchService);
-		wallet = new Wallet(params);
+		wallet = new SmartWallet(params);
 		Transaction tx2 = makeTx2(new ECKey());
 		scanner.onTransaction(wallet, tx2);
 		assertTrue(scanner.pending.isEmpty());

@@ -173,7 +173,7 @@ public class ColorTool {
 			WalletProtobufSerializer loader = new WalletProtobufSerializer(new WalletProtobufSerializer.WalletFactory() {
 				@Override
 				public Wallet create(NetworkParameters params, KeyChainGroup keyChainGroup) {
-					Wallet wallet = new Wallet(params, keyChainGroup);
+					Wallet wallet = new SmartWallet(params, keyChainGroup);
 					SmartwalletExtension extension = (SmartwalletExtension) wallet.addOrGetExistingExtension(new SmartwalletExtension(params));
 					extension.setScanner(scanner);
 					if (colorChain != null) {
@@ -340,7 +340,7 @@ public class ColorTool {
 			group.addAndActivateHDChain(chain);
 			group.setLookaheadSize(40);
 			group.setLookaheadThreshold(20);
-			wallet = new Wallet(params, group);
+			wallet = new SmartWallet(params, group);
 			extension = new SmartwalletExtension(params);
 			//extension.setColorKeyChain(colorChain);
 			wallet.addOrGetExistingExtension(extension);

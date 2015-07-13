@@ -6,6 +6,7 @@ import org.bitcoinj.store.UnreadableWalletException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.*;
 import com.google.common.hash.HashCode;
@@ -37,7 +38,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * <pre>
  *   WalletProtobufSerializer loader = new WalletProtobufSerializer(new WalletProtobufSerializer.WalletFactory() {
  *     public Wallet create(NetworkParameters params, KeyChainGroup keyChainGroup) {
- *       Wallet wallet = new Wallet(params, keyChainGroup);
+ *       Wallet wallet = new SmartWallet(params, keyChainGroup);
  *       SmartwalletExtension extension = (SmartwalletExtension) wallet.addOrGetExistingExtension(new SmartwalletExtension(params));
  *       extension.setScanner(scanner);
  *       if (colorChain != null) {
@@ -202,6 +203,7 @@ public class SmartwalletExtension implements WalletExtension {
 
 	@Override
 	public void deserializeWalletExtension(Wallet wallet, byte[] data) throws Exception {
+        Preconditions.checkArgument(wallet instanceof SmartWallet, "must use derived wallet class SmartWallet");
 		Protos.ColorScanner proto = Protos.ColorScanner.parseFrom(data);
 		deserializeScanner(wallet.getParams(), proto, scanner);
 	}

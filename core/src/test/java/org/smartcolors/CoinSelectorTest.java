@@ -49,7 +49,7 @@ public class CoinSelectorTest extends ColorTest {
 		group.setLookaheadThreshold(7);
 		group.addAndActivateHDChain(colorChain);
 		group.addAndActivateHDChain(chain);
-		wallet = new Wallet(params, group);
+		wallet = new SmartWallet(params, group);
 		outputScript = colorChain.freshOutputScript(KeyChain.KeyPurpose.RECEIVE_FUNDS);
 		bitcoinSelector = new BitcoinCoinSelector(colorChain);
 		assetSelector = new AssetCoinSelector(colorChain, scanner.getColorTrackByHash(def.getHash()));
@@ -132,7 +132,7 @@ public class CoinSelectorTest extends ColorTest {
 		KeyChainGroup group = new KeyChainGroup(params);
 		group.addAndActivateHDChain(colorChain1);
 		group.addAndActivateHDChain(chain);
-		Wallet wallet1 = new Wallet(params, group);
+		Wallet wallet1 = new SmartWallet(params, group);
 		Script outputScript1 = colorChain1.freshOutputScript(KeyChain.KeyPurpose.RECEIVE_FUNDS);
 		assertEquals(outputScript, outputScript1);
 	}

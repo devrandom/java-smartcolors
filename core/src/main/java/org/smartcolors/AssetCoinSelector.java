@@ -87,9 +87,10 @@ public class AssetCoinSelector extends DefaultCoinSelector {
 	 * @param req request with a BitcoinCoinSelector
 	 * @throws InsufficientMoneyException
 	 */
-	public void completeTx(Wallet wallet, Wallet.SendRequest req, long assetAmount) throws InsufficientMoneyException {
+	public void completeTx(Wallet _wallet, Wallet.SendRequest req, long assetAmount) throws InsufficientMoneyException {
+		SmartWallet wallet = (SmartWallet)_wallet;
 		checkArgument(req.coinSelector instanceof BitcoinCoinSelector, "Must provide a BitcoinCoinSelector");
-		wallet.beginBloomFilterCalculation();
+		wallet.lock();
 		try {
 			// Calculate the amount of value we need to import.
 			Coin value = Coin.ZERO;
@@ -209,7 +210,7 @@ public class AssetCoinSelector extends DefaultCoinSelector {
 			req.fee = calculatedFee;
 			log.info("  completed: {}", req.tx);
 		} finally {
-			wallet.endBloomFilterCalculation();
+			wallet.unlock();
 		}
 	}
 

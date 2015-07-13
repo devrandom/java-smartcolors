@@ -137,7 +137,7 @@ public class SPVColorTrackTest {
 		txs.put(tx2.getHash(), tx2);
 		txs.put(tx3.getHash(), tx3);
 		txs.put(tx4.getHash(), tx4);
-		Wallet wallet = new Wallet(params) {
+		Wallet wallet = new SmartWallet(params) {
 			@Nullable
 			@Override
 			public Transaction getTransaction(Sha256Hash hash) {

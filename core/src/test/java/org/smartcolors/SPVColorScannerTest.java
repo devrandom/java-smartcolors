@@ -1,11 +1,12 @@
 package org.smartcolors;
 
-import com.google.common.collect.Maps;
-import com.google.common.util.concurrent.ListenableFuture;
 import org.bitcoinj.core.*;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.testing.FakeTxBuilder;
 import org.bitcoinj.wallet.KeyChainGroup;
+
+import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.ListenableFuture;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -69,7 +70,7 @@ public class SPVColorScannerTest extends ColorTest {
 		group.setLookaheadThreshold(7);
 		group.addAndActivateHDChain(colorChain);
 		group.createAndActivateNewHDChain();
-		wallet = new Wallet(params, group) {
+		wallet = new SmartWallet(params, group) {
 			@Override
 			public boolean isPubKeyMine(byte[] pubkey) {
 				return true;
@@ -88,7 +89,7 @@ public class SPVColorScannerTest extends ColorTest {
 		final ECKey myKey = ECKey.fromPrivate(privkey);
 		final Map<Sha256Hash, Transaction> txs = Maps.newHashMap();
 		scanner.receiveFromBlock(genesisTx, FakeTxBuilder.createFakeBlock(blockStore, genesisTx).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
-		wallet = new Wallet(params) {
+		wallet = new SmartWallet(params) {
 			@Override
 			public boolean isPubKeyMine(byte[] pubkey) {
 				return Arrays.equals(pubkey, myKey.getPubKey());
@@ -140,7 +141,7 @@ public class SPVColorScannerTest extends ColorTest {
 	public void testGetTransactionWithUnknownAsset() throws ExecutionException, InterruptedException {
 		final ECKey myKey = new ECKey();
 		scanner.receiveFromBlock(genesisTx, FakeTxBuilder.createFakeBlock(blockStore, genesisTx).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
-		wallet = new Wallet(params) {
+		wallet = new SmartWallet(params) {
 			@Override
 			public boolean isPubKeyMine(byte[] pubkey) {
 				return Arrays.equals(pubkey, myKey.getPubKey());
@@ -161,7 +162,7 @@ public class SPVColorScannerTest extends ColorTest {
 	public void testGetTransactionWithUnknownAssetFail() throws ExecutionException, InterruptedException {
 		final ECKey myKey = new ECKey();
 		scanner.receiveFromBlock(genesisTx, FakeTxBuilder.createFakeBlock(blockStore, genesisTx).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
-		wallet = new Wallet(params) {
+		wallet = new SmartWallet(params) {
 			@Override
 			public boolean isPubKeyMine(byte[] pubkey) {
 				return Arrays.equals(pubkey, myKey.getPubKey());

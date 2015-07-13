@@ -133,14 +133,15 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 	 * it is, it will be marked as UNKNOWN</p>
 	 */
 	@Override
-	public Map<ColorDefinition, Long> getNetAssetChange(Transaction tx, Wallet wallet, ColorKeyChain chain) {
-		wallet.beginBloomFilterCalculation();
+	public Map<ColorDefinition, Long> getNetAssetChange(Transaction tx, Wallet _wallet, ColorKeyChain chain) {
+		SmartWallet wallet = (SmartWallet)_wallet;
+		wallet.lock();
 		try {
 			Map<ColorDefinition, Long> res = Maps.newHashMap();
 			applyNetAssetChange(tx, wallet, chain, res);
 			return res;
 		} finally {
-   			wallet.endBloomFilterCalculation();
+   			wallet.unlock();
 		}
 	}
 
@@ -172,8 +173,9 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 	}
 
 	@Override
-	public Map<ColorDefinition, Long> getOutputValues(Transaction tx, Wallet wallet, ColorKeyChain chain) {
-		wallet.beginBloomFilterCalculation();
+	public Map<ColorDefinition, Long> getOutputValues(Transaction tx, Wallet _wallet, ColorKeyChain chain) {
+        SmartWallet wallet = (SmartWallet)_wallet;
+		wallet.lock();
 		lock.lock();
 		try {
 			Map<ColorDefinition, Long> res = Maps.newHashMap();
@@ -185,12 +187,13 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 			return res;
 		} finally {
 			lock.unlock();
-			wallet.endBloomFilterCalculation();
+			wallet.unlock();
 		}
 	}
 
-	public Map<ColorDefinition, Long> getOutputValue(TransactionOutput output, Wallet wallet) {
-		wallet.beginBloomFilterCalculation();
+	public Map<ColorDefinition, Long> getOutputValue(TransactionOutput output, Wallet _wallet) {
+        SmartWallet wallet = (SmartWallet)_wallet;
+		wallet.lock();
 		lock.lock();
 		try {
 			Map<ColorDefinition, Long> res = Maps.newHashMap();
@@ -198,12 +201,13 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 			return res;
 		} finally {
 			lock.unlock();
-			wallet.endBloomFilterCalculation();
+			wallet.unlock();
 		}
 	}
 
-	public Map<ColorDefinition, Long> getInputValue(TransactionInput input, Wallet wallet) {
-		wallet.beginBloomFilterCalculation();
+	public Map<ColorDefinition, Long> getInputValue(TransactionInput input, Wallet _wallet) {
+        SmartWallet wallet = (SmartWallet)_wallet;
+		wallet.lock();
 		lock.lock();
 		try {
 			Map<ColorDefinition, Long> res = Maps.newHashMap();
@@ -217,7 +221,7 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 			return res;
 		} finally {
 			lock.unlock();
-			wallet.endBloomFilterCalculation();
+			wallet.unlock();
 		}
 	}
 
@@ -271,10 +275,11 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 	}
 
 	@Override
-	public Map<ColorDefinition, Long> getBalances(Wallet wallet, ColorKeyChain colorKeyChain) {
+	public Map<ColorDefinition, Long> getBalances(Wallet _wallet, ColorKeyChain colorKeyChain) {
+        SmartWallet wallet = (SmartWallet)_wallet;
 		Map<ColorDefinition, Long> res = Maps.newHashMap();
 		res.put(bitcoinDefinition, 0L);
-		wallet.beginBloomFilterCalculation();
+		wallet.lock();
 		lock.lock();
 		try {
 			List<TransactionOutput> all = wallet.calculateAllSpendCandidates(false);
@@ -286,7 +291,7 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 			}
 		} finally {
    			lock.unlock();
-			wallet.endBloomFilterCalculation();
+			wallet.unlock();
 		}
 		return res;
 	}
@@ -299,8 +304,9 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 	 * <p>The caller may have to run this again if we find one asset, but there are other unknownDefinition outputs</p>
  	 */
 	@Override
-	public ListenableFuture<Transaction> getTransactionWithKnownAssets(Transaction tx, Wallet wallet, ColorKeyChain chain) {
-		wallet.beginBloomFilterCalculation();
+	public ListenableFuture<Transaction> getTransactionWithKnownAssets(Transaction tx, Wallet _wallet, ColorKeyChain chain) {
+        SmartWallet wallet = (SmartWallet)_wallet;
+		wallet.lock();
 		lock.lock();
 		try {
 			SettableFuture<Transaction> future = SettableFuture.create();
@@ -313,7 +319,7 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 			return future;
 		} finally {
             lock.unlock();
-			wallet.endBloomFilterCalculation();
+			wallet.unlock();
 		}
 	}
 

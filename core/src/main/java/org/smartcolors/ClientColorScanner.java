@@ -1,7 +1,6 @@
 package org.smartcolors;
 
 import org.bitcoinj.core.*;
-import org.bitcoinj.script.Script;
 import org.bitcoinj.utils.Threading;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -47,7 +46,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 
 	Fetcher fetcher;
 	ScheduledExecutorService fetchService;
-	private Wallet wallet;
+	private SmartWallet wallet;
 
 
 	public ClientColorScanner(NetworkParameters params) {
@@ -95,7 +94,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 	public void start(Wallet wallet) {
 		checkState(fetchService == null);
 		checkState(colorKeyChain != null);
-		this.wallet = wallet;
+		this.wallet = (SmartWallet)wallet;
 
 		// Intern the transactions so we get the right confidence level
 		for (Map.Entry<Sha256Hash, Transaction> entry : pending.entrySet()) {
@@ -149,9 +148,10 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 		}
 	}
 
-	void onTransaction(Wallet wallet, Transaction tx) {
+	void onTransaction(Wallet _wallet, Transaction tx) {
+        SmartWallet wallet = (SmartWallet)_wallet;
 		checkNotNull(colorKeyChain);
-		wallet.beginBloomFilterCalculation();
+		wallet.lock();
 		lock.lock();
 		try {
 			List<TransactionOutput> walletOutputs = tx.getWalletOutputs(wallet);
@@ -172,7 +172,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 			}
 		} finally {
 			lock.unlock();
-			wallet.endBloomFilterCalculation();
+			wallet.unlock();
 		}
 	}
 
@@ -283,7 +283,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 				lock.unlock();
 			}
 			// TODO fix this hack to save wallet
-			wallet.removeWatchedScripts(Lists.<Script>newArrayList());
+			wallet.saveNow();
 			if (futures != null) {
 				for (SettableFuture<Transaction> future : futures) {
 					future.set(tx);
@@ -416,9 +416,10 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 	}
 
     @Override
-    public List<ListenableFuture<Transaction>> rescanUnknown(Wallet wallet, ColorKeyChain colorKeyChain) {
+    public List<ListenableFuture<Transaction>> rescanUnknown(Wallet _wallet, ColorKeyChain colorKeyChain) {
+        SmartWallet wallet = (SmartWallet)_wallet;
 		List<ListenableFuture<Transaction>> futures = Lists.newArrayList();
-        wallet.beginBloomFilterCalculation();
+        wallet.lock();
         lock.lock();
 		log.info("before rescan " + pending.size() + " pending");
         try {
@@ -435,11 +436,11 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 			log.info("after rescan start " + pending.size() + " pending");
         } finally {
             lock.unlock();
-            wallet.endBloomFilterCalculation();
+            wallet.unlock();
         }
 
 		// TODO fix this hack to save wallet
-		wallet.removeWatchedScripts(Lists.<Script>newArrayList());
+		wallet.saveNow();
 		return futures;
 	}
 }
