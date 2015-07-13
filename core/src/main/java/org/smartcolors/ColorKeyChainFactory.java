@@ -1,6 +1,7 @@
 package org.smartcolors;
 
 import org.bitcoinj.crypto.DeterministicKey;
+import org.bitcoinj.crypto.HDUtils;
 import org.bitcoinj.crypto.KeyCrypter;
 import org.bitcoinj.store.UnreadableWalletException;
 import org.bitcoinj.wallet.*;
@@ -34,7 +35,7 @@ public class ColorKeyChainFactory extends DefaultKeyChainFactory {
 			callback.onRestore(result);
 			return result;
 		} else {
-			return new DefaultKeyChainFactory().makeKeyChain(key, firstSubKey, seed, crypter, isMarried);
+			return makeBitcoinKeyChain(key, firstSubKey, seed, crypter, isMarried);
 		}
 	}
 
@@ -46,9 +47,31 @@ public class ColorKeyChainFactory extends DefaultKeyChainFactory {
 			callback.onRestore(result);
 			return result;
 		} else {
-			return new DefaultKeyChainFactory().makeWatchingKeyChain(key, firstSubKey, accountKey, isFollowingKey, isMarried);
+			return makeWatchingBitcoinKeyChain(key, firstSubKey, accountKey, isFollowingKey, isMarried);
 		}
 	}
+
+	public DeterministicKeyChain makeBitcoinKeyChain(Protos.Key key, Protos.Key firstSubKey, DeterministicSeed seed, KeyCrypter crypter, boolean isMarried) {
+		DeterministicKeyChain chain;
+		if (isMarried)
+			throw new UnsupportedOperationException();
+		else
+			chain = new StandardKeyChain(seed, crypter);
+		return chain;
+	}
+
+    public DeterministicKeyChain makeWatchingBitcoinKeyChain(Protos.Key key, Protos.Key firstSubKey, DeterministicKey accountKey,
+                                                      boolean isFollowingKey, boolean isMarried) throws UnreadableWalletException {
+        if (!accountKey.getPath().equals(DeterministicKeyChain.ACCOUNT_ZERO_PATH))
+            throw new UnreadableWalletException("Expecting account key but found key with path: " +
+                    HDUtils.formatPath(accountKey.getPath()));
+        DeterministicKeyChain chain;
+        if (isMarried)
+            throw new UnsupportedOperationException();
+        else
+            chain = new StandardKeyChain(accountKey, isFollowingKey);
+        return chain;
+    }
 
 	private boolean isAssetPath(List<Integer> path) {
 		return !path.isEmpty() && path.get(0).equals(ColorKeyChain.ASSET_PATH.get(0).i());

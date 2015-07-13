@@ -332,7 +332,7 @@ public class ColorTool {
 							.seed(seed)
 							.build();
 			DeterministicKeyChain chain =
-					DeterministicKeyChain.builder()
+					StandardKeyChain.builder()
 							.seed(seed)
 							.build();
 			KeyChainGroup group = new KeyChainGroup(params);
