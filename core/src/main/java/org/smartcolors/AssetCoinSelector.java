@@ -22,7 +22,8 @@ public class AssetCoinSelector extends DefaultCoinSelector {
 	protected final ColorKeyChain colorKeyChain;
 	protected final ColorTrack track;
 
-	public AssetCoinSelector(ColorKeyChain colorKeyChain, ColorTrack track) {
+	public AssetCoinSelector(Context context, ColorKeyChain colorKeyChain, ColorTrack track) {
+        super(context);
 		this.colorKeyChain = colorKeyChain;
 		this.track = track;
 	}
@@ -199,7 +200,7 @@ public class AssetCoinSelector extends DefaultCoinSelector {
 			// Label the transaction as being self created. We can use this later to spend its change output even before
 			// the transaction is confirmed. We deliberately won't bother notifying listeners here as there's not much
 			// point - the user isn't interested in a confidence transition they made themselves.
-			req.tx.getConfidence().setSource(TransactionConfidence.Source.SELF);
+			req.tx.getConfidence(wallet.getContext()).setSource(TransactionConfidence.Source.SELF);
 			// Label the transaction as being a user requested payment. This can be used to render GUI wallet
 			// transaction lists more appropriately, especially when the wallet starts to generate transactions itself
 			// for internal purposes.

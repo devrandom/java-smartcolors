@@ -1,27 +1,25 @@
 package org.smartcolors;
 
-import com.google.common.annotations.VisibleForTesting;
-
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionConfidence;
-import org.bitcoinj.core.TransactionOutput;
+import org.bitcoinj.core.*;
 import org.bitcoinj.params.RegTestParams;
 import org.bitcoinj.wallet.CoinSelection;
 import org.bitcoinj.wallet.CoinSelector;
 
+import com.google.common.annotations.VisibleForTesting;
+
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by devrandom on 2014-Oct-21.
  */
 public class DefaultCoinSelector implements CoinSelector {
+    private final Context context;
+
+    public DefaultCoinSelector(Context context) {
+        this.context = context;
+    }
+
 	public CoinSelection select(Coin biTarget, List<TransactionOutput> candidates) {
 		long target = biTarget.value;
 		HashSet<TransactionOutput> selected = new HashSet<TransactionOutput>();
@@ -49,14 +47,14 @@ public class DefaultCoinSelector implements CoinSelector {
 	}
 
 	@VisibleForTesting
-	static void sortOutputs(ArrayList<TransactionOutput> outputs) {
+    void sortOutputs(ArrayList<TransactionOutput> outputs) {
 		Collections.sort(outputs, new Comparator<TransactionOutput>() {
 			@Override
 			public int compare(TransactionOutput a, TransactionOutput b) {
 				int depth1 = 0;
 				int depth2 = 0;
-				TransactionConfidence conf1 = a.getParentTransaction().getConfidence();
-				TransactionConfidence conf2 = b.getParentTransaction().getConfidence();
+				TransactionConfidence conf1 = a.getParentTransaction().getConfidence(context);
+				TransactionConfidence conf2 = b.getParentTransaction().getConfidence(context);
 				if (conf1.getConfidenceType() == TransactionConfidence.ConfidenceType.BUILDING)
 					depth1 = conf1.getDepthInBlocks();
 				if (conf2.getConfidenceType() == TransactionConfidence.ConfidenceType.BUILDING)

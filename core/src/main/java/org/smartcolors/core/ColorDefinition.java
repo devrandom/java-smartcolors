@@ -1,19 +1,17 @@
 package org.smartcolors.core;
 
+import org.bitcoinj.core.*;
+import org.bitcoinj.script.Script;
+
 import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.base.Objects;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import org.bitcoinj.core.*;
-import org.bitcoinj.script.Script;
 import org.smartcolors.marshal.*;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -360,7 +358,7 @@ public class ColorDefinition extends HashableSerializable {
 			os.write(stegkey);
 			os.write(outPoint.bitcoinSerialize());
 			byte[] content = os.toByteArray();
-			Sha256Hash pad = Sha256Hash.createDouble(content);
+			Sha256Hash pad = Sha256Hash.twiceOf(content);
 			return Utils.readUint32(pad.getBytes(), 0);
 		} catch (IOException e) {
 			throw Throwables.propagate(e);

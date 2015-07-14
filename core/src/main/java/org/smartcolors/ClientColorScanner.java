@@ -208,7 +208,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 
 		@Override
 		public void run() {
-			if (tx.getConfidence().getConfidenceType().equals(TransactionConfidence.ConfidenceType.BUILDING)) {
+			if (tx.getConfidence(wallet.getContext()).getConfidenceType().equals(TransactionConfidence.ConfidenceType.BUILDING)) {
 				for (TransactionOutput output : tx.getOutputs()) {
 					TransactionOutPoint point = output.getOutPointFor();
 					if (colorKeyChain.isOutputToMe(output)) {

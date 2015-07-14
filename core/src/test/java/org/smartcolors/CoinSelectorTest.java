@@ -51,8 +51,8 @@ public class CoinSelectorTest extends ColorTest {
 		group.addAndActivateHDChain(chain);
 		wallet = new SmartWallet(params, group);
 		outputScript = colorChain.freshOutputScript(KeyChain.KeyPurpose.RECEIVE_FUNDS);
-		bitcoinSelector = new BitcoinCoinSelector(colorChain);
-		assetSelector = new AssetCoinSelector(colorChain, scanner.getColorTrackByHash(def.getHash()));
+		bitcoinSelector = new BitcoinCoinSelector(wallet.getContext(), colorChain);
+		assetSelector = new AssetCoinSelector(wallet.getContext(), colorChain, scanner.getColorTrackByHash(def.getHash()));
 		scanner.receiveFromBlock(genesisTx, FakeTxBuilder.createFakeBlock(blockStore, genesisTx).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
 	}
 

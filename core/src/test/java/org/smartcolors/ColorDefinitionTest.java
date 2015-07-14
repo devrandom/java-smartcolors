@@ -1,28 +1,17 @@
 package org.smartcolors;
 
+import org.bitcoinj.core.*;
+import org.bitcoinj.script.Script;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Maps;
 import com.google.common.io.Resources;
-
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Sha256Hash;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionInput;
-import org.bitcoinj.core.TransactionOutPoint;
-import org.bitcoinj.script.Script;
 import org.junit.Before;
 import org.junit.Test;
-import org.smartcolors.core.ColorDefinition;
-import org.smartcolors.core.GenesisOutPointsMerbinnerTree;
-import org.smartcolors.core.GenesisScriptMerbinnerTree;
-import org.smartcolors.core.SmartColors;
-import org.smartcolors.marshal.BytesDeserializer;
-import org.smartcolors.marshal.BytesSerializer;
-import org.smartcolors.marshal.Deserializer;
-import org.smartcolors.marshal.SerializationException;
+import org.smartcolors.core.*;
+import org.smartcolors.marshal.*;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -72,7 +61,7 @@ public class ColorDefinitionTest {
 		ColorDefinition def = ColorDefinition.deserialize(params, des);
 		System.out.println(def.toStringFull());
 		assertEquals(0, def.getBlockheight());
-		long value = def.getOutPointGenesisPoints().get(new TransactionOutPoint(params, 0, new Sha256Hash("4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b")));
+		long value = def.getOutPointGenesisPoints().get(new TransactionOutPoint(params, 0, Sha256Hash.wrap("4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b")));
 		assertEquals(5000000000L, value);
 
 		assertEquals("989d170a0f0c3dfb8d5266d4e9d355583a6a3e100c0d08ff6dee81f43c33c150", Utils.HEX.encode(def.getHash().asBytes()));
@@ -122,7 +111,7 @@ public class ColorDefinitionTest {
 	public void steg() throws SerializationException {
 		Deserializer des = new BytesDeserializer(Utils.HEX.decode("0100586747ecf6e6cecea82f3e1840e411a401aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa000000002a00"));
 		ColorDefinition def = ColorDefinition.deserialize(params, des);
-		TransactionOutPoint outpoint = new TransactionOutPoint(params, 0, new Sha256Hash("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
+		TransactionOutPoint outpoint = new TransactionOutPoint(params, 0, Sha256Hash.wrap("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
 		long pad = def.nsequencePad(outpoint);
 		assertEquals(1331075725, pad);
 	}

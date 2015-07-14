@@ -1,16 +1,10 @@
 package org.smartcolors;
 
+import org.bitcoinj.core.*;
+
 import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-
-import org.bitcoinj.core.BloomFilter;
-import org.bitcoinj.core.Sha256Hash;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionInput;
-import org.bitcoinj.core.TransactionOutPoint;
-import org.bitcoinj.core.Utils;
-import org.bitcoinj.core.VarInt;
 import org.smartcolors.core.ColorDefinition;
 import org.smartcolors.core.SmartColors;
 
@@ -67,7 +61,7 @@ public class SPVColorTrack extends ColorTrack {
 		} catch (IOException e) {
 			Throwables.propagate(e);
 		}
-		return Sha256Hash.create(bos.toByteArray());
+		return Sha256Hash.of(bos.toByteArray());
 	}
 
 	/**

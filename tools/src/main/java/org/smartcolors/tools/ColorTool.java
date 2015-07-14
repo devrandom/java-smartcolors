@@ -468,7 +468,7 @@ public class ColorTool {
 			System.err.println("unknown color");
 			System.exit(1);
 		}
-		AssetCoinSelector assetSelector = new AssetCoinSelector(colorChain, scanner.getColorTrackByDefinition(def));
+		AssetCoinSelector assetSelector = new AssetCoinSelector(wallet.getContext(), colorChain, scanner.getColorTrackByDefinition(def));
 		BigDecimal divisibilityDivider = getDivider(def);
 
 		long amount = new BigDecimal(amountString).multiply(divisibilityDivider).intValue();
@@ -571,7 +571,7 @@ public class ColorTool {
 		AssetCoinSelector.addAssetOutput(tx, outputScript, amount);
 		Wallet.SendRequest request = Wallet.SendRequest.forTx(tx);
 		request.shuffleOutputs = false;
-		request.coinSelector = new BitcoinCoinSelector(colorChain);
+		request.coinSelector = new BitcoinCoinSelector(wallet.getContext(), colorChain);
 		return request;
 	}
 
@@ -694,7 +694,7 @@ public class ColorTool {
 		Map<TransactionOutPoint, Long> points = Maps.newHashMap();
 		for (String str: genesisStrings) {
 			String[] sp = str.split(":", 3);
-			points.put(new TransactionOutPoint(params, Long.parseLong(sp[1]), new Sha256Hash(sp[0])), Long.parseLong(sp[2]));
+			points.put(new TransactionOutPoint(params, Long.parseLong(sp[1]), Sha256Hash.wrap(sp[0])), Long.parseLong(sp[2]));
 		}
 		GenesisOutPointsMerbinnerTree outPoints = new GenesisOutPointsMerbinnerTree(params, points);
 		GenesisScriptMerbinnerTree scripts = new GenesisScriptMerbinnerTree();

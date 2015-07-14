@@ -1,5 +1,6 @@
 package org.smartcolors;
 
+import org.bitcoinj.core.Context;
 import org.bitcoinj.core.TransactionOutput;
 
 /**
@@ -8,8 +9,9 @@ import org.bitcoinj.core.TransactionOutput;
 public class BitcoinCoinSelector extends DefaultCoinSelector {
 	protected final ColorKeyChain colorKeyChain;
 
-	public BitcoinCoinSelector(ColorKeyChain colorKeyChain) {
-		this.colorKeyChain = colorKeyChain;
+	public BitcoinCoinSelector(Context context, ColorKeyChain colorKeyChain) {
+        super(context);
+        this.colorKeyChain = colorKeyChain;
 	}
 
 	protected boolean shouldSelect(TransactionOutput output) {

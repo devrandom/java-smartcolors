@@ -1,18 +1,17 @@
 package org.smartcolors;
 
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionOutPoint;
+
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
-
-import org.bitcoinj.core.Sha256Hash;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionOutPoint;
 import org.smartcolors.core.ColorDefinition;
 
-import java.util.Map;
-
 import javax.annotation.Nullable;
+import java.util.Map;
 
 /**
  * Created by devrandom on 2014-Nov-23.
@@ -25,7 +24,7 @@ public abstract class ColorTrack {
 				@Nullable
 				@Override
 				public Comparable apply(@Nullable TransactionOutPoint input) {
-					return Sha256Hash.create(input.bitcoinSerialize());
+					return Sha256Hash.of(input.bitcoinSerialize());
 				}
 			});
 

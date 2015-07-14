@@ -337,7 +337,7 @@ public class SmartwalletExtension implements WalletExtension {
 	}
 
 	static private Sha256Hash getSha256Hash(ByteString hash) {
-		return new Sha256Hash(hash.toByteArray());
+		return Sha256Hash.wrap(hash.toByteArray());
 	}
 
 	static private HashCode getHash(ByteString hash) {

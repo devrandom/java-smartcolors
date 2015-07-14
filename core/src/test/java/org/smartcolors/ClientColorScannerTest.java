@@ -322,7 +322,7 @@ public class ClientColorScannerTest extends ColorTest {
 
 	@Test
 	public void fetcher() throws Exception {
-		TransactionOutPoint point = new TransactionOutPoint(params, 123, Sha256Hash.create(new byte[]{0, 1, 2, 3}));
+		TransactionOutPoint point = new TransactionOutPoint(params, 123, Sha256Hash.of(new byte[]{0, 1, 2, 3}));
 		CloseableHttpClient client = createMock(CloseableHttpClient.class);
 		ClientColorScanner.Fetcher fetcher = new ClientColorScanner.Fetcher(base, params, client);
 		Capture<HttpGet> cap = new Capture<HttpGet>();
@@ -399,7 +399,7 @@ public class ClientColorScannerTest extends ColorTest {
 
 	@Test
 	public void fetcherBadStatus() throws Exception {
-		TransactionOutPoint point = new TransactionOutPoint(params, 123, Sha256Hash.create(new byte[]{0, 1, 2, 3}));
+		TransactionOutPoint point = new TransactionOutPoint(params, 123, Sha256Hash.of(new byte[]{0, 1, 2, 3}));
 		CloseableHttpClient client = createMock(CloseableHttpClient.class);
 		ClientColorScanner.Fetcher fetcher = new ClientColorScanner.Fetcher(base, params, client);
 		CloseableHttpResponse response = createMock(CloseableHttpResponse.class);
