@@ -82,9 +82,9 @@ public class DefaultCoinSelector implements CoinSelector {
 		return isSelectable(output.getParentTransaction());
 	}
 
-	public static boolean isSelectable(Transaction tx) {
+	public boolean isSelectable(Transaction tx) {
 		// Only pick chain-included transactions, or transactions that are ours and pending.
-		TransactionConfidence confidence = tx.getConfidence();
+		TransactionConfidence confidence = tx.getConfidence(context);
 		TransactionConfidence.ConfidenceType type = confidence.getConfidenceType();
 		return type.equals(TransactionConfidence.ConfidenceType.BUILDING) ||
 
