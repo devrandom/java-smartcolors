@@ -134,13 +134,21 @@ public class SmartColors {
 	public static ScheduledExecutorService makeSerializationService(final String name) {
 		return Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
 			@Override
-			public Thread newThread(Runnable r) {
+			public Thread newThread(final Runnable r) {
+				final Context context = Context.get();
 				SecurityManager s = System.getSecurityManager();
 				ThreadGroup group = (s != null) ? s.getThreadGroup() :
 						Thread.currentThread().getThreadGroup();
-				Thread t = new Thread(group, r,
-						name,
-						SERIALIZATION_STACK_SIZE);
+				Thread t = new Thread(group,
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                Context.propagate(context);
+                                r.run();
+                            }
+                        },
+                        name,
+                        SERIALIZATION_STACK_SIZE);
 				t.setDaemon(true);
 				t.setPriority(Thread.MIN_PRIORITY);
 				return t;
