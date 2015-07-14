@@ -155,7 +155,9 @@ public class ColorTool {
 		} else if (cmd.equals("issue")) {
 			issue(cmdArgs);
 		} else if (cmd.equals("dump")) {
-			dump(cmdArgs);
+			dump(cmdArgs, false);
+		} else if (cmd.equals("quickdump")) {
+			dump(cmdArgs, true);
         } else if (cmd.equals("getaddress")) {
             getAddress(cmdArgs);
         } else if (cmd.equals("getassetaddress")) {
@@ -425,8 +427,8 @@ public class ColorTool {
         }
     }
 
-    private static void dump(List<?> cmdArgs) {
-		syncChain();
+    private static void dump(List<?> cmdArgs, boolean quick) {
+		if (!quick) syncChain();
 		dumpState();
 		System.out.println(wallet.currentReceiveAddress());
 		done();
