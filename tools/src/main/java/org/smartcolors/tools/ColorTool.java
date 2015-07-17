@@ -609,9 +609,9 @@ public class ColorTool {
 			System.out.println(entry.getKey().getName() + " : " + amount);
 		}
 		System.out.println("\n************** Key Usage:");
-		List<DeterministicKey> sorted = getSortedKeys(wallet);
-		for (DeterministicKey key : sorted) {
-			System.out.println("  " + key.toAddress(params) + " " + key.getPathAsString());
+		List<KeyAndAddress> sorted = getSortedKeys(wallet);
+		for (KeyAndAddress kna : sorted) {
+			System.out.println("  " + kna.address + " " + kna.key.getPathAsString());
 		}
 		System.out.println("\n************** Current Key:");
 		Address assetBitcoinAddress = colorChain.currentOutputScript(KeyChain.KeyPurpose.RECEIVE_FUNDS).getToAddress(params);
@@ -619,13 +619,22 @@ public class ColorTool {
 		System.out.println(SmartColors.toAssetAddress(assetBitcoinAddress, !isTestNet()));
 	}
 
-	private static List<DeterministicKey> getSortedKeys(Wallet wallet) {
-		Set<DeterministicKey> keys = Sets.newHashSet();
+    static class KeyAndAddress {
+        DeterministicKey key;
+        Address address;
+        KeyAndAddress(DeterministicKey key, Address address) {
+            this.key = key;
+            this.address = address;
+        }
+    }
+	private static List<KeyAndAddress> getSortedKeys(Wallet wallet) {
+		Set<KeyAndAddress> knas = Sets.newHashSet();
 		for (Transaction tx : wallet.getTransactions(true)) {
 			for (TransactionOutput o : tx.getOutputs()) {
 				if (o.isMine(wallet)) {
 					try {
                         Script script = o.getScriptPubKey();
+                        Address address = script.getToAddress(params);
                         ECKey key;
                         if (script.isSentToRawPubKey()) {
                             byte[] pubkey = script.getPubKey();
@@ -640,7 +649,8 @@ public class ColorTool {
                             log.warn("unknown script format " + script);
                             continue;
                         }
-                        keys.add((DeterministicKey) key);
+                        DeterministicKey key1 = (DeterministicKey) key;
+                        knas.add(new KeyAndAddress(key1, address));
                     } catch (ScriptException e) {
                         // Just means we didn't understand the output of this transaction: ignore it.
                         log.warn("Could not parse tx output script: {}", e.toString());
@@ -648,11 +658,11 @@ public class ColorTool {
 				}
 			}
 		}
-		return new Ordering<DeterministicKey>() {
+		return new Ordering<KeyAndAddress>() {
 			@Override
-			public int compare(@Nullable DeterministicKey left, @Nullable DeterministicKey right) {
-				Iterator<ChildNumber> li = left.getPath().iterator();
-				Iterator<ChildNumber> ri = right.getPath().iterator();
+			public int compare(@Nullable KeyAndAddress left, @Nullable KeyAndAddress right) {
+				Iterator<ChildNumber> li = left.key.getPath().iterator();
+				Iterator<ChildNumber> ri = right.key.getPath().iterator();
 				ComparisonChain chain = ComparisonChain.start();
 				while (ri.hasNext() && li.hasNext()) {
 					ChildNumber rc = ri.next();
@@ -662,7 +672,7 @@ public class ColorTool {
 				chain = chain.compare(li.hasNext(), ri.hasNext());
 				return chain.result();
 			}
-		}.sortedCopy(keys);
+		}.sortedCopy(knas);
 	}
 
 	private static boolean isTestNet() {
