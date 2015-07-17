@@ -61,7 +61,6 @@ public class ColorTool {
 	private static File checkpointFile;
 	private static ColorKeyChain colorChain;
 	private static OptionSpec<String> mnemonicSpec;
-	private static SmartwalletExtension extension;
 
 	public static void main(String[] args) throws IOException {
 //		for (int i = 0; i < args.length; i++) {
@@ -114,7 +113,7 @@ public class ColorTool {
 			params = NetworkParameters.fromID(NetworkParameters.ID_TESTNET);
 		}
 
-		checkpointFile = new File(net + "-checkpoints.txt");
+		checkpointFile = new File("checkpoints-" + net + ".txt");
 
 		String walletName = walletFileNameSpec.value(options);
 		if (walletName == null)
@@ -343,7 +342,7 @@ public class ColorTool {
 			group.setLookaheadSize(40);
 			group.setLookaheadThreshold(20);
 			wallet = new SmartWallet(params, group);
-			extension = new SmartwalletExtension(params);
+			SmartwalletExtension extension = new SmartwalletExtension(params);
 			//extension.setColorKeyChain(colorChain);
 			wallet.addOrGetExistingExtension(extension);
 			makeScanner();
