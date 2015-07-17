@@ -201,17 +201,19 @@ public class ColorKeyChain extends DeterministicKeyChain {
 	 * Also correct the issued{Internal|External}Keys counter, because all lower children seem to be requested already.
 	 * If the counter was updated, we also might trigger lookahead.
 	 */
+	@Override
 	public DeterministicKey markKeyAsUsed(DeterministicKey k) {
 		// Issue one key beyond the key to be marked as used
 		int numChildren = (k.getChildNumber().i() + 1) + 1;
 		ImmutableList<ChildNumber> path = k.getPath();
-		ChildNumber internalExternal = path.get(getAccountPath().size());
+		int accountPathSize = getAccountPath().size();
+		ImmutableList<ChildNumber> internalExternal = path.subList(accountPathSize, accountPathSize + EXTERNAL_SUBPATH.size());
 
-		if (internalExternal.equals(EXTERNAL_PATH.get(0))) {
+		if (internalExternal.equals(EXTERNAL_SUBPATH)) {
 			while (getIssuedExternalKeys() < numChildren) {
 				freshOutputScript(KeyPurpose.RECEIVE_FUNDS);
 			}
-		} else if (internalExternal.equals(INTERNAL_PATH.get(0))) {
+		} else if (internalExternal.equals(INTERNAL_SUBPATH)) {
 			while (getIssuedInternalKeys() < numChildren) {
 				freshOutputScript(KeyPurpose.CHANGE);
 			}
