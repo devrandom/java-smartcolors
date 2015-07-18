@@ -3,6 +3,7 @@ package org.smartcolors.tools;
 import org.bitcoinj.core.*;
 import org.bitcoinj.crypto.ChildNumber;
 import org.bitcoinj.crypto.DeterministicKey;
+import org.bitcoinj.crypto.HDUtils;
 import org.bitcoinj.net.discovery.DnsDiscovery;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
@@ -578,7 +579,7 @@ public class ColorTool {
 	private static void scan(List<?> cmdArgs) {
 		syncChain();
 		checkState(wallet.isConsistent());
-		Utils.sleep(1*1000);
+		Utils.sleep(1 * 1000);
 		if (options.has("verbose")) {
 			dumpState();
 		}
@@ -589,6 +590,21 @@ public class ColorTool {
 	private static void dumpState() {
 		System.out.println(scanner);
 		System.out.println(wallet);
+		if (false) {
+			System.out.println("Sample BIP44 addresses");
+			ImmutableList<ChildNumber> epath = HDUtils.concat(DeterministicKeyChain.BIP44_ACCOUNT_ZERO_PATH, DeterministicKeyChain.EXTERNAL_SUBPATH);
+			for (int i = 0; i < 10; i++) {
+				DeterministicKey key = wallet.getActiveKeychain().getKeyByPath(HDUtils.concat(epath, Lists.newArrayList(new ChildNumber(i))), true);
+				System.out.println("" + i + " " + key.toAddress(params));
+			}
+			System.out.println("----");
+			System.out.println("Sample BIP32 addresses");
+			ImmutableList<ChildNumber> epath0 = HDUtils.concat(DeterministicKeyChain.ACCOUNT_ZERO_PATH, DeterministicKeyChain.EXTERNAL_SUBPATH);
+			for (int i = 0; i < 10; i++) {
+				DeterministicKey key = wallet.getActiveKeychain().getKeyByPath(HDUtils.concat(epath0, Lists.newArrayList(new ChildNumber(i))), true);
+				System.out.println("" + i + " " + key.toAddress(params));
+			}
+		}
 		System.out.println("************** Unspent Transactions:");
 		for (Transaction tx: wallet.getTransactionPool(WalletTransaction.Pool.UNSPENT).values()) {
 			Map<ColorDefinition, Long> values = scanner.getOutputValues(tx, wallet, colorChain);

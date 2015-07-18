@@ -3,10 +3,7 @@ package org.smartcolors.marshal;
 import com.google.common.collect.Sets;
 import com.google.common.hash.HashCode;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by devrandom on 2014-Nov-17.
@@ -95,6 +92,7 @@ public abstract class MerbinnerTree<K,V> extends HashableSerializable {
 
 	public void deserialize(Deserializer des) throws SerializationException {
 		long type = des.readVarulong();
+		//noinspection StatementWithEmptyBody
 		if (type == 0)
 			; // nothing
 		else if (type == 1) {
