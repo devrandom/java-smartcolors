@@ -1,23 +1,21 @@
 package org.smartcolors.core;
 
-import com.google.common.base.Throwables;
-import com.google.common.hash.HashCode;
-
 import org.bitcoinj.core.ProtocolException;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutPoint;
-import org.smartcolors.marshal.Deserializer;
-import org.smartcolors.marshal.SerializationException;
-import org.smartcolors.marshal.Serializer;
-import org.smartcolors.marshal.SerializerHelper;
 
+import com.google.common.base.Throwables;
+import com.google.common.hash.HashCode;
+import org.smartcolors.marshal.*;
+
+import java.util.Deque;
 import java.util.Map;
 import java.util.Queue;
 
 /**
  * Created by devrandom on 2014-Nov-19.
  */
-public class TransferColorProof extends ColorProof {
+public class TransferColorProof extends ColorProof implements IterativeSerializable {
 	public static final int PROOF_TYPE = 3;
 
 	private Transaction tx;
@@ -42,6 +40,47 @@ public class TransferColorProof extends ColorProof {
 
 	@Override
 	protected void deserialize(Deserializer des) throws SerializationException {
+		deserializeSelf(des);
+		prevouts = des.readObject(new Deserializer.ObjectReader<PrevoutProofsMerbinnerTree>() {
+			@Override
+			public PrevoutProofsMerbinnerTree readObject(Deserializer des) throws SerializationException {
+				PrevoutProofsMerbinnerTree tree = new PrevoutProofsMerbinnerTree(params);
+				tree.deserialize(des);
+				return tree;
+			}
+		});
+		afterDeserializeSelf();
+	}
+
+	private void afterDeserializeSelf() throws SerializationException {
+		try {
+			quantity = calcQuantity();
+		} catch (UnsupportedOperationException e) {
+			throw new SerializationException(e);
+		} catch (IllegalStateException e) {
+			throw new SerializationException(e);
+		}
+		validate();
+	}
+
+	@Override
+	public void deserialize(final Deserializer des, Deque<DeserializationState> stack) throws SerializationException {
+		deserializeSelf(des);
+
+		prevouts = des.readObjectHeader();
+		if (prevouts == null) {
+			prevouts = new PrevoutProofsMerbinnerTree(params);
+			stack.push(new DeserializationState(prevouts, new DeserializationState.Callback() {
+				@Override
+				public void call(IterativeSerializable serializable) throws SerializationException {
+					afterDeserializeSelf();
+					des.afterReadObject(prevouts);
+				}
+			}));
+		}
+	}
+
+	private void deserializeSelf(Deserializer des) throws SerializationException {
 		index = des.readVaruint();
 		tx = des.readObject(new Deserializer.ObjectReader<Transaction>() {
 			@Override
@@ -55,26 +94,15 @@ public class TransferColorProof extends ColorProof {
 				}
 			}
 		});
-		prevouts = des.readObject(new Deserializer.ObjectReader<PrevoutProofsMerbinnerTree>() {
-			@Override
-			public PrevoutProofsMerbinnerTree readObject(Deserializer des) throws SerializationException {
-				PrevoutProofsMerbinnerTree tree = new PrevoutProofsMerbinnerTree(params);
-				tree.deserialize(des);
-				return tree;
-			}
-		});
-		try {
-			quantity = calcQuantity();
-		} catch (UnsupportedOperationException e) {
-			throw new SerializationException(e);
-		} catch (IllegalStateException e) {
-			throw new SerializationException(e);
-		}
-		validate();
 	}
 
 	@Override
 	public void serialize(Serializer ser) throws SerializationException {
+		serializeSelf(ser);
+		ser.write(prevouts);
+	}
+
+	private void serializeSelf(Serializer ser) throws SerializationException {
 		super.serialize(ser);
 		ser.write(index);
 		ser.write(tx, new SerializerHelper<Transaction>() {
@@ -88,7 +116,6 @@ public class TransferColorProof extends ColorProof {
 				return Hashes.calcHash(obj);
 			}
 		});
-		ser.write(prevouts);
 	}
 
 	private long calcQuantity() {
@@ -144,5 +171,12 @@ public class TransferColorProof extends ColorProof {
 	@Override
 	public TransactionOutPoint getOutPoint() {
 		return new TransactionOutPoint(params, index, tx);
+	}
+
+	@Override
+	public void serialize(Serializer ser, Deque<SerializationState> stack) throws SerializationException {
+		serializeSelf(ser);
+        stack.pop();
+		stack.push(new SerializationState(prevouts, null, 0));
 	}
 }

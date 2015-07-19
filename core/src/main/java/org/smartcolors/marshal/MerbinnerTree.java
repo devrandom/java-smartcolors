@@ -3,7 +3,9 @@ package org.smartcolors.marshal;
 import com.google.common.collect.Sets;
 import com.google.common.hash.HashCode;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Created by devrandom on 2014-Nov-17.
@@ -40,19 +42,19 @@ public abstract class MerbinnerTree<K,V> extends HashableSerializable {
 	public Collection<V> values() {
 		return entries.values();
 	}
+
 	@Override
 	public void serialize(final Serializer ser) throws SerializationException {
 		serialize(ser, entries.keySet(), 0);
 	}
 
 	private long serialize(Serializer ser, Collection<K> keys, int depth) throws SerializationException {
-		Iterator<K> iter = keys.iterator();
 		if (keys.isEmpty()) {
 			ser.write(0);
 			return 0;
 		} else if (keys.size() == 1) {
 			ser.write(1);
-			K key = iter.next();
+			K key = keys.iterator().next();
 			serializeKey(ser, key);
 			serializeValue(ser, entries.get(key));
 			return getSum(entries.get(key));

@@ -1,7 +1,11 @@
 package org.smartcolors.marshal;
 
+import com.google.common.collect.Queues;
+import org.smartcolors.core.PrevoutProofsMerbinnerTree;
+
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayDeque;
 
 /**
  * Created by devrandom on 2014-Nov-17.
@@ -51,7 +55,18 @@ public class StreamSerializer implements Serializer {
 
 	@Override
 	public void write(Serializable obj) throws SerializationException {
-		obj.serialize(this);
+		if (obj instanceof IterativeSerializable) {
+			// Switch to iterative serialization
+			ArrayDeque<SerializationState> stack = Queues.newArrayDeque();
+			IterativeSerializable tree = (PrevoutProofsMerbinnerTree) obj;
+			stack.push(new SerializationState(tree, null, 0));
+			while (!stack.isEmpty()) {
+				SerializationState state = stack.getFirst();
+				state.serializable.serialize(this, stack);
+			}
+		} else {
+			obj.serialize(this);
+		}
 	}
 
 	@Override

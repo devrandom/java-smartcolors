@@ -55,6 +55,11 @@ public class StreamDeserializer implements Deserializer {
 	}
 
 	@Override
+	public <T> T readObjectHeader() throws SerializationException {
+		return null;
+	}
+
+	@Override
 	public byte[] readBytes() throws SerializationException {
 		long length = readVarulong();
 		if (length > MAX_BYTES || length < 0)
@@ -74,5 +79,9 @@ public class StreamDeserializer implements Deserializer {
 
 	public <T> T readObject(ObjectReader<T> reader) throws SerializationException {
 		return reader.readObject(this);
+	}
+
+	@Override
+	public <T> void afterReadObject(T obj) throws SerializationException {
 	}
 }

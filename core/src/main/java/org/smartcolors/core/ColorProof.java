@@ -1,17 +1,17 @@
 package org.smartcolors.core;
 
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.TransactionOutPoint;
+import org.bitcoinj.core.Utils;
+
 import com.google.common.base.Objects;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.TransactionOutPoint;
-import org.bitcoinj.core.Utils;
 import org.smartcolors.marshal.*;
 
 import java.io.InputStream;
-import java.util.Map;
-import java.util.Queue;
+import java.util.*;
 
 /**
  * Created by devrandom on 2014-Nov-18.
@@ -34,7 +34,50 @@ public abstract class ColorProof extends HashableSerializable {
 		register(TransferColorProof.PROOF_TYPE, TransferColorProof.class);
 	}
 
+	public static ColorProof deserialize(NetworkParameters params,
+										 final Deserializer des,
+										 Deque<DeserializationState> stack) throws SerializationException {
+		ColorProof inst = des.readObjectHeader();
+		if (inst == null) {
+			inst = deserializeInstance(params, des);
+			if (inst instanceof TransferColorProof) {
+				stack.push(new DeserializationState((TransferColorProof) inst, new DeserializationState.Callback() {
+					@Override
+					public void call(IterativeSerializable serializable) throws SerializationException {
+						des.afterReadObject(serializable);
+					}
+				}));
+			} else {
+				inst.deserialize(des);
+				des.afterReadObject(inst);
+			}
+		}
+		return inst;
+	}
+
 	public static ColorProof deserialize(final NetworkParameters params, Deserializer des) throws SerializationException {
+		ArrayDeque<DeserializationState> stack = Queues.newArrayDeque();
+		ColorProof top = deserializeInstance(params, des);
+		if (top instanceof TransferColorProof) {
+			stack.push(new DeserializationState((TransferColorProof)top));
+			while (!stack.isEmpty()) {
+				DeserializationState state = stack.getFirst();
+				if (state.isDone) {
+					if (state.callback != null)
+						state.callback.call(state.serializable);
+					stack.pop();
+				} else {
+					state.serializable.deserialize(des, stack);
+					state.isDone = true;
+				}
+			}
+		} else {
+			top.deserialize(des);
+		}
+		return top;
+	}
+
+	private static ColorProof deserializeInstance(final NetworkParameters params, Deserializer des) throws SerializationException {
 		int type = des.readVaruint();
 		if (!registry.containsKey(type))
 			throw new SerializationException("unknown track type " + type);
@@ -56,7 +99,6 @@ public abstract class ColorProof extends HashableSerializable {
 				return ColorDefinition.deserialize(params, des);
 			}
 		});
-		inst.deserialize(des);
 		return inst;
 	}
 
