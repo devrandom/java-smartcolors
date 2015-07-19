@@ -144,7 +144,7 @@ public class ColorTool {
 					}
 				});
 			}
-		});
+		}, Threading.SAME_THREAD);
 
 		if (cmd.equals("help")) {
 			usage();
