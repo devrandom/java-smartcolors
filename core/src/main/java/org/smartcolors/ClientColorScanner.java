@@ -282,8 +282,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 			} finally {
 				lock.unlock();
 			}
-			// TODO fix this hack to save wallet
-			wallet.saveNow();
+			wallet.saveLater();
 			if (futures != null) {
 				for (SettableFuture<Transaction> future : futures) {
 					future.set(tx);
@@ -376,6 +375,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 				log.info("fetch success " + res.status + ", " + res.proofs.size() + " proofs");
 
 				for (ProofMap map : res.proofs.values()) {
+					// TODO this only returns first
 					for (byte[] bytes : map.values()) {
 						return ColorProof.deserialize(params, new BytesDeserializer(bytes));
 					}
@@ -423,7 +423,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
         lock.lock();
 		log.info("before rescan " + pending.size() + " pending");
         try {
-            List<TransactionOutput> all = wallet.calculateAllSpendCandidates(false);
+            List<TransactionOutput> all = wallet.calculateAllSpendCandidates(false, false);
             for (TransactionOutput output : all) {
                 if (colorKeyChain.isOutputToMe(output) && !contains(output.getOutPointFor())) {
                     SettableFuture<Transaction> future = SettableFuture.create();
@@ -439,8 +439,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
             wallet.unlock();
         }
 
-		// TODO fix this hack to save wallet
-		wallet.saveNow();
+		wallet.saveLater();
 		return futures;
 	}
 }

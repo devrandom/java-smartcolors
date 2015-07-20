@@ -30,4 +30,9 @@ public class SmartWallet extends Wallet {
     public void saveNow() {
         super.saveNow();
     }
+
+    @Override
+    protected void saveLater() {
+        super.saveLater();
+    }
 }
