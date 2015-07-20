@@ -10,8 +10,6 @@ import com.google.common.hash.HashCode;
 public abstract class HashableSerializable implements Serializable {
 	private HashCode cachedHash;
 
-	public abstract void serialize(Serializer ser) throws SerializationException;
-
 	@JsonIgnore
 	public HashCode getHash() {
 		if (cachedHash != null)

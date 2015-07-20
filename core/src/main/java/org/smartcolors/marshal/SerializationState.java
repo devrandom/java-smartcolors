@@ -16,4 +16,5 @@ public class SerializationState {
     public IterativeSerializable serializable;
     public Collection<TransactionOutPoint> keys;
     public int depth;
+    public boolean isDone = false;
 }

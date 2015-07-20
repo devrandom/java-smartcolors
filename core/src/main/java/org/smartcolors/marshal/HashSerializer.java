@@ -1,13 +1,14 @@
 package org.smartcolors.marshal;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.Queues;
 import com.google.common.hash.HashCode;
-
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayDeque;
 
 /**
  * Created by devrandom on 2014-Nov-17.
@@ -15,6 +16,25 @@ import javax.crypto.spec.SecretKeySpec;
 public class HashSerializer extends BytesSerializer {
 	@Override
 	public void write(Serializable obj) throws SerializationException {
+		if (obj instanceof IterativeSerializable) {
+			DummySerializer dummy = new DummySerializer();
+			// Switch to iterative serialization
+			ArrayDeque<SerializationState> stack = Queues.newArrayDeque();
+			IterativeSerializable tree = (IterativeSerializable) obj;
+			stack.push(new SerializationState(tree, null, 0));
+			while (!stack.isEmpty()) {
+				SerializationState state = stack.getFirst();
+				if (state.isDone) {
+					if (state.serializable instanceof HashableSerializable) {
+						((HashableSerializable)state.serializable).getHash();
+					}
+					stack.pop();
+				} else {
+					state.serializable.serialize(dummy, stack);
+					state.isDone = true;
+				}
+			}
+		}
 		write(obj.getHash().asBytes());
 	}
 

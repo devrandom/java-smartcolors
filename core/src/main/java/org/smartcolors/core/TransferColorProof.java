@@ -176,7 +176,6 @@ public class TransferColorProof extends ColorProof implements IterativeSerializa
 	@Override
 	public void serialize(Serializer ser, Deque<SerializationState> stack) throws SerializationException {
 		serializeSelf(ser);
-        stack.pop();
 		stack.push(new SerializationState(prevouts, null, 0));
 	}
 }

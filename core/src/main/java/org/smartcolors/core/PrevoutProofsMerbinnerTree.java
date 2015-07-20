@@ -100,12 +100,10 @@ public class PrevoutProofsMerbinnerTree extends MerbinnerTree<TransactionOutPoin
 
 		if (keys.isEmpty()) {
 			ser.write(0);
-			stack.pop();
 		} else if (keys.size() == 1) {
 			ser.write(1);
 			TransactionOutPoint key = keys.iterator().next();
 			serializeKey(ser, key);
-			stack.pop();
             ColorProof colorProof = entries.get(key);
             if (colorProof instanceof TransferColorProof) {
                 stack.push(new SerializationState((TransferColorProof) colorProof, null, 0));
@@ -124,7 +122,6 @@ public class PrevoutProofsMerbinnerTree extends MerbinnerTree<TransactionOutPoin
 				else
 					right.add(key);
 			}
-            stack.pop();
             stack.push(new SerializationState(this, right, state.depth + 1));
 			stack.push(new SerializationState(this, left, state.depth + 1));
 		}

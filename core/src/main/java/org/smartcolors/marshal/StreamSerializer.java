@@ -62,7 +62,12 @@ public class StreamSerializer implements Serializer {
 			stack.push(new SerializationState(tree, null, 0));
 			while (!stack.isEmpty()) {
 				SerializationState state = stack.getFirst();
-				state.serializable.serialize(this, stack);
+				if (state.isDone) {
+					stack.pop();
+				} else {
+					state.serializable.serialize(this, stack);
+					state.isDone = true;
+				}
 			}
 		} else {
 			obj.serialize(this);
