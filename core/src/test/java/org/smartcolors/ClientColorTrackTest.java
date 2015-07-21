@@ -1,19 +1,12 @@
 package org.smartcolors;
 
-import com.google.common.collect.Maps;
-
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionOutPoint;
+import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
+
+import com.google.common.collect.Maps;
 import org.junit.Before;
 import org.junit.Test;
-import org.smartcolors.core.ColorDefinition;
-import org.smartcolors.core.GenesisOutPointColorProof;
-import org.smartcolors.core.GenesisOutPointsMerbinnerTree;
-import org.smartcolors.core.GenesisScriptMerbinnerTree;
-import org.smartcolors.core.SmartColors;
+import org.smartcolors.core.*;
 import org.smartcolors.protos.Protos;
 
 import java.util.Map;
@@ -46,13 +39,13 @@ public class ClientColorTrackTest {
 		ClientColorTrack track = new ClientColorTrack(def);
 		GenesisOutPointColorProof proof = new GenesisOutPointColorProof(def, genesisTx.getOutput(0).getOutPointFor());
 		track.add(proof);
-		assertEquals(proof, track.getProofs().values().iterator().next());
+		assertEquals(proof.getQuantity(), (long) track.getOutputs().values().iterator().next());
 
 		SmartwalletExtension ext = new SmartwalletExtension(params);
 		Protos.ColorTrack trackp = ext.serializeTrack(track);
 		ClientColorTrack track1 = new ClientColorTrack(def);
 		SmartwalletExtension.deserializeTrackClient(params, trackp, track1);
-		assertEquals(1, track1.getProofs().size());
-		assertEquals(proof, track1.getProofs().values().iterator().next());
+		assertEquals(1, track1.getOutputs().size());
+		assertEquals(proof.getQuantity(), (long) track1.getOutputs().values().iterator().next());
 	}
 }

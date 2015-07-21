@@ -139,7 +139,7 @@ public class ClientColorScannerTest extends ColorTest {
 		scanner.lock();
 		assertTrue(scanner.getPending().isEmpty());
 		scanner.unlock();
-		assertTrue(track.proofs.containsKey(proof.getHash()));
+		assertTrue(track.outputs.containsKey(proof.getOutPoint()));
 		future = scanner.getTransactionWithKnownAssets(tx2, wallet, colorChain);
 		assertTrue(future.isDone());
 		Map<ColorDefinition, Long> change = scanner.getNetAssetChange(tx2, wallet, colorChain);
@@ -152,6 +152,9 @@ public class ClientColorScannerTest extends ColorTest {
 		Map<ColorDefinition, Long> balances = scanner.getBalances(wallet, colorChain);
 		assertEquals(10L, (long) balances.get(def));
 		assertEquals(Coin.CENT.getValue(), (long) balances.get(scanner.getBitcoinDefinition()));
+		final Map<ColorDefinition, Long> values = scanner.getOutputValues(tx2, wallet, colorChain);
+		assertEquals(1, values.size());
+		assertEquals(10L, (long)values.get(def));
 	}
 
 	@Test

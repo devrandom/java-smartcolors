@@ -14,11 +14,7 @@ import com.google.protobuf.ByteString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.smartcolors.core.ColorDefinition;
-import org.smartcolors.core.ColorProof;
 import org.smartcolors.core.SmartColors;
-import org.smartcolors.marshal.BytesDeserializer;
-import org.smartcolors.marshal.BytesSerializer;
-import org.smartcolors.marshal.SerializationException;
 import org.smartcolors.protos.Protos;
 
 import java.io.IOException;
@@ -147,15 +143,6 @@ public class SmartwalletExtension implements WalletExtension {
 	Protos.ColorTrack serializeTrack(ClientColorTrack track) {
 		Protos.ColorTrack.Builder trackBuilder = Protos.ColorTrack.newBuilder();
 		serializeTrack(track, trackBuilder);
-		for (ColorProof proof : track.getProofs().values()) {
-			BytesSerializer ser = new BytesSerializer();
-			try {
-				proof.serialize(ser);
-			} catch (SerializationException e) {
-				Throwables.propagate(e);
-			}
-			trackBuilder.addProofs(Protos.ColorProof.newBuilder().setBody(ByteString.copyFrom(ser.getBytes())));
-		}
 		return trackBuilder.build();
 	}
 
@@ -325,15 +312,6 @@ public class SmartwalletExtension implements WalletExtension {
 
 	static void deserializeTrackClient(NetworkParameters params, Protos.ColorTrack trackp, ClientColorTrack track) throws UnreadableWalletException {
 		deserializeTrack(params, trackp, track);
-		for (Protos.ColorProof proofp : trackp.getProofsList()) {
-			BytesDeserializer des = new BytesDeserializer(proofp.getBody().toByteArray());
-			try {
-				ColorProof proof = ColorProof.deserialize(params, des);
-				track.add(proof);
-			} catch (SerializationException e) {
-				throw new UnreadableWalletException("could not deserialize proof");
-			}
-		}
 	}
 
 	static private Sha256Hash getSha256Hash(ByteString hash) {
