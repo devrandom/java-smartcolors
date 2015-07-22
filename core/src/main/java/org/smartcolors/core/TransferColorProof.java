@@ -135,12 +135,12 @@ public class TransferColorProof extends ColorProof implements IterativeSerializa
 	}
 
 	@Override
-	int getType() {
+	protected int getType() {
 		return PROOF_TYPE;
 	}
 
 	@Override
-	void doValidate(Queue<ColorProof> queue) throws ValidationException {
+	protected void doValidate(Queue<ColorProof> queue) throws ValidationException {
 		for (TransactionOutPoint outPoint : prevouts.keySet()) {
 			ColorProof colorProof = prevouts.get(outPoint);
 			HashCode prevHash = colorProof.getDefinition().getHash();

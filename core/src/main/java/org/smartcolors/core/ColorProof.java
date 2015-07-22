@@ -118,7 +118,7 @@ public abstract class ColorProof extends HashableSerializable {
 		return Utils.HEX.decode("b96dae8e52cb124d01804353736a8384");
 	}
 
-	abstract int getType();
+	protected abstract int getType();
 
 	public static final byte[] FILE_MAGIC = Utils.HEX.decode("00536d617274636f6c6f727300f8acdc00436f6c6f7270726f6f6600cb93f2c5");
 
@@ -150,9 +150,9 @@ public abstract class ColorProof extends HashableSerializable {
 		}
 	}
 
-	abstract void doValidate(Queue<ColorProof> queue) throws ValidationException;
+	protected abstract void doValidate(Queue<ColorProof> queue) throws ValidationException;
 
-	abstract public TransactionOutPoint getOutPoint();
+	public abstract TransactionOutPoint getOutPoint();
 
 	public ColorDefinition getDefinition() {
 		return def;

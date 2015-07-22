@@ -1,13 +1,10 @@
 package org.smartcolors.core;
 
+import org.bitcoinj.core.TransactionOutPoint;
+
 import com.google.common.base.Throwables;
 import com.google.common.hash.HashCode;
-
-import org.bitcoinj.core.TransactionOutPoint;
-import org.smartcolors.marshal.Deserializer;
-import org.smartcolors.marshal.SerializationException;
-import org.smartcolors.marshal.Serializer;
-import org.smartcolors.marshal.SerializerHelper;
+import org.smartcolors.marshal.*;
 
 import java.util.Queue;
 
@@ -69,12 +66,12 @@ public class GenesisOutPointColorProof extends ColorProof {
 	}
 
 	@Override
-	int getType() {
+	protected int getType() {
 		return PROOF_TYPE;
 	}
 
 	@Override
-	void doValidate(Queue<ColorProof> queue) throws ValidationException {
+	protected void doValidate(Queue<ColorProof> queue) throws ValidationException {
 		if (!def.getOutPointGenesisPoints().containsKey(outpoint))
 			throw new ValidationException("outpoint not in def " + outpoint);
 	}
