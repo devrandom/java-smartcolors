@@ -133,7 +133,8 @@ public class FeeCalculator {
 			// Estimate transaction size and loop again if we need more fee per kb. The serialized tx doesn't
 			// include things we haven't added yet like input signatures/scripts or the change output.
 			size += req.tx.bitcoinSerialize().length;
-			size += estimateBytesForSigning(wallet, selection);
+			size += estimateBytesForSigning(wallet, selection, originalInputs);
+
 			if (size/1000 > lastCalculatedSize/1000 && req.feePerKb.signum() > 0) {
 				lastCalculatedSize = size;
 				// We need more fees anyway, just try again with the same additional value
@@ -210,27 +211,36 @@ public class FeeCalculator {
 			req.tx.addInput(input);
 	}
 
-	private static int estimateBytesForSigning(Wallet wallet, CoinSelection selection) {
+	private static int estimateBytesForSigning(Wallet wallet, CoinSelection selection, List<TransactionInput> originalInputs) {
 		int size = 0;
 		for (TransactionOutput output : selection.gathered) {
-			try {
-				Script script = output.getScriptPubKey();
-				ECKey key = null;
-				Script redeemScript = null;
-				if (script.isSentToAddress()) {
-					key = wallet.findKeyFromPubHash(script.getPubKeyHash());
-					checkNotNull(key, "Coin selection includes unspendable outputs");
-				} else if (script.isPayToScriptHash()) {
-					redeemScript = wallet.findRedeemDataFromScriptHash(script.getPubKeyHash()).redeemScript;
-					checkNotNull(redeemScript, "Coin selection includes unspendable outputs");
-				}
-				size += script.getNumberOfBytesRequiredToSpend(key, redeemScript);
-			} catch (ScriptException e) {
-				// If this happens it means an output script in a wallet tx could not be understood. That should never
-				// happen, if it does it means the wallet has got into an inconsistent state.
-				throw new IllegalStateException(e);
-			}
+			size += estimateBytesForSigningOutput(wallet, output);
+		}
+		for (TransactionInput input : originalInputs) {
+			TransactionOutput output = input.getConnectedOutput();
+			if (output == null) continue;
+			size += estimateBytesForSigningOutput(wallet, output);
 		}
 		return size;
+	}
+
+	private static int estimateBytesForSigningOutput(Wallet wallet, TransactionOutput output) {
+		try {
+            Script script = output.getScriptPubKey();
+            ECKey key = null;
+            Script redeemScript = null;
+            if (script.isSentToAddress()) {
+                key = wallet.findKeyFromPubHash(script.getPubKeyHash());
+                checkNotNull(key, "Coin selection includes unspendable outputs");
+            } else if (script.isPayToScriptHash()) {
+                redeemScript = wallet.findRedeemDataFromScriptHash(script.getPubKeyHash()).redeemScript;
+                checkNotNull(redeemScript, "Coin selection includes unspendable outputs");
+            }
+            return script.getNumberOfBytesRequiredToSpend(key, redeemScript);
+        } catch (ScriptException e) {
+            // If this happens it means an output script in a wallet tx could not be understood. That should never
+            // happen, if it does it means the wallet has got into an inconsistent state.
+            throw new IllegalStateException(e);
+        }
 	}
 }

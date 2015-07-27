@@ -18,8 +18,7 @@ import org.smartcolors.core.SmartColors;
 import java.security.SecureRandom;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.smartcolors.core.SmartColors.makeAssetInput;
 
 public class CoinSelectorTest extends ColorTest {
@@ -80,9 +79,9 @@ public class CoinSelectorTest extends ColorTest {
 		tx4.addOutput(Coin.ZERO, opReturnScript); // Spurious OP_RETURN marker
 		receiveTransaction(tx4);
 
-		AssetCoinSelector.AssetCoinSelection result = assetSelector.select(wallet.calculateAllSpendCandidates(false), 1);
+		AssetCoinSelector.AssetCoinSelection result = assetSelector.select(wallet.calculateAllSpendCandidates(true, false), 1);
 		assertEquals(Sets.newHashSet(tx3.getOutput(0)), result.gathered);
-		CoinSelection result1 = bitcoinSelector.select(Coin.FIFTY_COINS, wallet.calculateAllSpendCandidates(false));
+		CoinSelection result1 = bitcoinSelector.select(Coin.FIFTY_COINS, wallet.calculateAllSpendCandidates(true, false));
 		assertEquals(Sets.newHashSet(tx4.getOutput(0)), result1.gathered);
 
 		Transaction tx = new Transaction(wallet.getParams());
@@ -106,6 +105,38 @@ public class CoinSelectorTest extends ColorTest {
 		Map<ColorDefinition, Long> change = scanner.getNetAssetChange(tx, wallet, colorChain);
 		assertEquals(1, change.size());
 		assertEquals(-2L, (long)change.get(def));
+	}
+
+	@Test
+	public void testFee() throws InsufficientMoneyException {
+		// Incoming asset
+		Transaction tx2 = new Transaction(params);
+		tx2.addInput(makeAssetInput(tx2, genesisTx, 0));
+		tx2.addOutput(Utils.makeAssetCoin(8), outputScript);
+		tx2.addOutput(Coin.ZERO, opReturnScript);
+		receiveTransaction(tx2);
+
+		// Incoming bitcoin
+		Transaction tx4 = new Transaction(params);
+		tx4.addInput(makeAssetInput(tx4, genesisTx, 0));
+		tx4.addOutput(Coin.COIN, ScriptBuilder.createOutputScript(wallet.currentReceiveKey()));
+		tx4.addOutput(Coin.ZERO, opReturnScript); // Spurious OP_RETURN marker
+		receiveTransaction(tx4);
+
+		Transaction tx = new Transaction(wallet.getParams());
+		final Script notMyScript = ScriptBuilder.createOutputScript(new ECKey());
+		for (int i = 0; i < 14; i++) {
+			tx.addOutput(Coin.valueOf(1000), notMyScript);
+		}
+		Wallet.SendRequest request = Wallet.SendRequest.forTx(tx);
+		request.shuffleOutputs = false;
+		request.coinSelector = bitcoinSelector;
+		AssetCoinSelector.addAssetOutput(tx, notMyScript, 2L);
+		assetSelector.completeTx(wallet, request, 2L);
+		final int length = tx.bitcoinSerialize().length;
+		assertTrue(length >= 998);
+		assertTrue(length <= 1001);
+		assertEquals(Coin.valueOf(2000L), tx.getFee());
 	}
 
 	private void receiveTransaction(Transaction tx) {

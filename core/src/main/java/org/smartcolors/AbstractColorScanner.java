@@ -282,7 +282,7 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 		wallet.lock();
 		lock.lock();
 		try {
-			List<TransactionOutput> all = wallet.calculateAllSpendCandidates(false);
+			List<TransactionOutput> all = wallet.calculateAllSpendCandidates(true, false);
 			for (TransactionOutput output: all) {
 				if (colorKeyChain.isOutputToMe(output))
 					applyOutputValue(output, res);

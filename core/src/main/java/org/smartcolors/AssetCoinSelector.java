@@ -84,7 +84,7 @@ public class AssetCoinSelector extends DefaultCoinSelector {
 	 *     <li>Add OP_RETURN output</li>
 	 *     <li>Calculate fee / select bitcoin inputs</li>
 	 * </ul>
-	 * @param wallet wallet
+	 * @param _wallet wallet
 	 * @param req request with a BitcoinCoinSelector
 	 * @throws InsufficientMoneyException
 	 */
