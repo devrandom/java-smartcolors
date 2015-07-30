@@ -43,7 +43,7 @@ public class StandardKeyChain extends DeterministicKeyChain {
     }
 
     @Override
-    protected ImmutableList<ChildNumber> getAccountPath() {
+    public ImmutableList<ChildNumber> getAccountPath() {
         return BIP44_ACCOUNT_ZERO_PATH;
     }
 

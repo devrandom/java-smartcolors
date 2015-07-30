@@ -80,7 +80,7 @@ public class ColorKeyChain extends DeterministicKeyChain {
 	}
 
 	@Override
-	protected ImmutableList<ChildNumber> getAccountPath() {
+	public ImmutableList<ChildNumber> getAccountPath() {
 		return ASSET_PATH;
 	}
 
