@@ -59,6 +59,7 @@ public class SmartwalletExtension implements WalletExtension {
 
 	protected ColorScanner scanner;
 	protected ColorKeyChain colorKeyChain;
+	private boolean useSeparateThreadForSerialization = true;
 
 	public SmartwalletExtension(NetworkParameters params) {
 		mapper = new ObjectMapper();
@@ -77,25 +78,33 @@ public class SmartwalletExtension implements WalletExtension {
 		return false;
 	}
 
+	public void setUseSeparateThreadForSerialization(boolean useSeparateThreadForSerialization) {
+		this.useSeparateThreadForSerialization = useSeparateThreadForSerialization;
+	}
+
 	@Override
 	public byte[] serializeWalletExtension() {
-		Callable<Protos.ColorScanner> call = new Callable<Protos.ColorScanner>() {
-			@Override
-			public Protos.ColorScanner call() throws Exception {
-				return serializeScanner(scanner);
-			}
-		};
-		log.warn("Using separate thread for serialization");
-		ExecutorService service = SmartColors.makeSerializationService("Serialize thread");
 		final Protos.ColorScanner scannerProto;
-		try {
-			scannerProto = service.submit(call).get();
-		} catch (InterruptedException e) {
-			throw Throwables.propagate(e);
-		} catch (ExecutionException e) {
-			throw Throwables.propagate(e);
+		if (useSeparateThreadForSerialization) {
+			Callable<Protos.ColorScanner> call = new Callable<Protos.ColorScanner>() {
+				@Override
+				public Protos.ColorScanner call() throws Exception {
+					return serializeScanner(scanner);
+				}
+			};
+			log.warn("Using separate thread for serialization");
+			ExecutorService service = SmartColors.makeSerializationService("Serialize thread");
+			try {
+				scannerProto = service.submit(call).get();
+			} catch (InterruptedException e) {
+				throw Throwables.propagate(e);
+			} catch (ExecutionException e) {
+				throw Throwables.propagate(e);
+			}
+			service.shutdown();
+		} else {
+			scannerProto = serializeScanner(scanner);
 		}
-		service.shutdown();
 		return scannerProto.toByteArray();
 	}
 
