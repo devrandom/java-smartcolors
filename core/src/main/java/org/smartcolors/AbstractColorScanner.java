@@ -277,22 +277,39 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 	@Override
 	public Map<ColorDefinition, Long> getBalances(Wallet _wallet, ColorKeyChain colorKeyChain) {
         SmartWallet wallet = (SmartWallet)_wallet;
-		Map<ColorDefinition, Long> res = Maps.newHashMap();
-		res.put(bitcoinDefinition, 0L);
 		wallet.lock();
 		lock.lock();
 		try {
 			List<TransactionOutput> all = wallet.calculateAllSpendCandidates(true, false);
-			for (TransactionOutput output: all) {
-				if (colorKeyChain.isOutputToMe(output))
-					applyOutputValue(output, res);
-				else
-					res.put(bitcoinDefinition, res.get(bitcoinDefinition) + output.getValue().getValue());
-			}
+			return getBalances(colorKeyChain, all);
 		} finally {
    			lock.unlock();
 			wallet.unlock();
 		}
+	}
+
+	@Override
+	public Map<ColorDefinition, Long> getBalances(MultiWallet wallet, ColorKeyChain colorKeyChain) {
+		wallet.lock();
+		lock.lock();
+		try {
+			List<TransactionOutput> all = wallet.calculateAllSpendCandidates(true, false);
+			return getBalances(colorKeyChain, all);
+		} finally {
+			lock.unlock();
+			wallet.unlock();
+		}
+	}
+
+	private Map<ColorDefinition, Long> getBalances(ColorKeyChain colorKeyChain, List<TransactionOutput> all) {
+		Map<ColorDefinition, Long> res = Maps.newHashMap();
+		res.put(bitcoinDefinition, 0L);
+		for (TransactionOutput output: all) {
+            if (colorKeyChain.isOutputToMe(output))
+                applyOutputValue(output, res);
+            else
+                res.put(bitcoinDefinition, res.get(bitcoinDefinition) + output.getValue().getValue());
+        }
 		return res;
 	}
 

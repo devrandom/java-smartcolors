@@ -28,7 +28,6 @@ import org.smartcolors.*;
 import org.smartcolors.core.*;
 import org.smartcolors.marshal.SerializationException;
 import org.smartwallet.multi.ElectrumMultiWallet;
-import org.smartwallet.multi.MultiWallet;
 import org.smartwallet.multi.SPVMultiWallet;
 
 import javax.annotation.Nullable;
@@ -603,7 +602,7 @@ public class ColorTool {
 			}
 		}
 		System.out.println("************** Unspent Transactions:");
-		for (Transaction tx: wallet.getTransactionPool(WalletTransaction.Pool.UNSPENT).values()) {
+		for (Transaction tx: multiWallet.getTransactionPool(WalletTransaction.Pool.UNSPENT).values()) {
 			Map<ColorDefinition, Long> values = scanner.getOutputValues(tx, wallet, colorChain);
 			System.out.print(tx.getHash());
 			for (Map.Entry<ColorDefinition, Long> entry : values.entrySet()) {
@@ -614,7 +613,7 @@ public class ColorTool {
 			System.out.println();
 		}
 		System.out.println("\n************** Balances:");
-		Map<ColorDefinition, Long> balances = scanner.getBalances(wallet, colorChain);
+		Map<ColorDefinition, Long> balances = scanner.getBalances(multiWallet, colorChain);
 		for (Map.Entry<ColorDefinition, Long> entry : balances.entrySet()) {
 			BigDecimal divisibilityDivider = getDivider(entry.getKey());
 			BigDecimal amount = BigDecimal.valueOf(entry.getValue()).divide(divisibilityDivider);

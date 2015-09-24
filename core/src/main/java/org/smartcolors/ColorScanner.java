@@ -45,6 +45,9 @@ public interface ColorScanner {
 	/** Get the balance for each color */
 	Map<ColorDefinition, Long> getBalances(Wallet wallet, ColorKeyChain colorKeyChain);
 
+	/** Get the balance for each color */
+	Map<ColorDefinition, Long> getBalances(MultiWallet wallet, ColorKeyChain colorKeyChain);
+
 	/** Get a future that triggers when the colors the transaction moves become known - i.e. after the asset tracker responds */
 	ListenableFuture<Transaction> getTransactionWithKnownAssets(Transaction tx, Wallet wallet, ColorKeyChain chain);
 
