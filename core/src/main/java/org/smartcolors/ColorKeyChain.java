@@ -17,16 +17,14 @@ import org.spongycastle.crypto.params.KeyParameter;
 
 import javax.annotation.Nullable;
 import java.security.SecureRandom;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Created by devrandom on 2014-10-12.
  */
-public class ColorKeyChain extends DeterministicKeyChain {
+public class ColorKeyChain extends DeterministicKeyChain implements AddressableKeyChain {
 	public static final int SMARTCOLOR_BASE58 = 1461; // "SC" in base58 represents 1461
 	public static final ImmutableList<ChildNumber> ASSET_PATH = ImmutableList.of(new ChildNumber(SMARTCOLOR_BASE58, true), ChildNumber.ZERO_HARDENED, ChildNumber.ZERO_HARDENED);
 	private LinkedHashMap<ByteString, RedeemData> redeemDataMap = new LinkedHashMap<ByteString, RedeemData>();
@@ -54,6 +52,11 @@ public class ColorKeyChain extends DeterministicKeyChain {
 	public ColorKeyChain(KeyCrypter keyCrypter, KeyParameter aesKey, ColorKeyChain colorKeyChain) {
 		super(keyCrypter, aesKey, colorKeyChain);
 		maybeLookAheadScripts();
+	}
+
+	@Override
+	public Set<ByteString> getP2SHHashes() {
+		return redeemDataMap.keySet();
 	}
 
 	public static class Builder<T extends Builder<T>> extends DeterministicKeyChain.Builder<T> {

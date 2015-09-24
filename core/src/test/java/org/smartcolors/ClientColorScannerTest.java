@@ -35,7 +35,6 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import static junit.framework.Assert.fail;
 import static org.easymock.EasyMock.*;
 import static org.junit.Assert.*;
 

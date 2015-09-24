@@ -27,6 +27,9 @@ import org.slf4j.LoggerFactory;
 import org.smartcolors.*;
 import org.smartcolors.core.*;
 import org.smartcolors.marshal.SerializationException;
+import org.smartwallet.multi.ElectrumMultiWallet;
+import org.smartwallet.multi.MultiWallet;
+import org.smartwallet.multi.SPVMultiWallet;
 
 import javax.annotation.Nullable;
 import java.io.*;
@@ -45,7 +48,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 public class ColorTool {
-	private static final boolean USE_SPV = false;
 	private static final Logger log = LoggerFactory.getLogger(ColorTool.class);
 
 	private static OptionSet options;
@@ -55,13 +57,15 @@ public class ColorTool {
 	private static BlockStore store;
 	private static MyBlockChain chain;
 	private static PeerGroup peers;
-	private static Wallet wallet;
+	private static SmartWallet wallet;
+	private static MultiWallet multiWallet;
 	private static File chainFile;
 	private static File walletFile;
 	private static ColorScanner scanner;
 	private static File checkpointFile;
 	private static ColorKeyChain colorChain;
 	private static OptionSpec<String> mnemonicSpec;
+	private static boolean useElectrum = false;
 
 	public static void main(String[] args) throws IOException {
 //		for (int i = 0; i < args.length; i++) {
@@ -71,6 +75,7 @@ public class ColorTool {
 		parser.accepts("prod", "use prodnet (default is testnet)");
 		parser.accepts("regtest", "use regtest mode (default is testnet)");
 		parser.accepts("force", "force creation of wallet from mnemonic");
+		parser.accepts("electrum", "use Electrum SPV instead of native SPV");
 		parser.accepts("linger", "do not exit after done");
         OptionSpec<String> assetsPathSpec = parser.accepts("assets", "asset directory, containing *.smartcolors").withRequiredArg();
 		parser.accepts("debug");
@@ -90,6 +95,7 @@ public class ColorTool {
 
 		if (options.has("debug")) {
 			BriefLogFormatter.init();
+			LogManager.getLogManager().getLogger("").setLevel(Level.FINEST);
 			log.info("Starting up ...");
 		} else {
 			// Disable logspam unless there is a flag.
@@ -113,6 +119,8 @@ public class ColorTool {
 			net = "testnet";
 			params = NetworkParameters.fromID(NetworkParameters.ID_TESTNET);
 		}
+		
+		useElectrum = options.has("electrum");
 
 		checkpointFile = new File("checkpoints-" + net + ".txt");
 
@@ -193,7 +201,7 @@ public class ColorTool {
 			if (options.has("ignore-mandatory-extensions"))
 				loader.setRequireMandatoryExtensions(false);
 			walletInputStream = new BufferedInputStream(new FileInputStream(walletFile));
-			wallet = loader.readWallet(walletInputStream);
+			wallet = (SmartWallet) loader.readWallet(walletInputStream);
 			checkNotNull(colorChain);
 			if (!wallet.getParams().equals(params)) {
 				System.err.println("Wallet does not match requested network parameters: " +
@@ -219,54 +227,50 @@ public class ColorTool {
 	// Sets up all objects needed for network communication but does not bring up the peers.
 	private static void setup() throws BlockStoreException, IOException {
 		if (store != null) return;  // Already done.
-		boolean chainExisted = chainFile.exists();
-		store = new SPVBlockStore(params, chainFile);
-		if (checkpointFile.exists() && !chainExisted) {
-			long creationTime = Long.MAX_VALUE;
-			if (USE_SPV) {
-				creationTime = ((SPVColorScanner)scanner).getEarliestKeyCreationTime();
-			}
-			creationTime = Math.min(creationTime, wallet.getEarliestKeyCreationTime());
-			CheckpointManager.checkpoint(params, new FileInputStream(checkpointFile), store, creationTime);
-		}
-		chain = new MyBlockChain(params, wallet, store);
-
-		if (peers == null) {
-			peers = new PeerGroup(params, chain);
-		}
-		peers.setUserAgent("ColorTool", "1.0");
-
-		if (USE_SPV) {
-			SPVColorScanner spvScanner = (SPVColorScanner) scanner;
-			chain.addListener(spvScanner, Threading.SAME_THREAD);
-			peers.addPeerFilterProvider(spvScanner);
-			peers.addEventListener(spvScanner.getPeerEventListener());
+		if (useElectrum) {
+			multiWallet = new ElectrumMultiWallet(wallet);
 		} else {
+			boolean chainExisted = chainFile.exists();
+			store = new SPVBlockStore(params, chainFile);
+			if (checkpointFile.exists() && !chainExisted) {
+				long creationTime = Long.MAX_VALUE;
+				creationTime = Math.min(creationTime, wallet.getEarliestKeyCreationTime());
+				CheckpointManager.checkpoint(params, new FileInputStream(checkpointFile), store, creationTime);
+			}
+			chain = new MyBlockChain(params, wallet, store);
+
+			if (peers == null) {
+				peers = new PeerGroup(params, chain);
+			}
+			peers.setUserAgent("ColorTool", "1.0");
+
 			ClientColorScanner clientScanner = (ClientColorScanner) scanner;
 			clientScanner.setColorKeyChain(colorChain);
 			clientScanner.start(wallet);
+			multiWallet = new SPVMultiWallet(wallet, peers);
+
+			peers.addWallet(wallet);
+
+			if (options.has("peers")) {
+				String peersFlag = (String) options.valueOf("peers");
+				String[] peerAddrs = peersFlag.split(",");
+				for (String peer : peerAddrs) {
+					try {
+						peers.addAddress(new PeerAddress(InetAddress.getByName(peer), params.getPort()));
+					} catch (UnknownHostException e) {
+						System.err.println("Could not understand peer domain name/IP address: " + peer + ": " + e.getMessage());
+						System.exit(1);
+					}
+				}
+			} else if (isRegTest()) {
+				peers.addAddress(new PeerAddress(InetAddress.getLoopbackAddress(), 28883));
+			} else {
+				//peers.addAddress(PeerAddress.localhost(params));
+				peers.addPeerDiscovery(new DnsDiscovery(params));
+			}
 		}
 
-		peers.addWallet(wallet);
 		wallet.autosaveToFile(walletFile, 200, TimeUnit.MILLISECONDS, null);
-
-		if (options.has("peers")) {
-            String peersFlag = (String) options.valueOf("peers");
-            String[] peerAddrs = peersFlag.split(",");
-            for (String peer : peerAddrs) {
-                try {
-                    peers.addAddress(new PeerAddress(InetAddress.getByName(peer), params.getPort()));
-                } catch (UnknownHostException e) {
-                    System.err.println("Could not understand peer domain name/IP address: " + peer + ": " + e.getMessage());
-                    System.exit(1);
-                }
-            }
-        } else if (isRegTest()) {
-            peers.addAddress(new PeerAddress(InetAddress.getLoopbackAddress(), 28883));
-		} else {
-			//peers.addAddress(PeerAddress.localhost(params));
-			peers.addPeerDiscovery(new DnsDiscovery(params));
-		}
 	}
 
 	private static void reset() {
@@ -289,12 +293,9 @@ public class ColorTool {
 		try {
 			setup();
 			int startTransactions = wallet.getTransactions(true).size();
-			DownloadProgressTracker listener = new DownloadProgressTracker();
-			peers.startAsync();
-			peers.awaitRunning();
-			peers.startBlockChainDownload(listener);
+			multiWallet.start();
 			try {
-				listener.await();
+				multiWallet.awaitDownload();
 			} catch (InterruptedException e) {
 				System.err.println("Chain download interrupted, quitting ...");
 				System.exit(1);
@@ -360,20 +361,16 @@ public class ColorTool {
 	}
 
 	private static void makeScanner() {
-		if (USE_SPV)
-			scanner = new SPVColorScanner(params);
-		else {
-			URI baseUri = null;
-			try {
-                if (isRegTest())
-                    baseUri = new URI("http://localhost:8888/");
-                else
-				    baseUri = new URI("http://tracker0.smartcolors.org:8888/");
-			} catch (URISyntaxException e) {
-				Throwables.propagate(e);
-			}
-			scanner = new ClientColorScanner(params, baseUri);
-		}
+		URI baseUri = null;
+		try {
+			if (isRegTest())
+				baseUri = new URI("http://localhost:8888/");
+			else
+				baseUri = new URI("http://tracker0.smartcolors.org:8888/");
+		} catch (URISyntaxException e) {
+            Throwables.propagate(e);
+        }
+		scanner = new ClientColorScanner(params, baseUri);
 	}
 
 	private static void addBuiltins() {
@@ -483,7 +480,7 @@ public class ColorTool {
 		}
 		wallet.commitTx(req.tx);
 		try {
-			peers.broadcastTransaction(req.tx).future().get();
+			multiWallet.broadcastTransaction(req.tx).get();
 		} catch (InterruptedException e) {
 			Throwables.propagate(e);
 		} catch (ExecutionException e) {
@@ -544,7 +541,7 @@ public class ColorTool {
 		}
 		wallet.commitTx(req.tx);
 		try {
-			peers.broadcastTransaction(req.tx).future().get();
+			multiWallet.broadcastTransaction(req.tx).get();
 		} catch (InterruptedException e) {
 			Throwables.propagate(e);
 		} catch (ExecutionException e) {

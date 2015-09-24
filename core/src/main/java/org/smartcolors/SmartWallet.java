@@ -26,6 +26,18 @@ public class SmartWallet extends Wallet {
         lock.unlock();
     }
 
+    public void lockKeychain() {
+        keychainLock.lock();
+    }
+
+    public void unlockKeychain() {
+        keychainLock.unlock();
+    }
+
+    public KeyChainGroup getKeychain() {
+        return keychain;
+    }
+
     @Override
     public void saveNow() {
         super.saveNow();
