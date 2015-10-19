@@ -2,6 +2,7 @@ package org.smartcolors;
 
 import com.google.common.collect.*;
 import com.google.common.hash.HashCode;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import org.bitcoinj.core.*;
@@ -12,6 +13,7 @@ import org.smartcolors.core.SmartColors;
 
 import javax.annotation.concurrent.GuardedBy;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -338,6 +340,16 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
             lock.unlock();
 			wallet.unlock();
 		}
+	}
+
+	/** wait for any unknown transactions in flight, for UI purposes */
+	@Override
+	public void waitForCurrentUnknownTransactions(Wallet _wallet, ColorKeyChain chain) throws ExecutionException, InterruptedException {
+		List<ListenableFuture<Transaction>> futures = Lists.newArrayList();
+		for (Transaction transaction : pending.values()) {
+			futures.add(getTransactionWithKnownAssets(transaction, _wallet, chain));
+		}
+		Futures.allAsList(futures).get();
 	}
 
 	@Override

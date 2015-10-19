@@ -8,6 +8,7 @@ import org.smartcolors.core.ColorDefinition;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Created by devrandom on 2014-Nov-23.
@@ -25,6 +26,8 @@ public interface ColorScanner {
 	 * @throws Exception
 	 */
 	boolean removeDefinition(ColorDefinition def);
+
+	void waitForCurrentUnknownTransactions(Wallet _wallet, ColorKeyChain chain) throws ExecutionException, InterruptedException;
 
 	/** Get all currently configured definitions. The definitions persist in the wallet using {@link SmartwalletExtension}. */
 	Set<ColorDefinition> getDefinitions();

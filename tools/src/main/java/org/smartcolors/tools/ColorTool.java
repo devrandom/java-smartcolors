@@ -297,7 +297,8 @@ public class ColorTool {
 			multiWallet.start();
 			try {
 				multiWallet.awaitDownload();
-			} catch (InterruptedException e) {
+				scanner.waitForCurrentUnknownTransactions(wallet, colorChain);
+			} catch (InterruptedException | ExecutionException e) {
 				System.err.println("Chain download interrupted, quitting ...");
 				System.exit(1);
 			}
