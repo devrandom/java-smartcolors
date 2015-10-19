@@ -21,6 +21,7 @@ public class DeserializationState {
         checkNotNull(serializable);
         this.serializable = serializable;
     }
+
     public IterativeSerializable serializable;
     public Callback callback;
     public boolean isDone = false;

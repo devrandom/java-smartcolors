@@ -12,12 +12,12 @@ import java.io.IOException;
  * Created by devrandom on 2014-Nov-26.
  */
 public class Base64Deserializer extends FromStringDeserializer<byte[]> {
-	public Base64Deserializer() {
-		super(HashCode.class);
-	}
+    public Base64Deserializer() {
+        super(HashCode.class);
+    }
 
-	@Override
-	protected byte[] _deserialize(String value, DeserializationContext ctxt) throws IOException, JsonProcessingException {
-		return BaseEncoding.base64().decode(value);
-	}
+    @Override
+    protected byte[] _deserialize(String value, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+        return BaseEncoding.base64().decode(value);
+    }
 }

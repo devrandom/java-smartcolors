@@ -15,53 +15,53 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Created by android on 10/12/14.
  */
 public class ColorKeyChainFactory extends DefaultKeyChainFactory {
-	private final Callback callback;
+    private final Callback callback;
 
-	public interface Callback {
-		public void onRestore(ColorKeyChain chain);
-	}
+    public interface Callback {
+        public void onRestore(ColorKeyChain chain);
+    }
 
-	public ColorKeyChainFactory(Callback callback) {
-		checkNotNull(callback);
-		this.callback = callback;
-	}
+    public ColorKeyChainFactory(Callback callback) {
+        checkNotNull(callback);
+        this.callback = callback;
+    }
 
-	@Override
-	public DeterministicKeyChain makeKeyChain(Protos.Key key, Protos.Key firstSubKey, DeterministicSeed seed, KeyCrypter crypter, boolean isMarried) {
-		List<Integer> path = firstSubKey.getDeterministicKey().getPathList();
-		if (isAssetPath(path)) {
-			checkArgument(!isMarried, "no multisig support yet");
-			ColorKeyChain result = new ColorKeyChain(seed, crypter);
-			callback.onRestore(result);
-			return result;
-		} else {
-			return makeBitcoinKeyChain(key, firstSubKey, seed, crypter, isMarried);
-		}
-	}
+    @Override
+    public DeterministicKeyChain makeKeyChain(Protos.Key key, Protos.Key firstSubKey, DeterministicSeed seed, KeyCrypter crypter, boolean isMarried) {
+        List<Integer> path = firstSubKey.getDeterministicKey().getPathList();
+        if (isAssetPath(path)) {
+            checkArgument(!isMarried, "no multisig support yet");
+            ColorKeyChain result = new ColorKeyChain(seed, crypter);
+            callback.onRestore(result);
+            return result;
+        } else {
+            return makeBitcoinKeyChain(key, firstSubKey, seed, crypter, isMarried);
+        }
+    }
 
-	@Override
-	public DeterministicKeyChain makeWatchingKeyChain(Protos.Key key, Protos.Key firstSubKey, DeterministicKey accountKey, boolean isFollowingKey, boolean isMarried) throws UnreadableWalletException {
-		List<Integer> path = firstSubKey.getDeterministicKey().getPathList();
-		if (isAssetPath(path)) {
-			ColorKeyChain result = new ColorKeyChain(accountKey, isFollowingKey);
-			callback.onRestore(result);
-			return result;
-		} else {
-			return makeWatchingBitcoinKeyChain(key, firstSubKey, accountKey, isFollowingKey, isMarried);
-		}
-	}
+    @Override
+    public DeterministicKeyChain makeWatchingKeyChain(Protos.Key key, Protos.Key firstSubKey, DeterministicKey accountKey, boolean isFollowingKey, boolean isMarried) throws UnreadableWalletException {
+        List<Integer> path = firstSubKey.getDeterministicKey().getPathList();
+        if (isAssetPath(path)) {
+            ColorKeyChain result = new ColorKeyChain(accountKey, isFollowingKey);
+            callback.onRestore(result);
+            return result;
+        } else {
+            return makeWatchingBitcoinKeyChain(key, firstSubKey, accountKey, isFollowingKey, isMarried);
+        }
+    }
 
-	public DeterministicKeyChain makeBitcoinKeyChain(Protos.Key key, Protos.Key firstSubKey, DeterministicSeed seed, KeyCrypter crypter, boolean isMarried) {
-		DeterministicKeyChain chain;
-		if (isMarried)
-			throw new UnsupportedOperationException();
-		else
-			chain = new StandardKeyChain(seed, crypter);
-		return chain;
-	}
+    public DeterministicKeyChain makeBitcoinKeyChain(Protos.Key key, Protos.Key firstSubKey, DeterministicSeed seed, KeyCrypter crypter, boolean isMarried) {
+        DeterministicKeyChain chain;
+        if (isMarried)
+            throw new UnsupportedOperationException();
+        else
+            chain = new StandardKeyChain(seed, crypter);
+        return chain;
+    }
 
     public DeterministicKeyChain makeWatchingBitcoinKeyChain(Protos.Key key, Protos.Key firstSubKey, DeterministicKey accountKey,
-                                                      boolean isFollowingKey, boolean isMarried) throws UnreadableWalletException {
+                                                             boolean isFollowingKey, boolean isMarried) throws UnreadableWalletException {
         if (!accountKey.getPath().equals(DeterministicKeyChain.ACCOUNT_ZERO_PATH))
             throw new UnreadableWalletException("Expecting account key but found key with path: " +
                     HDUtils.formatPath(accountKey.getPath()));
@@ -73,7 +73,7 @@ public class ColorKeyChainFactory extends DefaultKeyChainFactory {
         return chain;
     }
 
-	private boolean isAssetPath(List<Integer> path) {
-		return !path.isEmpty() && path.get(0).equals(ColorKeyChain.ASSET_PATH.get(0).i());
-	}
+    private boolean isAssetPath(List<Integer> path) {
+        return !path.isEmpty() && path.get(0).equals(ColorKeyChain.ASSET_PATH.get(0).i());
+    }
 }

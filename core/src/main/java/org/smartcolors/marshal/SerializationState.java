@@ -13,6 +13,7 @@ public class SerializationState {
         this.keys = keys;
         this.depth = depth;
     }
+
     public IterativeSerializable serializable;
     public Collection<TransactionOutPoint> keys;
     public int depth;

@@ -11,12 +11,12 @@ import java.io.IOException;
  * Created by devrandom on 2014-Nov-26.
  */
 public class HexDeserializer extends FromStringDeserializer<HashCode> {
-	public HexDeserializer() {
-		super(HashCode.class);
-	}
+    public HexDeserializer() {
+        super(HashCode.class);
+    }
 
-	@Override
-	protected HashCode _deserialize(String value, DeserializationContext ctxt) throws IOException, JsonProcessingException {
-		return HashCode.fromString(value);
-	}
+    @Override
+    protected HashCode _deserialize(String value, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+        return HashCode.fromString(value);
+    }
 }
