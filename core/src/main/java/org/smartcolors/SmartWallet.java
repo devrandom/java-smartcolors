@@ -47,4 +47,8 @@ public class SmartWallet extends Wallet {
     protected void saveLater() {
         super.saveLater();
     }
+
+    public void doSaveLater() {
+        saveLater();
+    }
 }

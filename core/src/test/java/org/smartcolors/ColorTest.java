@@ -1,13 +1,12 @@
 package org.smartcolors;
 
+import com.google.common.collect.Maps;
 import org.bitcoinj.core.*;
 import org.bitcoinj.params.TestNet3Params;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.store.MemoryBlockStore;
 import org.bitcoinj.testing.FakeTxBuilder;
-
-import com.google.common.collect.Maps;
 import org.junit.Before;
 import org.smartcolors.core.*;
 
@@ -30,7 +29,7 @@ public class ColorTest {
 	protected ColorDefinition def;
 	protected Script opReturnScript;
 	protected ColorKeyChain colorChain;
-	protected Wallet wallet;
+	protected SmartWallet wallet;
 	protected BigInteger privkey;
 	protected ECKey privkey1;
 

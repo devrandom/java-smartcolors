@@ -1,9 +1,8 @@
 package org.smartcolors;
 
-import org.bitcoinj.core.*;
-
 import com.google.common.hash.HashCode;
 import com.google.common.util.concurrent.ListenableFuture;
+import org.bitcoinj.core.*;
 import org.smartcolors.core.ColorDefinition;
 
 import java.util.List;
@@ -55,7 +54,7 @@ public interface ColorScanner {
 	 * Rescan any unknown assets.  Useful after {@link #addDefinition}.  Caller is responsible for invoking {@link #start(Wallet)}
 	 * if needed, but any pending fetches will be noted.
 	 */
-    List<ListenableFuture<Transaction>> rescanUnknown(Wallet wallet, ColorKeyChain colorKeyChain);
+    List<ListenableFuture<Transaction>> rescanUnknown(MultiWallet wallet, ColorKeyChain colorKeyChain);
 
 	/** Add a transaction to the pending queue.  It will be scanned in due course. */
     void addPending(Transaction t);
@@ -70,7 +69,7 @@ public interface ColorScanner {
 	ColorTrack getColorTrackByDefinition(ColorDefinition def);
 
 	/** Start the scanner - meaning that fetches will happen. */
-	void start(Wallet wallet);
+	void start(MultiWallet wallet);
 
 	/** Stop the scanner - meaning that fetches will be postponed. */
 	void stop();

@@ -1,12 +1,12 @@
 package org.smartcolors;
 
-import org.bitcoinj.core.*;
-import org.bitcoinj.utils.Threading;
-
 import com.google.common.collect.*;
 import com.google.common.hash.HashCode;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import org.bitcoinj.core.*;
+import org.bitcoinj.utils.Threading;
+import org.bitcoinj.wallet.WalletTransaction;
 import org.smartcolors.core.ColorDefinition;
 import org.smartcolors.core.SmartColors;
 
@@ -75,7 +75,7 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 	}
 
     @Override
-    public List<ListenableFuture<Transaction>> rescanUnknown(Wallet wallet, ColorKeyChain colorKeyChain) {
+    public List<ListenableFuture<Transaction>> rescanUnknown(MultiWallet wallet, ColorKeyChain colorKeyChain) {
         return Lists.newArrayList();
     }
 
@@ -86,8 +86,8 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 	}
 
 	@Override
-	public void start(Wallet wallet) {
-		addAllPending(wallet, wallet.getPendingTransactions());
+	public void start(MultiWallet wallet) {
+		addAllPending(wallet, wallet.getTransactionPool(WalletTransaction.Pool.PENDING).values());
 	}
 
 	protected abstract TRACK makeTrack(ColorDefinition definition);
@@ -388,7 +388,7 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 	}
 
 	/** Call this after deserializing the wallet with any wallet pending transactions */
-	protected void addAllPending(Wallet wallet, Collection<Transaction> txs) {
+	protected void addAllPending(MultiWallet wallet, Collection<Transaction> txs) {
 		for (Transaction tx : txs) {
 			pending.put(tx.getHash(), tx);
 		}

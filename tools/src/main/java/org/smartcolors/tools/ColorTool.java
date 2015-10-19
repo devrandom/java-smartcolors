@@ -1,5 +1,15 @@
 package org.smartcolors.tools;
 
+import com.fasterxml.jackson.databind.InjectableValues;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Throwables;
+import com.google.common.collect.*;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
 import org.bitcoinj.core.*;
 import org.bitcoinj.crypto.ChildNumber;
 import org.bitcoinj.crypto.DeterministicKey;
@@ -11,17 +21,6 @@ import org.bitcoinj.store.*;
 import org.bitcoinj.utils.BriefLogFormatter;
 import org.bitcoinj.utils.Threading;
 import org.bitcoinj.wallet.*;
-
-import com.fasterxml.jackson.databind.InjectableValues;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Throwables;
-import com.google.common.collect.*;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.smartcolors.*;
@@ -226,8 +225,13 @@ public class ColorTool {
 	// Sets up all objects needed for network communication but does not bring up the peers.
 	private static void setup() throws BlockStoreException, IOException {
 		if (store != null) return;  // Already done.
+
+		ClientColorScanner clientScanner = (ClientColorScanner) scanner;
+		clientScanner.setColorKeyChain(colorChain);
+
 		if (useElectrum) {
 			multiWallet = new ElectrumMultiWallet(wallet);
+			clientScanner.start(multiWallet);
 		} else {
 			boolean chainExisted = chainFile.exists();
 			store = new SPVBlockStore(params, chainFile);
@@ -243,10 +247,8 @@ public class ColorTool {
 			}
 			peers.setUserAgent("ColorTool", "1.0");
 
-			ClientColorScanner clientScanner = (ClientColorScanner) scanner;
-			clientScanner.setColorKeyChain(colorChain);
-			clientScanner.start(wallet);
 			multiWallet = new SPVMultiWallet(wallet, peers);
+			clientScanner.start(multiWallet);
 
 			peers.addWallet(wallet);
 

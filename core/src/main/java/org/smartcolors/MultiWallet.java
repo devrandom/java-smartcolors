@@ -1,9 +1,8 @@
 package org.smartcolors;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import org.bitcoinj.core.*;
 import org.bitcoinj.wallet.WalletTransaction;
-
-import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.List;
 import java.util.Map;
@@ -17,8 +16,11 @@ import java.util.concurrent.Executor;
  * Created by devrandom on 2015-09-08.
  */
 public interface MultiWallet extends TransactionBag {
-    void addEventListener(WalletEventListener listener, Executor executor);
-    boolean removeEventListener(WalletEventListener listener);
+    interface MultiWalletEventListener {
+        void onTransaction(MultiWallet wallet, Transaction tx);
+    }
+    void addEventListener(MultiWalletEventListener listener, Executor executor);
+    boolean removeEventListener(MultiWalletEventListener listener);
     Set<Transaction> getTransactions();
     Map<Sha256Hash, Transaction> getTransactionPool(WalletTransaction.Pool pool);
     void markKeysAsUsed(Transaction tx);
@@ -37,4 +39,9 @@ public interface MultiWallet extends TransactionBag {
 
     /** must be called after start or startAsync */
     void awaitDownload() throws InterruptedException;
+
+    List<TransactionOutput> getWalletOutputs(Transaction tx);
+    Transaction getTransaction(Sha256Hash hash);
+    void saveLater();
+    Context getContext();
 }

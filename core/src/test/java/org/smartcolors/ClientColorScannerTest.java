@@ -1,11 +1,5 @@
 package org.smartcolors;
 
-import org.bitcoinj.core.*;
-import org.bitcoinj.testing.FakeTxBuilder;
-import org.bitcoinj.wallet.DeterministicKeyChain;
-import org.bitcoinj.wallet.KeyChain;
-import org.bitcoinj.wallet.KeyChainGroup;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
@@ -18,6 +12,11 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.message.BasicStatusLine;
+import org.bitcoinj.core.*;
+import org.bitcoinj.testing.FakeTxBuilder;
+import org.bitcoinj.wallet.DeterministicKeyChain;
+import org.bitcoinj.wallet.KeyChain;
+import org.bitcoinj.wallet.KeyChainGroup;
 import org.easymock.Capture;
 import org.easymock.IAnswer;
 import org.junit.After;
@@ -46,6 +45,7 @@ public class ClientColorScannerTest extends ColorTest {
 	private ECKey colorKey;
 	private HashMap<TransactionOutPoint, ColorProof> proofs;
 	private SmartwalletExtension ext;
+	private TestMultiWallet multiWallet;
 
 	@Before
 	public void setUp() throws Exception {
@@ -66,6 +66,7 @@ public class ClientColorScannerTest extends ColorTest {
 		keyChainGroup.addAndActivateHDChain(colorChain);
 		keyChainGroup.addAndActivateHDChain(chain);
 		wallet = new SmartWallet(params, keyChainGroup);
+		multiWallet = new TestMultiWallet(wallet);
 
 		scanner.setColorKeyChain(colorChain);
 		proofs = Maps.newHashMap();
@@ -85,7 +86,7 @@ public class ClientColorScannerTest extends ColorTest {
 		replay(fetchService);
 		wallet = new SmartWallet(params);
 		Transaction tx2 = makeTx2(new ECKey());
-		scanner.onTransaction(wallet, tx2);
+		scanner.onTransaction(multiWallet, tx2);
 		assertTrue(scanner.pending.isEmpty());
 		verify(fetchService);
 	}
@@ -96,14 +97,14 @@ public class ClientColorScannerTest extends ColorTest {
 		scanner.setFetchService(fetchService);
 		replay(fetchService);
 		Transaction tx2 = makeTx2(colorKey);
-		scanner.onTransaction(wallet, tx2);
+		scanner.onTransaction(multiWallet, tx2);
 		assertEquals(1, scanner.pending.size());
 		verify(fetchService);
 	}
 
 	@Test
 	public void transactions() throws Exception {
-		scanner.start(wallet);
+		scanner.start(multiWallet);
 		Transaction tx2 = makeTx2(colorKey);
 
 		ClientColorScanner.Fetcher fetcher = createMock(ClientColorScanner.Fetcher.class);
@@ -129,7 +130,7 @@ public class ClientColorScannerTest extends ColorTest {
 		});
 		replay(fetcher, proof);
 		wallet.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
-		scanner.onTransaction(wallet, tx2);
+		scanner.onTransaction(multiWallet, tx2);
 		barrier.await();
 		ListenableFuture<Transaction> future = scanner.getTransactionWithKnownAssets(tx2, wallet, colorChain);
 		Transaction ftx = future.get();
@@ -227,7 +228,7 @@ public class ClientColorScannerTest extends ColorTest {
 
 	@Test
 	public void testGetNetAssetChangeUnconfirmed() throws Exception {
-		scanner.start(wallet);
+		scanner.start(multiWallet);
 		ScheduledExecutorService fetchService = createMock(ScheduledExecutorService.class);
 		expect(fetchService.shutdownNow()).andStubReturn(null);
 		expect(fetchService.awaitTermination(5, TimeUnit.SECONDS)).andStubReturn(true);
@@ -255,7 +256,7 @@ public class ClientColorScannerTest extends ColorTest {
 
 	@Test
 	public void testGetNetAssetChangeUnconfirmedWithUnknownDependency() throws Exception {
-		scanner.start(wallet);
+		scanner.start(multiWallet);
 		ClientColorScanner.Fetcher fetcher = createMock(ClientColorScanner.Fetcher.class);
 		fetcher.stop();
 		expectLastCall().asStub();

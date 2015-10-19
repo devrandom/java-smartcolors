@@ -1,8 +1,5 @@
 package org.smartcolors;
 
-import org.bitcoinj.core.*;
-import org.bitcoinj.utils.Threading;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -18,6 +15,9 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.bitcoinj.core.*;
+import org.bitcoinj.utils.Threading;
+import org.bitcoinj.wallet.WalletTransaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.smartcolors.core.ColorDefinition;
@@ -46,7 +46,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 
 	Fetcher fetcher;
 	ScheduledExecutorService fetchService;
-	private SmartWallet wallet;
+	private MultiWallet wallet;
 
 
 	public ClientColorScanner(NetworkParameters params) {
@@ -91,10 +91,10 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 	}
 
 	@Override
-	public void start(Wallet wallet) {
+	public void start(MultiWallet wallet) {
 		checkState(fetchService == null);
 		checkState(colorKeyChain != null);
-		this.wallet = (SmartWallet)wallet;
+		this.wallet = wallet;
 
 		// Intern the transactions so we get the right confidence level
 		for (Map.Entry<Sha256Hash, Transaction> entry : pending.entrySet()) {
@@ -107,7 +107,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 			fetchService.schedule(new Lookup(tx), millis, TimeUnit.MILLISECONDS);
 		}
 		listenToWallet(wallet);
-		addAllPending(wallet, wallet.getPendingTransactions());
+		addAllPending(wallet, wallet.getTransactionPool(WalletTransaction.Pool.PENDING).values());
 	}
 
 	public boolean isStarted() {
@@ -119,42 +119,28 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 		return new ClientColorTrack(definition);
 	}
 
-	private void listenToWallet(Wallet wallet) {
-		wallet.addEventListener(new AbstractWalletEventListener() {
+	private void listenToWallet(final MultiWallet wallet) {
+		wallet.addEventListener(new MultiWallet.MultiWalletEventListener() {
 			@Override
-			public void onCoinsReceived(Wallet wallet, Transaction tx, Coin prevBalance, Coin newBalance) {
-				super.onCoinsReceived(wallet, tx, prevBalance, newBalance);
-				onTransaction(wallet, tx);
-			}
-
-			@Override
-			public void onCoinsSent(Wallet wallet, Transaction tx, Coin prevBalance, Coin newBalance) {
-				// FIXME change bitcoinj so that we get this also when diff = 0
-				super.onCoinsSent(wallet, tx, prevBalance, newBalance);
-				onTransaction(wallet, tx);
-			}
-
-			@Override
-			public void onTransactionConfidenceChanged(Wallet wallet, Transaction tx) {
-				super.onTransactionConfidenceChanged(wallet, tx);
+			public void onTransaction(MultiWallet wallet, Transaction tx) {
+				ClientColorScanner.this.onTransaction(wallet, tx);
 			}
 		}, Threading.SAME_THREAD);
 	}
 
 	@Override
-	protected void addAllPending(Wallet wallet, Collection<Transaction> txs) {
+	protected void addAllPending(MultiWallet wallet, Collection<Transaction> txs) {
 		for (Transaction tx : txs) {
 			onTransaction(wallet, tx);
 		}
 	}
 
-	void onTransaction(Wallet _wallet, Transaction tx) {
-        SmartWallet wallet = (SmartWallet)_wallet;
+	void onTransaction(MultiWallet wallet, Transaction tx) {
 		checkNotNull(colorKeyChain);
 		wallet.lock();
 		lock.lock();
 		try {
-			List<TransactionOutput> walletOutputs = tx.getWalletOutputs(wallet);
+			List<TransactionOutput> walletOutputs = wallet.getWalletOutputs(tx);
 			boolean needsLookup = false;
 			for (TransactionOutput output : walletOutputs) {
 				if (colorKeyChain.isOutputToMe(output) && !contains(output.getOutPointFor())) {
@@ -416,10 +402,9 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 	}
 
     @Override
-    public List<ListenableFuture<Transaction>> rescanUnknown(Wallet _wallet, ColorKeyChain colorKeyChain) {
-        SmartWallet wallet = (SmartWallet)_wallet;
+    public List<ListenableFuture<Transaction>> rescanUnknown(MultiWallet wallet, ColorKeyChain colorKeyChain) {
 		List<ListenableFuture<Transaction>> futures = Lists.newArrayList();
-        wallet.lock();
+        this.wallet.lock();
         lock.lock();
 		log.info("before rescan " + pending.size() + " pending");
         try {
@@ -436,10 +421,10 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 			log.info("after rescan start " + pending.size() + " pending");
         } finally {
             lock.unlock();
-            wallet.unlock();
+            this.wallet.unlock();
         }
 
-		wallet.saveLater();
+		this.wallet.saveLater();
 		return futures;
 	}
 }
