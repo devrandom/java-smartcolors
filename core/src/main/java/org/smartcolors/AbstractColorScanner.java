@@ -345,15 +345,17 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 
     /** wait for any unknown transactions in flight, for UI purposes */
     @Override
-    public void waitForCurrentUnknownTransactions(Wallet _wallet, ColorKeyChain chain) throws ExecutionException, InterruptedException {
+    public void waitForCurrentUnknownTransactions(SmartWallet wallet, ColorKeyChain chain) throws ExecutionException, InterruptedException {
         List<ListenableFuture<Transaction>> futures = Lists.newArrayList();
+        wallet.lock();
         lock.lock();
         try {
             for (Transaction transaction : pending.values()) {
-                futures.add(getTransactionWithKnownAssets(transaction, _wallet, chain));
+                futures.add(getTransactionWithKnownAssets(transaction, wallet, chain));
             }
         } finally {
             lock.unlock();
+            wallet.unlock();
         }
         Futures.allAsList(futures).get();
     }

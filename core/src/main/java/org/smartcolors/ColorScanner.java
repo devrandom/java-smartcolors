@@ -28,7 +28,7 @@ public interface ColorScanner {
      */
     boolean removeDefinition(ColorDefinition def);
 
-    void waitForCurrentUnknownTransactions(Wallet _wallet, ColorKeyChain chain) throws ExecutionException, InterruptedException;
+    void waitForCurrentUnknownTransactions(SmartWallet _wallet, ColorKeyChain chain) throws ExecutionException, InterruptedException;
 
     /** Get all currently configured definitions. The definitions persist in the wallet using {@link SmartwalletExtension}. */
     Set<ColorDefinition> getDefinitions();
