@@ -347,8 +347,13 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
     @Override
     public void waitForCurrentUnknownTransactions(Wallet _wallet, ColorKeyChain chain) throws ExecutionException, InterruptedException {
         List<ListenableFuture<Transaction>> futures = Lists.newArrayList();
-        for (Transaction transaction : pending.values()) {
-            futures.add(getTransactionWithKnownAssets(transaction, _wallet, chain));
+        lock.lock();
+        try {
+            for (Transaction transaction : pending.values()) {
+                futures.add(getTransactionWithKnownAssets(transaction, _wallet, chain));
+            }
+        } finally {
+            lock.unlock();
         }
         Futures.allAsList(futures).get();
     }
