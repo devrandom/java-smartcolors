@@ -3,7 +3,7 @@ package org.smartcolors;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.hash.HashCode;
@@ -294,7 +294,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
 
         @Override
         public String toString() {
-            return Objects.toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                     .add("status", status)
                     .add("error", error)
                     .add("details", details)

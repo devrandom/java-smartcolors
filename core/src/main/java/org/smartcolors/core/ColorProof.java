@@ -1,6 +1,6 @@
 package org.smartcolors.core;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
@@ -176,8 +176,8 @@ public abstract class ColorProof extends HashableSerializable {
         return toStringHelper().toString();
     }
 
-    protected Objects.ToStringHelper toStringHelper() {
-        return Objects.toStringHelper(this)
+    protected MoreObjects.ToStringHelper toStringHelper() {
+        return MoreObjects.toStringHelper(this)
                 .add("def", def)
                 .add("qty", quantity);
     }
