@@ -27,7 +27,6 @@ import org.smartcolors.*;
 import org.smartcolors.core.*;
 import org.smartcolors.marshal.SerializationException;
 import org.smartwallet.multi.ElectrumMultiWallet;
-import org.smartwallet.multi.SPVMultiWallet;
 
 import javax.annotation.Nullable;
 import java.io.*;
