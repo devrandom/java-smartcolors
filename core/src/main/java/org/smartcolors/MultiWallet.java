@@ -48,6 +48,10 @@ public interface MultiWallet extends TransactionBag {
     /** Start the network layer */
     void startAsync();
 
+    void stop();
+
+    void stopAsync();
+
     /** must be called after start or startAsync */
     void awaitDownload() throws InterruptedException;
 

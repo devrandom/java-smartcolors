@@ -23,13 +23,16 @@ import java.util.concurrent.Executor;
 public class SPVMultiWallet extends SmartMultiWallet {
     protected static final Logger log = LoggerFactory.getLogger(SPVMultiWallet.class);
 
-    protected final PeerGroup peers;
+    protected PeerGroup peers;
     private final Map<MultiWalletEventListener, WalletEventListener> listenerMap;
 
     public SPVMultiWallet(SmartWallet wallet, PeerGroup peers) {
         super(wallet);
-        this.peers = peers;
         listenerMap = Maps.newConcurrentMap();
+    }
+
+    public void setPeers(PeerGroup peers) {
+        this.peers = peers;
     }
 
     @Override
@@ -122,12 +125,26 @@ public class SPVMultiWallet extends SmartMultiWallet {
 
     @Override
     public void start() {
+        peers.addWallet(wallet);
         peers.start();
     }
 
     @Override
     public void startAsync() {
+        peers.addWallet(wallet);
         peers.startAsync();
+    }
+
+    @Override
+    public void stopAsync() {
+        peers.removeWallet(wallet);
+        peers.stopAsync();
+    }
+
+    @Override
+    public void stop() {
+        peers.removeWallet(wallet);
+        peers.stop();
     }
 
     @Override
