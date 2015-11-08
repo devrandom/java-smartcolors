@@ -135,8 +135,7 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
      * it is, it will be marked as UNKNOWN</p>
      */
     @Override
-    public Map<ColorDefinition, Long> getNetAssetChange(Transaction tx, Wallet _wallet, ColorKeyChain chain) {
-        SmartWallet wallet = (SmartWallet) _wallet;
+    public Map<ColorDefinition, Long> getNetAssetChange(Transaction tx, MultiWallet wallet, ColorKeyChain chain) {
         wallet.lock();
         try {
             Map<ColorDefinition, Long> res = Maps.newHashMap();
@@ -147,7 +146,7 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
         }
     }
 
-    private void applyNetAssetChange(Transaction tx, Wallet wallet, ColorKeyChain chain, Map<ColorDefinition, Long> res) {
+    private void applyNetAssetChange(Transaction tx, MultiWallet wallet, ColorKeyChain chain, Map<ColorDefinition, Long> res) {
         lock.lock();
         try {
             for (TransactionOutput out : tx.getOutputs()) {
@@ -278,20 +277,6 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
     }
 
     @Override
-    public Map<ColorDefinition, Long> getBalances(Wallet _wallet, ColorKeyChain colorKeyChain) {
-        SmartWallet wallet = (SmartWallet) _wallet;
-        wallet.lock();
-        lock.lock();
-        try {
-            List<TransactionOutput> all = wallet.calculateAllSpendCandidates(true, false);
-            return getBalances(colorKeyChain, all);
-        } finally {
-            lock.unlock();
-            wallet.unlock();
-        }
-    }
-
-    @Override
     public Map<ColorDefinition, Long> getBalances(MultiWallet wallet, ColorKeyChain colorKeyChain) {
         wallet.lock();
         lock.lock();
@@ -324,8 +309,7 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
      * <p>The caller may have to run this again if we find one asset, but there are other unknownDefinition outputs</p>
      */
     @Override
-    public ListenableFuture<Transaction> getTransactionWithKnownAssets(Transaction tx, Wallet _wallet, ColorKeyChain chain) {
-        SmartWallet wallet = (SmartWallet) _wallet;
+    public ListenableFuture<Transaction> getTransactionWithKnownAssets(Transaction tx, MultiWallet wallet, ColorKeyChain chain) {
         wallet.lock();
         lock.lock();
         try {
@@ -345,7 +329,7 @@ public abstract class AbstractColorScanner<TRACK extends ColorTrack> implements 
 
     /** wait for any unknown transactions in flight, for UI purposes */
     @Override
-    public void waitForCurrentUnknownTransactions(SmartWallet wallet, ColorKeyChain chain) throws ExecutionException, InterruptedException {
+    public void waitForCurrentUnknownTransactions(MultiWallet wallet, ColorKeyChain chain) throws ExecutionException, InterruptedException {
         List<ListenableFuture<Transaction>> futures = Lists.newArrayList();
         wallet.lock();
         lock.lock();

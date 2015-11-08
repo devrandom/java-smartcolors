@@ -32,6 +32,7 @@ public class ColorTest {
     protected SmartWallet wallet;
     protected BigInteger privkey;
     protected ECKey privkey1;
+    protected MultiWallet multiWallet;
 
     @Before
     public void setUp() throws Exception {

@@ -27,6 +27,7 @@ public class CoinSelectorTest extends ColorTest {
     private BitcoinCoinSelector bitcoinSelector;
     private AssetCoinSelector assetSelector;
     protected SPVColorScanner scanner;
+    private TestMultiWallet multiWallet;
 
     @Before
     public void setUp() throws Exception {
@@ -48,6 +49,7 @@ public class CoinSelectorTest extends ColorTest {
         group.addAndActivateHDChain(colorChain);
         group.addAndActivateHDChain(chain);
         wallet = new SmartWallet(params, group);
+        multiWallet = new TestMultiWallet(wallet);
         outputScript = colorChain.freshOutputScript(KeyChain.KeyPurpose.RECEIVE_FUNDS);
         bitcoinSelector = new BitcoinCoinSelector(wallet.getContext(), colorChain);
         assetSelector = new AssetCoinSelector(wallet.getContext(), colorChain, scanner.getColorTrackByHash(def.getHash()));
@@ -101,7 +103,7 @@ public class CoinSelectorTest extends ColorTest {
         }
         assertEquals(Coin.COIN.add(Coin.valueOf(5L * 2)), tx.getValueSentFromMe(wallet));
         receiveTransaction(tx);
-        Map<ColorDefinition, Long> change = scanner.getNetAssetChange(tx, wallet, colorChain);
+        Map<ColorDefinition, Long> change = scanner.getNetAssetChange(tx, multiWallet, colorChain);
         assertEquals(1, change.size());
         assertEquals(-2L, (long) change.get(def));
     }

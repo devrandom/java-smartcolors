@@ -9,6 +9,7 @@ import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.script.ScriptOpCodes;
 import org.bitcoinj.wallet.WalletTransaction;
+import org.smartcolors.MultiWallet;
 import org.smartcolors.SPVColorTrack;
 
 import java.io.IOException;
@@ -188,24 +189,11 @@ public class SmartColors {
     }
 
 
-    public static boolean isInputMine(TransactionInput input, Wallet wallet) {
+    public static boolean isInputMine(TransactionInput input, MultiWallet wallet) {
         TransactionOutPoint outpoint = input.getOutpoint();
-        TransactionOutput connected = getConnected(outpoint, wallet.getTransactionPool(WalletTransaction.Pool.UNSPENT));
-        if (connected == null)
-            connected = getConnected(outpoint, wallet.getTransactionPool(WalletTransaction.Pool.SPENT));
-        if (connected == null)
-            connected = getConnected(outpoint, wallet.getTransactionPool(WalletTransaction.Pool.PENDING));
-        if (connected == null)
-            return false;
-        // The connected output may be the change to the sender of a previous input sent to this wallet. In this
-        // case we ignore it.
-        return connected.isMine(wallet);
-    }
-
-    private static TransactionOutput getConnected(TransactionOutPoint outpoint, Map<Sha256Hash, Transaction> transactions) {
-        Transaction tx = transactions.get(outpoint.getHash());
-        if (tx == null)
-            return null;
-        return tx.getOutputs().get((int) outpoint.getIndex());
+        Transaction tx = wallet.getTransaction(outpoint.getHash());
+        if (tx == null) return false;
+        checkState(tx.getOutputs().size() > outpoint.getIndex());
+        return true;
     }
 }

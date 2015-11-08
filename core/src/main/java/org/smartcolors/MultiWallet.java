@@ -62,4 +62,7 @@ public interface MultiWallet extends TransactionBag {
     void saveLater();
 
     Context getContext();
+
+    @Deprecated
+    Wallet getWallet();
 }

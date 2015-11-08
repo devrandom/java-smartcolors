@@ -75,8 +75,9 @@ public class SPVColorScannerTest extends ColorTest {
                 return true;
             }
         };
+        multiWallet = new TestMultiWallet(wallet);
         Transaction tx2 = makeTx2(new ECKey());
-        Map<ColorDefinition, Long> res = scanner.getNetAssetChange(tx2, wallet, colorChain);
+        Map<ColorDefinition, Long> res = scanner.getNetAssetChange(tx2, multiWallet, colorChain);
         Map<ColorDefinition, Long> expected = Maps.newHashMap();
         expected.put(scanner.getUnknownDefinition(), 5L);
         assertEquals(expected, res);
@@ -100,12 +101,13 @@ public class SPVColorScannerTest extends ColorTest {
                 return txs.get(hash);
             }
         };
+        multiWallet = new TestMultiWallet(wallet);
 
         Transaction tx2 = makeTx2(myKey);
         scanner.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
         wallet.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
         Map<ColorDefinition, Long> expected = Maps.newHashMap();
-        Map<ColorDefinition, Long> res = scanner.getNetAssetChange(tx2, wallet, colorChain);
+        Map<ColorDefinition, Long> res = scanner.getNetAssetChange(tx2, multiWallet, colorChain);
         expected.put(def, 5L);
         assertEquals(expected, res);
 
@@ -119,7 +121,7 @@ public class SPVColorScannerTest extends ColorTest {
         wallet.receiveFromBlock(tx3, FakeTxBuilder.createFakeBlock(blockStore, tx3).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
 
         expected.clear();
-        res = scanner.getNetAssetChange(tx3, wallet, colorChain);
+        res = scanner.getNetAssetChange(tx3, multiWallet, colorChain);
         expected.put(def, -3L);
         assertEquals(expected, res);
 
@@ -146,10 +148,11 @@ public class SPVColorScannerTest extends ColorTest {
                 return Arrays.equals(pubkey, myKey.getPubKey());
             }
         };
+        multiWallet = new TestMultiWallet(wallet);
 
         Transaction tx2 = makeTx2(myKey);
         wallet.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
-        ListenableFuture<Transaction> future = scanner.getTransactionWithKnownAssets(tx2, wallet, colorChain);
+        ListenableFuture<Transaction> future = scanner.getTransactionWithKnownAssets(tx2, multiWallet, colorChain);
         //assertFalse(future.isDone());
         //scanner.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
         // FIXME need a better test now that we apply the color kernel to unconfirmed
@@ -167,6 +170,7 @@ public class SPVColorScannerTest extends ColorTest {
                 return Arrays.equals(pubkey, myKey.getPubKey());
             }
         };
+        multiWallet = new TestMultiWallet(wallet);
 
         Transaction tx2a = new Transaction(params);
         tx2a.addOutput(Coin.ZERO, opReturnScript);
@@ -176,7 +180,7 @@ public class SPVColorScannerTest extends ColorTest {
         tx2.addOutput(Coin.ZERO, opReturnScript);
         StoredBlock storedBlock = FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock;
         wallet.receiveFromBlock(tx2, storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
-        ListenableFuture<Transaction> future = scanner.getTransactionWithKnownAssets(tx2, wallet, colorChain);
+        ListenableFuture<Transaction> future = scanner.getTransactionWithKnownAssets(tx2, multiWallet, colorChain);
         assertFalse(future.isDone());
         scanner.notifyNewBestBlock(storedBlock);
         assertTrue(future.isDone());

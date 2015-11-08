@@ -132,7 +132,7 @@ public class ClientColorScannerTest extends ColorTest {
         wallet.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
         scanner.onTransaction(multiWallet, tx2);
         barrier.await();
-        ListenableFuture<Transaction> future = scanner.getTransactionWithKnownAssets(tx2, wallet, colorChain);
+        ListenableFuture<Transaction> future = scanner.getTransactionWithKnownAssets(tx2, multiWallet, colorChain);
         Transaction ftx = future.get();
         assertEquals(tx2, ftx);
         verify(fetcher, proof);
@@ -140,16 +140,16 @@ public class ClientColorScannerTest extends ColorTest {
         assertTrue(scanner.getPending().isEmpty());
         scanner.unlock();
         assertTrue(track.outputs.containsKey(proof.getOutPoint()));
-        future = scanner.getTransactionWithKnownAssets(tx2, wallet, colorChain);
+        future = scanner.getTransactionWithKnownAssets(tx2, multiWallet, colorChain);
         assertTrue(future.isDone());
-        Map<ColorDefinition, Long> change = scanner.getNetAssetChange(tx2, wallet, colorChain);
+        Map<ColorDefinition, Long> change = scanner.getNetAssetChange(tx2, multiWallet, colorChain);
         assertEquals(1, change.size());
         assertEquals(10L, (long) change.get(def));
         Transaction tx3 = new Transaction(params);
         tx3.addOutput(Coin.CENT, wallet.currentKey(KeyChain.KeyPurpose.RECEIVE_FUNDS));
         wallet.receiveFromBlock(tx3, FakeTxBuilder.createFakeBlock(blockStore, tx3).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
 
-        Map<ColorDefinition, Long> balances = scanner.getBalances(wallet, colorChain);
+        Map<ColorDefinition, Long> balances = scanner.getBalances(multiWallet, colorChain);
         assertEquals(10L, (long) balances.get(def));
         assertEquals(Coin.CENT.getValue(), (long) balances.get(scanner.getBitcoinDefinition()));
         final Map<ColorDefinition, Long> values = scanner.getOutputValues(tx2, wallet, colorChain);
@@ -169,7 +169,7 @@ public class ClientColorScannerTest extends ColorTest {
         proofs.put(tx2.getOutput(0).getOutPointFor(), tx2Proof);
         wallet.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
         Map<ColorDefinition, Long> expected = Maps.newHashMap();
-        Map<ColorDefinition, Long> res = scanner.getNetAssetChange(tx2, wallet, colorChain);
+        Map<ColorDefinition, Long> res = scanner.getNetAssetChange(tx2, multiWallet, colorChain);
         expected.put(def, 5L);
         assertEquals(expected, res);
 
@@ -184,7 +184,7 @@ public class ClientColorScannerTest extends ColorTest {
         wallet.receiveFromBlock(tx3, FakeTxBuilder.createFakeBlock(blockStore, tx3).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
 
         expected.clear();
-        res = scanner.getNetAssetChange(tx3, wallet, colorChain);
+        res = scanner.getNetAssetChange(tx3, multiWallet, colorChain);
         expected.put(def, -3L);
         assertEquals(expected, res);
 
@@ -192,7 +192,7 @@ public class ClientColorScannerTest extends ColorTest {
         scanner1.addDefinition(def);
         Protos.ColorScanner proto = ext.serializeScanner(scanner);
         ext.deserializeScannerClient(params, proto, scanner1);
-        res = scanner1.getNetAssetChange(tx3, wallet, colorChain);
+        res = scanner1.getNetAssetChange(tx3, multiWallet, colorChain);
         assertEquals(expected, res);
     }
 
@@ -208,7 +208,7 @@ public class ClientColorScannerTest extends ColorTest {
         proofs.put(tx2.getOutput(0).getOutPointFor(), tx2Proof);
         wallet.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
         Map<ColorDefinition, Long> expected = Maps.newHashMap();
-        Map<ColorDefinition, Long> res = scanner.getNetAssetChange(tx2, wallet, colorChain);
+        Map<ColorDefinition, Long> res = scanner.getNetAssetChange(tx2, multiWallet, colorChain);
         expected.put(def, 5L);
         assertEquals(expected, res);
 
@@ -223,7 +223,7 @@ public class ClientColorScannerTest extends ColorTest {
         wallet.receiveFromBlock(tx3, FakeTxBuilder.createFakeBlock(blockStore, tx3).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
 
         wallet.encrypt("hello");
-        assertEquals(2L, (long) scanner.getBalances(wallet, colorChain).get(def));
+        assertEquals(2L, (long) scanner.getBalances(multiWallet, colorChain).get(def));
     }
 
     @Test
@@ -244,13 +244,13 @@ public class ClientColorScannerTest extends ColorTest {
         proofs.put(tx2.getOutput(0).getOutPointFor(), tx2Proof);
         wallet.receivePending(tx2, Lists.<Transaction>newArrayList());
         Map<ColorDefinition, Long> expected = Maps.newHashMap();
-        Map<ColorDefinition, Long> res = scanner.getNetAssetChange(tx2, wallet, colorChain);
+        Map<ColorDefinition, Long> res = scanner.getNetAssetChange(tx2, multiWallet, colorChain);
         expected.put(def, 5L);
         assertEquals(expected, res);
         verify(fetchService);
 
         wallet.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
-        res = scanner.getNetAssetChange(tx2, wallet, colorChain);
+        res = scanner.getNetAssetChange(tx2, multiWallet, colorChain);
         expected.put(def, 5L);
     }
 
@@ -282,15 +282,15 @@ public class ClientColorScannerTest extends ColorTest {
         wallet.receivePending(tx2, Lists.<Transaction>newArrayList());
         barrier.await();
         Map<ColorDefinition, Long> expected = Maps.newHashMap();
-        ListenableFuture<Transaction> future = scanner.getTransactionWithKnownAssets(tx2, wallet, colorChain);
+        ListenableFuture<Transaction> future = scanner.getTransactionWithKnownAssets(tx2, multiWallet, colorChain);
         Transaction ftx = future.get();
-        Map<ColorDefinition, Long> res = scanner.getNetAssetChange(tx2, wallet, colorChain);
+        Map<ColorDefinition, Long> res = scanner.getNetAssetChange(tx2, multiWallet, colorChain);
         expected.put(def, 5L);
         assertEquals(expected, res);
         verify(fetcher);
 
         wallet.receiveFromBlock(tx2, FakeTxBuilder.createFakeBlock(blockStore, tx2).storedBlock, AbstractBlockChain.NewBlockType.BEST_CHAIN, 0);
-        res = scanner.getNetAssetChange(tx2, wallet, colorChain);
+        res = scanner.getNetAssetChange(tx2, multiWallet, colorChain);
         expected.put(def, 5L);
     }
 

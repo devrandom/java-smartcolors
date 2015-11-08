@@ -120,12 +120,18 @@ public class TestMultiWallet implements MultiWallet {
 
     @Override
     public void start() {
-
     }
 
     @Override
     public void startAsync() {
+    }
 
+    @Override
+    public void stop() {
+    }
+
+    @Override
+    public void stopAsync() {
     }
 
     @Override
@@ -151,5 +157,10 @@ public class TestMultiWallet implements MultiWallet {
     @Override
     public Context getContext() {
         return wallet.getContext();
+    }
+
+    @Override
+    public Wallet getWallet() {
+        return wallet;
     }
 }

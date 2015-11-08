@@ -28,7 +28,7 @@ public interface ColorScanner {
      */
     boolean removeDefinition(ColorDefinition def);
 
-    void waitForCurrentUnknownTransactions(SmartWallet _wallet, ColorKeyChain chain) throws ExecutionException, InterruptedException;
+    void waitForCurrentUnknownTransactions(MultiWallet wallet, ColorKeyChain chain) throws ExecutionException, InterruptedException;
 
     /** Get all currently configured definitions. The definitions persist in the wallet using {@link SmartwalletExtension}. */
     Set<ColorDefinition> getDefinitions();
@@ -40,22 +40,19 @@ public interface ColorScanner {
     ColorDefinition getBitcoinDefinition();
 
     /** Get the net change for each color this transaction moves */
-    Map<ColorDefinition, Long> getNetAssetChange(Transaction tx, Wallet wallet, ColorKeyChain chain);
+    Map<ColorDefinition, Long> getNetAssetChange(Transaction tx, MultiWallet wallet, ColorKeyChain chain);
 
     /** Check if the outpoint is colored, even if the color is unknown.  Colored outpoints belong to the {@link ColorKeyChain} */
     boolean contains(TransactionOutPoint point);
 
     /** Get the balance for each color */
-    Map<ColorDefinition, Long> getBalances(Wallet wallet, ColorKeyChain colorKeyChain);
-
-    /** Get the balance for each color */
     Map<ColorDefinition, Long> getBalances(MultiWallet wallet, ColorKeyChain colorKeyChain);
 
     /** Get a future that triggers when the colors the transaction moves become known - i.e. after the asset tracker responds */
-    ListenableFuture<Transaction> getTransactionWithKnownAssets(Transaction tx, Wallet wallet, ColorKeyChain chain);
+    ListenableFuture<Transaction> getTransactionWithKnownAssets(Transaction tx, MultiWallet wallet, ColorKeyChain chain);
 
     /**
-     * Rescan any unknown assets.  Useful after {@link #addDefinition}.  Caller is responsible for invoking {@link #start(Wallet)}
+     * Rescan any unknown assets.  Useful after {@link #addDefinition}.  Caller is responsible for invoking {@link #start(MultiWallet)}
      * if needed, but any pending fetches will be noted.
      */
     List<ListenableFuture<Transaction>> rescanUnknown(MultiWallet wallet, ColorKeyChain colorKeyChain);

@@ -64,4 +64,9 @@ abstract public class SmartMultiWallet implements MultiWallet {
     public Context getContext() {
         return wallet.getContext();
     }
+
+    @Override
+    public SmartWallet getWallet() {
+        return wallet;
+    }
 }
