@@ -16,6 +16,8 @@ import java.util.concurrent.Executor;
  * Created by devrandom on 2015-09-08.
  */
 public interface MultiWallet extends TransactionBag {
+    Coin getBalance(Wallet.BalanceType balanceType);
+
     interface MultiWalletEventListener {
         void onTransaction(MultiWallet wallet, Transaction tx);
     }

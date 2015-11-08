@@ -1,7 +1,9 @@
 package org.smartcolors;
 
 import org.bitcoinj.core.*;
+import org.bitcoinj.core.Wallet.BalanceType;
 import org.bitcoinj.script.Script;
+import org.bitcoinj.wallet.CoinSelection;
 
 import java.util.List;
 
@@ -89,6 +91,30 @@ abstract public class SmartMultiWallet implements MultiWallet {
         } catch (ScriptException e) {
             // Just means we didn't understand the output of this transaction: ignore it.
             return false;
+        }
+    }
+
+    /**
+     * Returns the balance of this wallet as calculated by the provided balanceType.
+     */
+    @Override
+    public Coin getBalance(BalanceType balanceType) {
+        lock();
+        try {
+            if (balanceType == BalanceType.AVAILABLE || balanceType == BalanceType.AVAILABLE_SPENDABLE) {
+                List<TransactionOutput> candidates = calculateAllSpendCandidates(true, balanceType == BalanceType.AVAILABLE_SPENDABLE);
+                CoinSelection selection = wallet.getCoinSelector().select(NetworkParameters.MAX_MONEY, candidates);
+                return selection.valueGathered;
+            } else if (balanceType == BalanceType.ESTIMATED || balanceType == BalanceType.ESTIMATED_SPENDABLE) {
+                List<TransactionOutput> all = calculateAllSpendCandidates(false, balanceType == BalanceType.ESTIMATED_SPENDABLE);
+                Coin value = Coin.ZERO;
+                for (TransactionOutput out : all) value = value.add(out.getValue());
+                return value;
+            } else {
+                throw new AssertionError("Unknown balance type");  // Unreachable.
+            }
+        } finally {
+            unlock();
         }
     }
 }
