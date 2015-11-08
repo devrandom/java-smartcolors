@@ -15,12 +15,11 @@ import java.util.concurrent.Executor;
 /**
  * Created by devrandom on 2015-Oct-19.
  */
-public class TestMultiWallet implements MultiWallet {
-    private final SmartWallet wallet;
+public class TestMultiWallet extends SmartMultiWallet {
     private final Map<MultiWalletEventListener, WalletEventListener> listenerMap = Maps.newConcurrentMap();
 
     public TestMultiWallet(SmartWallet wallet) {
-        this.wallet = wallet;
+        super(wallet);
     }
 
     @Override
@@ -157,10 +156,5 @@ public class TestMultiWallet implements MultiWallet {
     @Override
     public Context getContext() {
         return wallet.getContext();
-    }
-
-    @Override
-    public Wallet getWallet() {
-        return wallet;
     }
 }

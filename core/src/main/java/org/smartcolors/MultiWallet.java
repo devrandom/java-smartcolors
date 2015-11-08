@@ -65,4 +65,6 @@ public interface MultiWallet extends TransactionBag {
 
     @Deprecated
     Wallet getWallet();
+
+    boolean isMine(TransactionOutput output);
 }

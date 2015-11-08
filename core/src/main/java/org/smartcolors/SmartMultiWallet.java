@@ -69,4 +69,26 @@ abstract public class SmartMultiWallet implements MultiWallet {
     public SmartWallet getWallet() {
         return wallet;
     }
+
+    /**
+     * Returns true if this output is to a key, or an address we have the keys for, in the wallet.
+     */
+    @Override
+    public boolean isMine(TransactionOutput output) {
+        try {
+            Script script = output.getScriptPubKey();
+            if (script.isSentToRawPubKey()) {
+                byte[] pubkey = script.getPubKey();
+                return isPubKeyMine(pubkey);
+            } if (script.isPayToScriptHash()) {
+                return isPayToScriptHashMine(script.getPubKeyHash());
+            } else {
+                byte[] pubkeyHash = script.getPubKeyHash();
+                return isPubKeyHashMine(pubkeyHash);
+            }
+        } catch (ScriptException e) {
+            // Just means we didn't understand the output of this transaction: ignore it.
+            return false;
+        }
+    }
 }
