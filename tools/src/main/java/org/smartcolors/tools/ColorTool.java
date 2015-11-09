@@ -135,11 +135,11 @@ public class ColorTool {
         wallet.addEventListener(new AbstractWalletEventListener() {
             @Override
             public void onCoinsReceived(final Wallet wallet, Transaction tx, Coin prevBalance, Coin newBalance) {
-                ListenableFuture<Transaction> res = scanner.getTransactionWithKnownAssets(tx, wallet, colorChain);
+                ListenableFuture<Transaction> res = scanner.getTransactionWithKnownAssets(tx, multiWallet, colorChain);
                 Futures.addCallback(res, new FutureCallback<Transaction>() {
                     @Override
                     public void onSuccess(@Nullable Transaction result) {
-                        Map<ColorDefinition, Long> change = scanner.getNetAssetChange(result, wallet, colorChain);
+                        Map<ColorDefinition, Long> change = scanner.getNetAssetChange(result, multiWallet, colorChain);
                         System.out.println(change);
                     }
 
@@ -296,7 +296,7 @@ public class ColorTool {
             multiWallet.start();
             try {
                 multiWallet.awaitDownload();
-                scanner.waitForCurrentUnknownTransactions(wallet, colorChain);
+                scanner.waitForCurrentUnknownTransactions(multiWallet, colorChain);
             } catch (InterruptedException | ExecutionException e) {
                 System.err.println("Chain download interrupted, quitting ...");
                 System.exit(1);
