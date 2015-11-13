@@ -618,6 +618,7 @@ public class ColorTool {
                 BigDecimal amount = BigDecimal.valueOf(entry.getValue()).divide(divisibilityDivider);
                 System.out.print("  " + entry.getKey().getName() + ": " + amount);
             }
+            System.out.print(" @" + tx.getUpdateTime());
             System.out.println();
         }
         System.out.println("\n************** Balances:");
