@@ -43,6 +43,7 @@ import static com.google.common.base.Preconditions.checkState;
 public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
     private static final Logger log = LoggerFactory.getLogger(ClientColorScanner.class);
     public static final int NETWORK_TIMEOUT = 10000;
+    private static boolean disableFetch = false;
 
     Fetcher fetcher;
     ScheduledExecutorService fetchService;
@@ -59,6 +60,10 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
         } catch (URISyntaxException e) {
             throw Throwables.propagate(e);
         }
+    }
+
+    public static void setDisableFetch(boolean disableFetch) {
+        ClientColorScanner.disableFetch = disableFetch;
     }
 
     public ClientColorScanner(NetworkParameters params, URI baseUri) {
@@ -339,6 +344,8 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
         }
 
         public ColorProof fetch(TransactionOutPoint point) throws SerializationException, TemporaryFailureException {
+            if (disableFetch)
+                return null;
             String relative = "outpoint/" + point.getHash() + "/" + point.getIndex();
             log.info("fetching " + relative);
             HttpGet get = new HttpGet(base.resolve(relative));

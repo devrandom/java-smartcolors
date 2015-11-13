@@ -74,6 +74,7 @@ public class ColorTool {
         parser.accepts("force", "force creation of wallet from mnemonic");
         parser.accepts("electrum", "use Electrum SPV instead of native SPV");
         parser.accepts("linger", "do not exit after done");
+        parser.accepts("nofetch", "do not fetch colors");
         OptionSpec<String> assetsPathSpec = parser.accepts("assets", "asset directory, containing *.smartcolors").withRequiredArg();
         parser.accepts("debug");
         parser.accepts("verbose");
@@ -115,6 +116,11 @@ public class ColorTool {
         } else {
             net = "testnet";
             params = NetworkParameters.fromID(NetworkParameters.ID_TESTNET);
+        }
+
+        if (options.has("nofetch")) {
+            ClientColorScanner.setDisableFetch(true);
+            log.warn("FETCH DISABLED");
         }
 
         useElectrum = options.has("electrum");
