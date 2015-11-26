@@ -69,4 +69,6 @@ public interface MultiWallet extends TransactionBag {
     Wallet getWallet();
 
     boolean isMine(TransactionOutput output);
+
+    int currentHeight();
 }

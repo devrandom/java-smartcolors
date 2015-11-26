@@ -153,4 +153,9 @@ public class SPVMultiWallet extends SmartMultiWallet {
         peers.startBlockChainDownload(listener);
         listener.await();
     }
+
+    @Override
+    public int currentHeight() {
+        return -1;
+    }
 }
