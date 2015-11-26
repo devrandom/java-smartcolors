@@ -130,6 +130,10 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
             public void onTransaction(MultiWallet wallet, Transaction tx) {
                 ClientColorScanner.this.onTransaction(wallet, tx);
             }
+
+            @Override
+            public void onSyncState(MultiWallet wallet, boolean isSynced, long height) {
+            }
         }, Threading.SAME_THREAD);
     }
 

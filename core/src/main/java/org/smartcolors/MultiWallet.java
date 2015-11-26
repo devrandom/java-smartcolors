@@ -20,6 +20,7 @@ public interface MultiWallet extends TransactionBag {
 
     interface MultiWalletEventListener {
         void onTransaction(MultiWallet wallet, Transaction tx);
+        void onSyncState(MultiWallet wallet, boolean isSynced, long height);
     }
 
     void addEventListener(MultiWalletEventListener listener, Executor executor);
@@ -71,4 +72,10 @@ public interface MultiWallet extends TransactionBag {
     boolean isMine(TransactionOutput output);
 
     int currentHeight();
+
+    boolean isSynced();
+
+    List<VersionMessage> getPeers();
+
+    List<StoredBlock> getRecentBlocks(int maxBlocks);
 }

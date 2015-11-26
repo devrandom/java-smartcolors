@@ -1,5 +1,6 @@
 package org.smartcolors;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ListenableFuture;
 import org.bitcoinj.core.*;
@@ -157,5 +158,20 @@ public class SPVMultiWallet extends SmartMultiWallet {
     @Override
     public int currentHeight() {
         return -1;
+    }
+
+    @Override
+    public boolean isSynced() {
+        return true;
+    }
+
+    @Override
+    public List<VersionMessage> getPeers() {
+        return null; // FIXME
+    }
+
+    @Override
+    public List<StoredBlock> getRecentBlocks(int maxBlocks) {
+        return Lists.newArrayList();
     }
 }
