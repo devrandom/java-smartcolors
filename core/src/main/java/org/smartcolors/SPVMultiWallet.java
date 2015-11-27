@@ -157,21 +157,26 @@ public class SPVMultiWallet extends SmartMultiWallet {
 
     @Override
     public int currentHeight() {
-        return -1;
+        return -1; // TODO
     }
 
     @Override
     public boolean isSynced() {
-        return true;
+        return true; // TODO
     }
 
     @Override
     public List<VersionMessage> getPeers() {
-        return null; // FIXME
+        return null; // TODO
     }
 
     @Override
     public List<StoredBlock> getRecentBlocks(int maxBlocks) {
-        return Lists.newArrayList();
+        return Lists.newArrayList(); // TODO
+    }
+
+    @Override
+    public void resetBlockchain() {
+        // TODO
     }
 }

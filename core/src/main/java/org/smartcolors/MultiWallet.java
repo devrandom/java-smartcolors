@@ -78,4 +78,6 @@ public interface MultiWallet extends TransactionBag {
     List<VersionMessage> getPeers();
 
     List<StoredBlock> getRecentBlocks(int maxBlocks);
+
+    void resetBlockchain();
 }
