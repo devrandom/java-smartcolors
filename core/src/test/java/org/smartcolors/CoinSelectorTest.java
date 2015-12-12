@@ -90,7 +90,7 @@ public class CoinSelectorTest extends ColorTest {
         request.shuffleOutputs = false;
         request.coinSelector = bitcoinSelector;
         AssetCoinSelector.addAssetOutput(tx, ScriptBuilder.createOutputScript(new ECKey().toAddress(params)), 2L);
-        assetSelector.completeTx(wallet, request, 2L);
+        assetSelector.completeTx(multiWallet, request, 2L);
         assertEquals(tx3.getOutput(0).getOutPointFor(), tx.getInput(0).getOutpoint());
         assertEquals(tx4.getOutput(0).getOutPointFor(), tx.getInput(1).getOutpoint());
         assertEquals(Coin.valueOf(1000), tx.getFee());
@@ -133,7 +133,7 @@ public class CoinSelectorTest extends ColorTest {
         request.shuffleOutputs = false;
         request.coinSelector = bitcoinSelector;
         AssetCoinSelector.addAssetOutput(tx, notMyScript, 2L);
-        assetSelector.completeTx(wallet, request, 2L);
+        assetSelector.completeTx(multiWallet, request, 2L);
         final int length = tx.bitcoinSerialize().length;
         assertTrue(length >= 998);
         assertTrue(length <= 1001);
@@ -199,7 +199,7 @@ public class CoinSelectorTest extends ColorTest {
         request = makeRequest(tx);
         AssetCoinSelector.addAssetOutput(tx, ScriptBuilder.createOutputScript(new ECKey().toAddress(params)), 2L);
         try {
-            assetSelector.completeTx(wallet, request, 2L);
+            assetSelector.completeTx(multiWallet, request, 2L);
             fail();
         } catch (InsufficientMoneyException e) {
             assertEquals(Coin.valueOf(3050), e.missing);
@@ -210,7 +210,7 @@ public class CoinSelectorTest extends ColorTest {
         request = makeRequest(tx);
         AssetCoinSelector.addAssetOutput(tx, ScriptBuilder.createOutputScript(new ECKey().toAddress(params)), 7L);
         try {
-            assetSelector.completeTx(wallet, request, 7L);
+            assetSelector.completeTx(multiWallet, request, 7L);
             fail();
         } catch (InsufficientAssetException e) {
             assertEquals(Coin.valueOf(2), e.missing);
@@ -226,7 +226,7 @@ public class CoinSelectorTest extends ColorTest {
         request = makeRequest(tx);
         AssetCoinSelector.addAssetOutput(tx, ScriptBuilder.createOutputScript(new ECKey().toAddress(params)), 7L);
         try {
-            assetSelector.completeTx(wallet, request, 7L);
+            assetSelector.completeTx(multiWallet, request, 7L);
             fail();
         } catch (InsufficientAssetException e) {
             assertEquals(Coin.valueOf(2), e.missing);
@@ -239,7 +239,7 @@ public class CoinSelectorTest extends ColorTest {
         request = makeRequest(tx);
         AssetCoinSelector.addAssetOutput(tx, ScriptBuilder.createOutputScript(new ECKey().toAddress(params)), 2L);
         try {
-            assetSelector.completeTx(wallet, request, 2L);
+            assetSelector.completeTx(multiWallet, request, 2L);
         } catch (InsufficientMoneyException e) {
             fail();
         }
@@ -255,7 +255,7 @@ public class CoinSelectorTest extends ColorTest {
         request = makeRequest(tx);
         AssetCoinSelector.addAssetOutput(tx, ScriptBuilder.createOutputScript(new ECKey().toAddress(params)), 7L);
         try {
-            assetSelector.completeTx(wallet, request, 7L);
+            assetSelector.completeTx(multiWallet, request, 7L);
             fail();
         } catch (InsufficientAssetException e) {
             assertEquals(Coin.valueOf(2), e.missing);
@@ -271,7 +271,7 @@ public class CoinSelectorTest extends ColorTest {
         request = makeRequest(tx);
         AssetCoinSelector.addAssetOutput(tx, ScriptBuilder.createOutputScript(new ECKey().toAddress(params)), 7L);
         try {
-            assetSelector.completeTx(wallet, request, 7L);
+            assetSelector.completeTx(multiWallet, request, 7L);
         } catch (InsufficientMoneyException e) {
             fail();
         }

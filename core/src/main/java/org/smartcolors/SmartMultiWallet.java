@@ -4,6 +4,7 @@ import org.bitcoinj.core.*;
 import org.bitcoinj.core.Wallet.BalanceType;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.wallet.CoinSelection;
+import org.bitcoinj.wallet.RedeemData;
 
 import java.util.List;
 
@@ -116,5 +117,30 @@ abstract public class SmartMultiWallet implements MultiWallet {
         } finally {
             unlock();
         }
+    }
+
+    @Override
+    public ECKey findKeyFromPubHash(byte[] pubKeyHash) {
+        return wallet.findKeyFromPubHash(pubKeyHash);
+    }
+
+    @Override
+    public RedeemData findRedeemDataFromScriptHash(byte[] pubKeyHash) {
+        return wallet.findRedeemDataFromScriptHash(pubKeyHash);
+    }
+
+    @Override
+    public Address getChangeAddress() {
+        return wallet.getChangeAddress();
+    }
+
+    @Override
+    public NetworkParameters getParams() {
+        return wallet.getParams();
+    }
+
+    @Override
+    public void signTransaction(Wallet.SendRequest req) {
+        wallet.signTransaction(req);
     }
 }

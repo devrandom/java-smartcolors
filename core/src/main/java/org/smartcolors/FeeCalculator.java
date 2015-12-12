@@ -21,7 +21,7 @@ public class FeeCalculator {
         public TransactionOutput bestChangeOutput;
     }
 
-    public static FeeCalculation calculateFee(Wallet wallet, Wallet.SendRequest req, Coin value, List<TransactionInput> originalInputs,
+    public static FeeCalculation calculateFee(MultiWallet wallet, Wallet.SendRequest req, Coin value, List<TransactionInput> originalInputs,
                                               boolean needAtLeastReferenceFee, List<TransactionOutput> candidates) throws InsufficientMoneyException {
         FeeCalculation result = new FeeCalculation();
         // There are 3 possibilities for what adding change might do:
@@ -211,7 +211,7 @@ public class FeeCalculator {
             req.tx.addInput(input);
     }
 
-    private static int estimateBytesForSigning(Wallet wallet, CoinSelection selection, List<TransactionInput> originalInputs) {
+    private static int estimateBytesForSigning(MultiWallet wallet, CoinSelection selection, List<TransactionInput> originalInputs) {
         int size = 0;
         for (TransactionOutput output : selection.gathered) {
             size += estimateBytesForSigningOutput(wallet, output);
@@ -224,7 +224,7 @@ public class FeeCalculator {
         return size;
     }
 
-    private static int estimateBytesForSigningOutput(Wallet wallet, TransactionOutput output) {
+    private static int estimateBytesForSigningOutput(MultiWallet wallet, TransactionOutput output) {
         try {
             Script script = output.getScriptPubKey();
             ECKey key = null;

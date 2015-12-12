@@ -2,6 +2,7 @@ package org.smartcolors;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import org.bitcoinj.core.*;
+import org.bitcoinj.wallet.RedeemData;
 import org.bitcoinj.wallet.WalletTransaction;
 
 import java.util.List;
@@ -17,6 +18,14 @@ import java.util.concurrent.Executor;
  */
 public interface MultiWallet extends TransactionBag {
     Coin getBalance(Wallet.BalanceType balanceType);
+
+    void signTransaction(Wallet.SendRequest req);
+
+    ECKey findKeyFromPubHash(byte[] pubKeyHash);
+
+    RedeemData findRedeemDataFromScriptHash(byte[] pubKeyHash);
+
+    Address getChangeAddress();
 
     interface MultiWalletEventListener {
         void onTransaction(MultiWallet wallet, Transaction tx);
@@ -80,4 +89,6 @@ public interface MultiWallet extends TransactionBag {
     List<StoredBlock> getRecentBlocks(int maxBlocks);
 
     void resetBlockchain();
+
+    NetworkParameters getParams();
 }

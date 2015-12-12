@@ -157,4 +157,29 @@ public class TestMultiWallet extends SmartMultiWallet {
     public Context getContext() {
         return wallet.getContext();
     }
+
+    @Override
+    public int currentHeight() {
+        return 0;
+    }
+
+    @Override
+    public boolean isSynced() {
+        return false;
+    }
+
+    @Override
+    public List<VersionMessage> getPeers() {
+        return null;
+    }
+
+    @Override
+    public List<StoredBlock> getRecentBlocks(int maxBlocks) {
+        return null;
+    }
+
+    @Override
+    public void resetBlockchain() {
+
+    }
 }

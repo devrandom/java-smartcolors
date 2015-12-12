@@ -84,12 +84,11 @@ public class AssetCoinSelector extends DefaultCoinSelector {
      * <li>Calculate fee / select bitcoin inputs</li>
      * </ul>
      *
-     * @param _wallet wallet
+     * @param wallet  wallet
      * @param req     request with a BitcoinCoinSelector
      * @throws InsufficientMoneyException
      */
-    public void completeTx(Wallet _wallet, Wallet.SendRequest req, long assetAmount) throws InsufficientMoneyException {
-        SmartWallet wallet = (SmartWallet) _wallet;
+    public void completeTx(MultiWallet wallet, Wallet.SendRequest req, long assetAmount) throws InsufficientMoneyException {
         checkArgument(req.coinSelector instanceof BitcoinCoinSelector, "Must provide a BitcoinCoinSelector");
         wallet.lock();
         try {

@@ -479,7 +479,7 @@ public class ColorTool {
         Wallet.SendRequest req = null;
         try {
             req = makeAssetSendRequest(dest, amount);
-            assetSelector.completeTx(wallet, req, amount);
+            assetSelector.completeTx(multiWallet, req, amount);
         } catch (AddressFormatException e) {
             Throwables.propagate(e);
         } catch (InsufficientMoneyException e) {
