@@ -65,7 +65,7 @@ public class ColorDefinition extends HashableSerializable {
     // For JSON deserialization
     ColorDefinition(@JsonProperty("definition") String defHex, @JacksonInject(NETWORK_ID_INJECTABLE) String networkId) {
         this.params = NetworkParameters.fromID(networkId);
-        this.creationTime = SmartColors.getSmartwalletEpoch();
+        this.creationTime = SmartColors.getSmartwalletEpoch(params);
         this.metadata = Maps.newHashMap();
         Deserializer des = new BytesDeserializer(Utils.HEX.decode(defHex));
         ColorDefinition def = null;
@@ -88,7 +88,7 @@ public class ColorDefinition extends HashableSerializable {
         this.params = params;
         this.outPointGenesisPoints = outPointGenesisPoints;
         this.scriptGenesisPoints = scriptGenesisPoints;
-        this.creationTime = SmartColors.getSmartwalletEpoch();
+        this.creationTime = SmartColors.getSmartwalletEpoch(params);
         this.metadata = metadata;
         this.blockheight = blockheight;
         this.stegkey = stegkey;

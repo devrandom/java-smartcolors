@@ -1,6 +1,7 @@
 package org.smartcolors.core;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.Maps;
 import com.google.common.io.Resources;
 import org.bitcoinj.core.*;
 import org.bitcoinj.params.MainNetParams;
@@ -8,7 +9,6 @@ import org.bitcoinj.params.TestNet3Params;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.script.ScriptOpCodes;
-import org.bitcoinj.wallet.WalletTransaction;
 import org.smartcolors.MultiWallet;
 import org.smartcolors.SPVColorTrack;
 
@@ -28,7 +28,7 @@ public class SmartColors {
     public static final int EARLIEST_FUDGE = 86400 * 7; // counteract bitcoinj fudge
     public static final boolean ENABLE_OP_RETURN_MARKER = false;
     public static final int SERIALIZATION_STACK_SIZE = 2 * 1024 * 1024;
-    private static long epoch;
+    private static Map<NetworkParameters, Long> epochs;
 
     /**
      * Remove MSB-Drop nValue padding.
@@ -107,15 +107,21 @@ public class SmartColors {
 
     static {
         try {
-            epoch = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").parse("2014-11-20T00:00:00+0000").getTime() / 1000;
+            epochs = Maps.newHashMap();
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+            epochs.put(NetworkParameters.fromID(NetworkParameters.ID_TESTNET), dateFormat.parse("2014-11-20T00:00:00+0000").getTime() / 1000);
+            epochs.put(NetworkParameters.fromID(NetworkParameters.ID_UNITTESTNET), dateFormat.parse("2014-11-20T00:00:00+0000").getTime() / 1000);
+            epochs.put(NetworkParameters.fromID(NetworkParameters.ID_REGTEST), dateFormat.parse("2014-11-20T00:00:00+0000").getTime() / 1000);
+            epochs.put(NetworkParameters.fromID(NetworkParameters.ID_MAINNET), dateFormat.parse("2016-01-01T00:00:00+0000").getTime() / 1000);
         } catch (ParseException e) {
             throw Throwables.propagate(e);
         }
     }
 
     /** Seconds since the epoch when the first smartwallet was created */
-    public static long getSmartwalletEpoch() {
-        return epoch;
+    public static long getSmartwalletEpoch(NetworkParameters params) {
+        checkState(epochs.containsKey(params));
+        return epochs.get(params);
     }
 
     public static TransactionInput makeAssetInput(Transaction parent, Transaction from, int index) {

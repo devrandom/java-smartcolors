@@ -335,7 +335,7 @@ public class ColorTool {
             if (options.has(mnemonicSpec))
                 mnemonicCode = mnemonicSpec.value(options);
             System.out.println(mnemonicCode);
-            DeterministicSeed seed = new DeterministicSeed(mnemonicCode, null, "", SmartColors.getSmartwalletEpoch());
+            DeterministicSeed seed = new DeterministicSeed(mnemonicCode, null, "", SmartColors.getSmartwalletEpoch(params));
             System.out.println(Utils.HEX.encode(seed.getSeedBytes()));
             colorChain =
                     ColorKeyChain.builder()

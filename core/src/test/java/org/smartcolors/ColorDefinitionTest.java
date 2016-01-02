@@ -37,9 +37,9 @@ public class ColorDefinitionTest {
 
     @Before
     public void setUp() {
+        params = NetworkParameters.fromID(NetworkParameters.ID_TESTNET);
         def = new ColorDefinition(params, new GenesisOutPointsMerbinnerTree(params), new GenesisScriptMerbinnerTree());
         mapper = new ObjectMapper();
-        params = NetworkParameters.fromID(NetworkParameters.ID_TESTNET);
     }
 
     @Test
