@@ -127,7 +127,7 @@ public class ClientColorScanner extends AbstractColorScanner<ClientColorTrack> {
     private void listenToWallet(final MultiWallet wallet) {
         wallet.addEventListener(new MultiWallet.MultiWalletEventListener() {
             @Override
-            public void onTransaction(MultiWallet wallet, Transaction tx) {
+            public void onTransaction(MultiWallet wallet, Transaction tx, boolean isNewCoin) {
                 ClientColorScanner.this.onTransaction(wallet, tx);
             }
 

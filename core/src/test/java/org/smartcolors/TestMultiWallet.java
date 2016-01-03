@@ -28,14 +28,14 @@ public class TestMultiWallet extends SmartMultiWallet {
             @Override
             public void onCoinsReceived(Wallet wallet, Transaction tx, Coin prevBalance, Coin newBalance) {
                 super.onCoinsReceived(wallet, tx, prevBalance, newBalance);
-                listener.onTransaction(TestMultiWallet.this, tx);
+                listener.onTransaction(TestMultiWallet.this, tx, true);
             }
 
             @Override
             public void onCoinsSent(Wallet wallet, Transaction tx, Coin prevBalance, Coin newBalance) {
                 // FIXME change bitcoinj so that we get this also when diff = 0
                 super.onCoinsSent(wallet, tx, prevBalance, newBalance);
-                listener.onTransaction(TestMultiWallet.this, tx);
+                listener.onTransaction(TestMultiWallet.this, tx, false);
             }
 
             @Override

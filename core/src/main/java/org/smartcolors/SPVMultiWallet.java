@@ -42,14 +42,14 @@ public class SPVMultiWallet extends SmartMultiWallet {
             @Override
             public void onCoinsReceived(Wallet wallet, Transaction tx, Coin prevBalance, Coin newBalance) {
                 super.onCoinsReceived(wallet, tx, prevBalance, newBalance);
-                listener.onTransaction(SPVMultiWallet.this, tx);
+                listener.onTransaction(SPVMultiWallet.this, tx, true);
             }
 
             @Override
             public void onCoinsSent(Wallet wallet, Transaction tx, Coin prevBalance, Coin newBalance) {
                 // FIXME change bitcoinj so that we get this also when diff = 0
                 super.onCoinsSent(wallet, tx, prevBalance, newBalance);
-                listener.onTransaction(SPVMultiWallet.this, tx);
+                listener.onTransaction(SPVMultiWallet.this, tx, false);
             }
 
             @Override

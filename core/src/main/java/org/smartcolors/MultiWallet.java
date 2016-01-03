@@ -28,7 +28,7 @@ public interface MultiWallet extends TransactionBag {
     Address getChangeAddress();
 
     interface MultiWalletEventListener {
-        void onTransaction(MultiWallet wallet, Transaction tx);
+        void onTransaction(MultiWallet wallet, Transaction tx, boolean isNewCoin);
         void onSyncState(MultiWallet wallet, boolean isSynced, long height);
     }
 
